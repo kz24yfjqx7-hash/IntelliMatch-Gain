@@ -1,0 +1,129 @@
+{
+  "nodes": [
+    {
+      "id": "Node-A",
+      "name": "虚拟电厂节点A",
+      "status": "online",
+      "load": 120,
+      "model": "VPP-2000",
+      "pvOutput": 45.3,
+      "storageOutput": -12.0,
+      "soc": 65
+    },
+    {
+      "id": "Node-B",
+      "name": "虚拟电厂节点B",
+      "status": "online",
+      "load": 85,
+      "model": "VPP-2000",
+      "pvOutput": 32.1,
+      "storageOutput": 8.5,
+      "soc": 78
+    },
+    {
+      "id": "Node-C",
+      "name": "虚拟电厂节点C",
+      "status": "warning",
+      "load": 150,
+      "model": "VPP-3000",
+      "pvOutput": 28.7,
+      "storageOutput": -25.3,
+      "soc": 42
+    },
+    {
+      "id": "Node-D",
+      "name": "虚拟电厂节点D",
+      "status": "online",
+      "load": 95,
+      "model": "VPP-2000",
+      "pvOutput": 38.9,
+      "storageOutput": 5.2,
+      "soc": 82
+    }
+  ],
+  "dataClassification": [
+    {
+      "field": "光伏发电功率",
+      "value": "45.3 kW",
+      "level": "L1",
+      "levelName": "L1 公开数据",
+      "levelIcon": "🟢",
+      "description": "可直接共享"
+    },
+    {
+      "field": "储能充放电功率",
+      "value": "-12.0 kW",
+      "level": "L2",
+      "levelName": "L2 敏感数据",
+      "levelIcon": "🟡",
+      "description": "需脱敏处理"
+    },
+    {
+      "field": "用户位置信息",
+      "value": "宿迁市XX区",
+      "level": "L3",
+      "levelName": "L3 高度敏感",
+      "levelIcon": "🔴",
+      "description": "禁止直接上传"
+    },
+    {
+      "field": "负荷曲线数据",
+      "value": "128.5 kW",
+      "level": "L2",
+      "levelName": "L2 敏感数据",
+      "levelIcon": "🟡",
+      "description": "需脱敏处理"
+    },
+    {
+      "field": "设备运行状态",
+      "value": "正常运行",
+      "level": "L1",
+      "levelName": "L1 公开数据",
+      "levelIcon": "🟢",
+      "description": "可直接共享"
+    }
+  ],
+  "riskAssessment": [
+    {
+      "type": "光伏数据",
+      "score": 15,
+      "status": "safe",
+      "statusText": "安全"
+    },
+    {
+      "type": "负荷数据",
+      "score": 60,
+      "status": "warning",
+      "statusText": "警告"
+    },
+    {
+      "type": "位置数据",
+      "score": 92,
+      "status": "danger",
+      "statusText": "危险"
+    }
+  ],
+  "privacyCompute": {
+    "epsilon": 0.5,
+    "compressionRate": 0.8,
+    "topK": 10
+  },
+  "dispatchOrder": {
+    "targetNode": "Node-A",
+    "targetPower": 20.0,
+    "timeRange": "14:35～15:35",
+    "dispatchType": "放电调度"
+  },
+  "terminalResponse": {
+    "initialPower": -12.0,
+    "targetPower": 20.0,
+    "responseTime": 1.2,
+    "modelingTime": "4min 12s",
+    "threshold": "5min"
+  },
+  "systemInfo": {
+    "name": "智慧配电网隐私调度中枢",
+    "version": "1.0.0",
+    "description": "虚拟电厂云边协同全景沙盘演示系统"
+  }
+}

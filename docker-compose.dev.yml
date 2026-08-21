@@ -1,0 +1,47 @@
+# ============================================================
+# 乙方独立联调 compose（不依赖甲方 backend/）
+#   默认只起 algo-service；加 --profile mock 再起一个 MSW 模式的前端（VITE_USE_MOCK=true）。
+# 使用：
+#   cp .env.example .env
+#   docker compose -f docker-compose.dev.yml up -d --build                # 仅算法服务，宿主机 :8100
+#   docker compose -f docker-compose.dev.yml --profile mock up -d --build # 算法服务 + MSW 前端（宿主机 :${FRONTEND_PORT}）
+#   curl -s localhost:8100/algo/v1/health
+# ============================================================
+name: energy-tds-dev
+
+services:
+  algo-service:
+    image: energy-tds/algo-service:1.0
+    build:
+      context: ./algo-service
+    container_name: energy-tds-dev-algo
+    environment:
+      ALGO_PORT: ${ALGO_PORT:-8100}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_TIMEOUT: ${DEEPSEEK_TIMEOUT:-8}
+      DEEPSEEK_OFFLINE_FALLBACK: ${DEEPSEEK_OFFLINE_FALLBACK:-true}
+      FL_ROUND_DELAY: ${FL_ROUND_DELAY:-1.0}
+    ports:
+      - "${ALGO_PORT:-8100}:${ALGO_PORT:-8100}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:${ALGO_PORT:-8100}/algo/v1/health',timeout=3).status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  # MSW 假后端模式的前端：不需要 backend，nginx 中 /api 反代目标不存在也不影响（MSW 在浏览器内拦截）
+  frontend-mock:
+    profiles: ["mock"]
+    image: energy-tds/frontend:1.0-mock
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-/api/v1}
+        VITE_WS_BASE: ${VITE_WS_BASE:-/ws}
+        VITE_USE_MOCK: "true"
+    container_name: energy-tds-dev-frontend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"

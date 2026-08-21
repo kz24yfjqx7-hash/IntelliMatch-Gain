@@ -1,0 +1,26 @@
+# 能源可信数据空间平台 · MySQL 配置（树莓派 4B / arm64 低内存调优版）
+# 目标：MySQL 常驻内存压到 ~350MB（见《安装包规范》§五）
+[mysqld]
+character-set-server           = utf8mb4
+collation-server               = utf8mb4_unicode_ci
+default-time-zone              = '+08:00'
+skip-name-resolve              = ON
+
+performance_schema             = OFF    # 最关键：单这一条省 200~400MB
+innodb_buffer_pool_size        = 128M
+innodb_log_file_size           = 32M
+innodb_flush_log_at_trx_commit = 2      # 减少 SD 卡写入
+innodb_flush_method            = O_DIRECT
+innodb_log_buffer_size         = 8M
+max_connections                = 50
+table_open_cache               = 200
+table_definition_cache         = 200
+tmp_table_size                 = 16M
+max_heap_table_size            = 16M
+thread_cache_size              = 8
+key_buffer_size                = 8M
+slow_query_log                 = OFF
+log_error_verbosity            = 1
+
+[client]
+default-character-set = utf8mb4

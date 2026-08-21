@@ -1,0 +1,190 @@
+{
+ "839fe26b3658365bc535bae91e3554674f0dcab23abadaaf9e4fcce336e0449c": {
+  "scene": "dispatch",
+  "question": "为什么选择节点C放电？",
+  "answer": "本次调度由 DQN 模型基于各节点实时状态生成：Node-C 放电 24kW；Node-D 充电 12kW。策略综合奖励 15.7，放电节点优先选择负荷高、SOC 充足且处于峰时电价的节点，以削峰并获取电价差收益；充电节点利用谷时电价或光伏过剩补充电量。所有动作均经过 SOC 与功率硬约束校验，DeepSeek 仅提供解释，不参与控制。",
+  "reasoning": [
+   "全网总负荷 470kW，总光伏出力 155.3kW，净缺口 314.7kW",
+   "节点 Node-C 负荷 150kW 为全网最高，SOC 85%",
+   "节点 Node-C 放电 24kW（Q值 8.42）：负荷最高，SOC充足，处于峰时电价",
+   "节点 Node-D 充电 12kW：SOC低于下限，禁止放电，SOC偏低",
+   "约束校验拦截 1 项：SOC=15.0% 触发下限约束，禁止 discharge"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "scene:dispatch": {
+  "scene": "dispatch",
+  "question": "为什么选择节点C放电？",
+  "answer": "本次调度由 DQN 模型基于各节点实时状态生成：Node-C 放电 24kW；Node-D 充电 12kW。策略综合奖励 15.7，放电节点优先选择负荷高、SOC 充足且处于峰时电价的节点，以削峰并获取电价差收益；充电节点利用谷时电价或光伏过剩补充电量。所有动作均经过 SOC 与功率硬约束校验，DeepSeek 仅提供解释，不参与控制。",
+  "reasoning": [
+   "全网总负荷 470kW，总光伏出力 155.3kW，净缺口 314.7kW",
+   "节点 Node-C 负荷 150kW 为全网最高，SOC 85%",
+   "节点 Node-C 放电 24kW（Q值 8.42）：负荷最高，SOC充足，处于峰时电价",
+   "节点 Node-D 充电 12kW：SOC低于下限，禁止放电，SOC偏低",
+   "约束校验拦截 1 项：SOC=15.0% 触发下限约束，禁止 discharge"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "5062bf27a232aa70cc48c7aaaa81988d49801d041045245d7e3b131acbe50532": {
+  "scene": "risk",
+  "question": "该节点的隐私风险如何？",
+  "answer": "Node-A 当前隐私风险评分 72.4，等级 high。主要风险来源为查询频率。建议将差分隐私 ε 由 1.0 降至 0.5",
+  "reasoning": [
+   "查询频率：得分 85（权重 0.35），5分钟内12次查询",
+   "数据粒度：得分 75（权重 0.25），采集粒度 minute",
+   "暴露字段数：得分 60（权重 0.2），暴露 6 个字段",
+   "输入特征：查询频率 12 次、粒度 minute、暴露字段 6 个、剩余 ε 0.58"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "scene:risk": {
+  "scene": "risk",
+  "question": "该节点的隐私风险如何？",
+  "answer": "Node-A 当前隐私风险评分 72.4，等级 high。主要风险来源为查询频率。建议将差分隐私 ε 由 1.0 降至 0.5",
+  "reasoning": [
+   "查询频率：得分 85（权重 0.35），5分钟内12次查询",
+   "数据粒度：得分 75（权重 0.25），采集粒度 minute",
+   "暴露字段数：得分 60（权重 0.2），暴露 6 个字段",
+   "输入特征：查询频率 12 次、粒度 minute、暴露字段 6 个、剩余 ε 0.58"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "b23e3ea4dd281fb7af702bbbbcef3c748e0b7211ec72eb7dd109953ba8b56d4e": {
+  "scene": "data",
+  "question": "请分析当前数据资产的分级分布",
+  "answer": "平台当前登记数据资产 85 条。高敏感级（L3/L4）数据主要来自包含地理位置、用户或价格字段且采集粒度为分钟级的记录，建议对其启用差分隐私并限制导出；L1/L2 数据可按授权策略开放共享。原始数据全部留存本地，链上仅存 SM3 摘要。",
+  "reasoning": [
+   "分级分布：L1 12 条、L2 33 条、L3 28 条、L4 12 条",
+   "类型分布：pv 30 条、load 25 条、storage 18 条、dispatch 12 条",
+   "已授权 40 条，上链 85 条"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "scene:data": {
+  "scene": "data",
+  "question": "请分析当前数据资产的分级分布",
+  "answer": "平台当前登记数据资产 85 条。高敏感级（L3/L4）数据主要来自包含地理位置、用户或价格字段且采集粒度为分钟级的记录，建议对其启用差分隐私并限制导出；L1/L2 数据可按授权策略开放共享。原始数据全部留存本地，链上仅存 SM3 摘要。",
+  "reasoning": [
+   "分级分布：L1 12 条、L2 33 条、L3 28 条、L4 12 条",
+   "类型分布：pv 30 条、load 25 条、storage 18 条、dispatch 12 条",
+   "已授权 40 条，上链 85 条"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "9d2fd74121d8d6b406806efbe03c72c9c708aa126313ea2f8239267271367551": {
+  "scene": "audit",
+  "question": "请生成今日审计日报解读",
+  "answer": "今日（2026-08-17）平台共记录 420 条审计日志，其中高风险 6 条。身份侧完成 DID 签发 5 次、密钥轮换 2 次；权限侧受理申请 8 件、审批通过 6 件、驳回 2 件；存证链累计 128 条记录、完整性校验通过。风险方面，R01_UNAUTHORIZED 触发 3 次，已生成告警并记录高风险审计日志，建议运维人员及时确认处理。全部操作均可通过 traceId 进行任务级全链路追溯。",
+  "reasoning": [
+   "身份操作：签发 5、冻结 1、注销 0、轮换 2",
+   "权限操作：申请 8、通过 6、驳回 2、回收 1",
+   "存证：累计 128 条（data 60、identity 22、permission 18、audit 25、algo 3）",
+   "风险事件：R01_UNAUTHORIZED 3 次（high）"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "scene:audit": {
+  "scene": "audit",
+  "question": "请生成今日审计日报解读",
+  "answer": "今日（2026-08-17）平台共记录 420 条审计日志，其中高风险 6 条。身份侧完成 DID 签发 5 次、密钥轮换 2 次；权限侧受理申请 8 件、审批通过 6 件、驳回 2 件；存证链累计 128 条记录、完整性校验通过。风险方面，R01_UNAUTHORIZED 触发 3 次，已生成告警并记录高风险审计日志，建议运维人员及时确认处理。全部操作均可通过 traceId 进行任务级全链路追溯。",
+  "reasoning": [
+   "身份操作：签发 5、冻结 1、注销 0、轮换 2",
+   "权限操作：申请 8、通过 6、驳回 2、回收 1",
+   "存证：累计 128 条（data 60、identity 22、permission 18、audit 25、algo 3）",
+   "风险事件：R01_UNAUTHORIZED 3 次（high）"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "411300470cc850137348aa0a81668e8fcc9bbbcc980a3eafe8a16ce64a4531a9": {
+  "scene": "qa",
+  "question": "什么是联邦学习？",
+  "answer": "联邦学习采用 FedAvg：各节点在本地训练模型，云端按样本量加权平均参数 θ = Σ(n_k/n)·θ_k，原始数据不出域；每轮梯度 SHA256/SM3 哈希上链，余弦相似度检测投毒节点。",
+  "reasoning": [
+   "平台采用 DID + 国密 SM2 实现设备源头可信认证，联邦学习保证原始数据不出域",
+   "差分隐私（高斯机制）与 Top-k 稀疏化在保护隐私的同时降低通信量，DQN 负责储能调度",
+   "所有关键操作的摘要上链存证，支持按 traceId 全链路追溯与防篡改校验"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "scene:qa": {
+  "scene": "qa",
+  "question": "什么是联邦学习？",
+  "answer": "联邦学习采用 FedAvg：各节点在本地训练模型，云端按样本量加权平均参数 θ = Σ(n_k/n)·θ_k，原始数据不出域；每轮梯度 SHA256/SM3 哈希上链，余弦相似度检测投毒节点。",
+  "reasoning": [
+   "平台采用 DID + 国密 SM2 实现设备源头可信认证，联邦学习保证原始数据不出域",
+   "差分隐私（高斯机制）与 Top-k 稀疏化在保护隐私的同时降低通信量，DQN 负责储能调度",
+   "所有关键操作的摘要上链存证，支持按 traceId 全链路追溯与防篡改校验"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "480ac5e142f354a941c1a53bc3a2439317cc0d99a97e1acb75d18fbdf70ec197": {
+  "scene": "qa",
+  "question": "差分隐私的 ε 是什么意思？",
+  "answer": "差分隐私对模型更新先做 L2 裁剪再加高斯噪声 N(0,(C·σ)²)，按 ε = q·√(T·ln(1/δ))/σ 累计预算；预算耗尽会上报 privacy_budget_exhausted 触发 R05 告警。",
+  "reasoning": [
+   "平台采用 DID + 国密 SM2 实现设备源头可信认证，联邦学习保证原始数据不出域",
+   "差分隐私（高斯机制）与 Top-k 稀疏化在保护隐私的同时降低通信量，DQN 负责储能调度",
+   "所有关键操作的摘要上链存证，支持按 traceId 全链路追溯与防篡改校验"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "3c7aa299c99369fddb2b8ee18ada7af1a731a223dda62187221e2e96dbaecea8": {
+  "scene": "qa",
+  "question": "平台如何防止数据被篡改？",
+  "answer": "平台将数据摘要、梯度哈希、权限变更、审计日志上链，block_hash = H(prev + payloadHash + ts)；篡改任一条记录都会导致 verify 返回 intact=false 并定位断裂点。",
+  "reasoning": [
+   "平台采用 DID + 国密 SM2 实现设备源头可信认证，联邦学习保证原始数据不出域",
+   "差分隐私（高斯机制）与 Top-k 稀疏化在保护隐私的同时降低通信量，DQN 负责储能调度",
+   "所有关键操作的摘要上链存证，支持按 traceId 全链路追溯与防篡改校验"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "b6c630ef72b0d859afad94fb2ba4c5bf8707d726e366f8e063f6101b4bbda690": {
+  "scene": "qa",
+  "question": "DQN 是怎么做调度决策的？",
+  "answer": "DQN 以 [光伏, 负荷, SOC, 电价, 时刻] 为状态，在 charge/idle/discharge 中选 Q 值最大的动作，奖励 = 削峰收益 − 越限惩罚 − 电价成本，并经 SOC 20%~95%、≤30kW 硬约束校验。",
+  "reasoning": [
+   "平台采用 DID + 国密 SM2 实现设备源头可信认证，联邦学习保证原始数据不出域",
+   "差分隐私（高斯机制）与 Top-k 稀疏化在保护隐私的同时降低通信量，DQN 负责储能调度",
+   "所有关键操作的摘要上链存证，支持按 traceId 全链路追溯与防篡改校验"
+  ],
+  "source": "rule",
+  "cachedAt": "2026-08-21T09:46:59",
+  "template": "rule"
+ },
+ "80a44f6611530edbd60ccc0f5299bc9346aa9f69e8ad4aa4427c1df9f35850d2": {
+  "scene": "qa",
+  "question": "live?",
+  "answer": "模拟LIVE回答",
+  "reasoning": [
+   "a",
+   "b"
+  ],
+  "source": "live",
+  "cachedAt": "2026-08-21T10:29:12"
+ }
+}

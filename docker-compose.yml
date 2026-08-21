@@ -1,0 +1,171 @@
+# ============================================================
+# 能源可信数据空间平台 · 生产 / 联调 compose（五服务）
+#   浏览器 → frontend(nginx:80) → backend:8000 → algo-service:8100
+#                                        ├→ mysql:3306
+#                                        └→ redis:6379
+# 使用：cp .env.example .env && docker compose up -d --build
+# 说明：
+#   - image: 与 build: 同写。离线安装包 docker load 后镜像已存在，compose 不会再 build。
+#   - backend/ 为甲方目录；本仓库没有该目录时 `docker compose config` 仍能通过，
+#     只有真正 build 时才会报 context 不存在。乙方独立联调请用 docker-compose.dev.yml。
+#   - 内存上限照《安装包规范》§五（树莓派 4GB 机型预算）。
+# ============================================================
+name: energy-tds
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: energy-tds-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      # 甲方建表脚本：01_schema.sql / 02_seed.sql，首次启动自动执行（安装包中由 sql/ 目录提供）
+      - ./backend/sql:/docker-entrypoint-initdb.d:ro
+      - ./deploy/mysql/mysql.cnf:/etc/mysql/conf.d/energy.cnf:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks: [energy-net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: energy-tds-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    networks: [energy-net]
+
+  backend:
+    image: energy-tds/backend:1.0
+    build:
+      context: ./backend
+    container_name: energy-tds-backend
+    restart: unless-stopped
+    # 变量全部显式映射，不用 env_file（避免 .env 缺失时 compose config 失败，见 MSG-qa-to-deploy-001）
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      BACKEND_PORT: ${BACKEND_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE_SECONDS: ${JWT_EXPIRE_SECONDS}
+      ALGO_SERVICE_URL: ${ALGO_SERVICE_URL}
+      TZ: Asia/Shanghai
+    expose:
+      - "${BACKEND_PORT}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      algo-service:
+        condition: service_started
+    healthcheck:
+      # 甲方镜像基于 python:3.11-slim，无 curl，用 urllib 探活
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:${BACKEND_PORT}/api/v1/health',timeout=3).status==200 else 1)\" || curl -fs http://127.0.0.1:${BACKEND_PORT}/api/v1/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    networks: [energy-net]
+
+  algo-service:
+    image: energy-tds/algo-service:1.0
+    build:
+      context: ./algo-service
+    container_name: energy-tds-algo
+    restart: unless-stopped
+    environment:
+      ALGO_PORT: ${ALGO_PORT}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL}
+      DEEPSEEK_TIMEOUT: ${DEEPSEEK_TIMEOUT}
+      DEEPSEEK_OFFLINE_FALLBACK: ${DEEPSEEK_OFFLINE_FALLBACK}
+      # algo 内部变量（非契约）：FL 每轮间隔秒数，演示 1.0，测试可设 0
+      FL_ROUND_DELAY: ${FL_ROUND_DELAY:-1.0}
+      TZ: Asia/Shanghai
+    expose:
+      - "${ALGO_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:${ALGO_PORT}/algo/v1/health',timeout=3).status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+    networks: [energy-net]
+
+  frontend:
+    image: energy-tds/frontend:1.0
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: ${VITE_API_BASE}
+        VITE_WS_BASE: ${VITE_WS_BASE}
+        VITE_USE_MOCK: ${VITE_USE_MOCK}
+    container_name: energy-tds-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks: [energy-net]
+
+volumes:
+  mysql-data:
+    name: energy-tds-mysql-data
+  redis-data:
+    name: energy-tds-redis-data
+
+networks:
+  energy-net:
+    name: energy-tds-net
+    driver: bridge
