@@ -1,7 +1,7 @@
 /** 能源数据资产（契约 §2.4） */
 import { http } from 'msw'
 import { db, chain, nextId } from '../db.js'
-import { BASE, handle, ok, body, query, paginate, requireAuth, requirePerm, permissionsOf, writeAudit, writeEvidence, MockError, now } from '../helpers.js'
+import { BASE, handle, ok, body, query, paginate, requireAuth, requirePerm, permissionsOf, writeAudit, writeEvidence, MockError, now, isOwnOnly, ownDids } from '../helpers.js'
 
 const TYPE_NAMES = { pv: '光伏出力', wind: '风电出力', storage: '储能状态', load: '负荷曲线', dispatch: '调度指令' }
 
@@ -29,11 +29,9 @@ export function assetDto(a) {
 }
 
 /** energy_subject / edge_node 仅可见自有资产（sourceDid 属于本人或本人控制的 DID） */
-function visibleAssets(user) {
-  const role = db.roles.find(r => user.roles.includes(r.code) && r.scope === 'own')
-  const onlyOwnRoles = user.roles.every(code => db.roles.find(r => r.code === code)?.scope === 'own')
-  if (!role || !onlyOwnRoles) return db.assets
-  const myDids = new Set([user.did, ...db.dids.filter(d => d.controllerDid === user.did).map(d => d.did)])
+export function visibleAssets(user) {
+  if (!isOwnOnly(user)) return db.assets
+  const myDids = ownDids(user)
   const granted = new Set(db.grants.filter(g => g.did === user.did && g.status === 'active' && g.resourceType === 'asset').map(g => g.resourceId))
   return db.assets.filter(a => myDids.has(a.sourceDid) || granted.has(String(a.id)) || granted.has('*'))
 }
@@ -42,7 +40,7 @@ export const assetHandlers = [
   http.get(`${BASE}/assets/stats`, handle(async ({ request, traceId }) => {
     const user = requireAuth(request)
     requirePerm(user, 'asset:read', { request, traceId })
-    const list = db.assets
+    const list = visibleAssets(user)
     const byLevel = ['L1', 'L2', 'L3', 'L4'].map(level => ({ level, count: list.filter(a => a.level === level).length }))
     const byType = Object.keys(TYPE_NAMES).map(dataType => ({ dataType, count: list.filter(a => a.dataType === dataType).length }))
     return ok({ byLevel, byType, total: list.length, authorized: list.filter(a => a.authStatus === 'authorized').length, onChain: list.filter(a => a.evidenceId).length }, traceId)
@@ -111,8 +109,8 @@ export const assetHandlers = [
   http.get(`${BASE}/assets/:id/lineage`, handle(async ({ request, params, traceId }) => {
     const user = requireAuth(request)
     requirePerm(user, 'asset:read', { request, traceId })
-    const asset = db.assets.find(a => a.id === Number(params.id))
-    if (!asset) throw new MockError(1005, '资产不存在')
+    const asset = visibleAssets(user).find(a => a.id === Number(params.id))
+    if (!asset) throw new MockError(1005, '资产不存在或无权查看')
     const rid = String(asset.id)
     const lineage = []
     const reg = chain.get(asset.evidenceId)

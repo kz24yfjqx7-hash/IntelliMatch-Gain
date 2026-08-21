@@ -8,8 +8,13 @@
 set -euo pipefail
 
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="/opt/energy-tds"
-HEALTH_TIMEOUT=180
+# 以下系统路径可用 ENERGY_TDS_* 环境变量覆盖（仅供 qa/deploy-sandbox 在无 root / 无 docker 的机器上做流程实测，正常安装勿设置）
+INSTALL_DIR="${ENERGY_TDS_INSTALL_DIR:-/opt/energy-tds}"
+SYSTEMD_DIR="${ENERGY_TDS_SYSTEMD_DIR:-/etc/systemd/system}"
+BIN_DIR="${ENERGY_TDS_BIN_DIR:-/usr/bin}"
+CLI_PLUGIN_DIRS="${ENERGY_TDS_CLI_PLUGIN_DIRS:-/usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins}"
+DPHYS_SWAPFILE="${ENERGY_TDS_DPHYS_SWAPFILE:-/etc/dphys-swapfile}"
+HEALTH_TIMEOUT="${ENERGY_TDS_HEALTH_TIMEOUT:-180}"
 NO_KIOSK=0
 NO_START=0
 FRONTEND_PORT_OVERRIDE=""
@@ -74,15 +79,17 @@ ok "架构匹配：${MACHINE} ↔ 包 ${PKG_ARCH}"
 # 第 3 步：内存 / 磁盘
 # ============================================================
 step 3 "检查内存 ≥ 3.5GB、磁盘 ≥ 8GB"
-MEM_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+MEM_MB="$(free -m 2>/dev/null | awk '/^Mem:/ {print $2}')"
+[[ -n "${MEM_MB}" ]] || MEM_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
 if [[ ${MEM_MB} -lt 3500 ]]; then
-  die "内存不足：当前 ${MEM_MB}MB，要求 ≥ 3584MB（3.5GB）。树莓派请使用 4GB 及以上机型。"
+  die "内存不足：当前 ${MEM_MB}MB，要求 ≥ 3500MB（约 3.5GB）。树莓派请使用 4GB 及以上机型。"
 fi
 ok "内存 ${MEM_MB}MB"
 mkdir -p "$(dirname "${INSTALL_DIR}")"
 DISK_GB=$(df -BG --output=avail "$(dirname "${INSTALL_DIR}")" | tail -1 | tr -dc '0-9')
-DOCKER_DISK_GB=$(df -BG --output=avail /var/lib 2>/dev/null | tail -1 | tr -dc '0-9' || echo "${DISK_GB}")
-if [[ ${DISK_GB} -lt 8 || ${DOCKER_DISK_GB} -lt 8 ]]; then
+DOCKER_DISK_GB=$(df -BG --output=avail /var/lib 2>/dev/null | tail -1 | tr -dc '0-9' || true)
+DOCKER_DISK_GB="${DOCKER_DISK_GB:-${DISK_GB}}"
+if [[ ${DISK_GB:-0} -lt 8 || ${DOCKER_DISK_GB:-0} -lt 8 ]]; then
   die "磁盘不足：/opt 剩余 ${DISK_GB}GB，/var/lib 剩余 ${DOCKER_DISK_GB}GB，要求均 ≥ 8GB。"
 fi
 ok "磁盘 /opt ${DISK_GB}GB，/var/lib ${DOCKER_DISK_GB}GB"
@@ -95,7 +102,7 @@ step 4 "检测 / 离线安装 Docker"
 install_compose_plugin() {
   local src="${PKG_DIR}/docker/docker-compose-${PKG_ARCH}"
   [[ -f "${src}" ]] || die "安装包缺少 docker/docker-compose-${PKG_ARCH}，无法安装 compose 插件"
-  for dir in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins; do
+  for dir in ${CLI_PLUGIN_DIRS}; do
     mkdir -p "${dir}"
     install -m 0755 "${src}" "${dir}/docker-compose"
   done
@@ -118,9 +125,12 @@ else
     command -v systemctl >/dev/null 2>&1 || die "目标机没有 systemd，无法自动管理 Docker 服务，请手动安装 Docker 后重试"
     tmp="$(mktemp -d)"
     tar -xzf "${tgz}" -C "${tmp}"
-    install -m 0755 "${tmp}"/docker/* /usr/bin/
+    mkdir -p "${BIN_DIR}"
+    install -m 0755 "${tmp}"/docker/* "${BIN_DIR}/"
     rm -rf "${tmp}"
-    install -m 0644 "${PKG_DIR}/docker/docker.service" /etc/systemd/system/docker.service
+    hash -r
+    mkdir -p "${SYSTEMD_DIR}"
+    install -m 0644 "${PKG_DIR}/docker/docker.service" "${SYSTEMD_DIR}/docker.service"
     getent group docker >/dev/null || groupadd docker
     systemctl daemon-reload
     systemctl enable --now docker
@@ -226,17 +236,19 @@ cp "${PKG_DIR}/部署说明.md" "${INSTALL_DIR}/部署说明.md" 2>/dev/null || 
 ok "运行文件已复制到 ${INSTALL_DIR}"
 
 # ARM：swap 调到 2GB（树莓派 dphys-swapfile）
-if [[ "${HOST_ARCH}" == "arm64" && -f /etc/dphys-swapfile ]]; then
-  cur=$(grep -E '^CONF_SWAPSIZE=' /etc/dphys-swapfile | cut -d= -f2 || echo 0)
+if [[ "${HOST_ARCH}" == "arm64" && -f "${DPHYS_SWAPFILE}" ]]; then
+  cur=$(grep -E '^CONF_SWAPSIZE=' "${DPHYS_SWAPFILE}" | cut -d= -f2 || true)
   if [[ "${cur:-0}" -lt 2048 ]]; then
     info "ARM 设备：把 swap 调整为 2048MB（原 ${cur:-默认}MB）"
-    sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
-    grep -q '^CONF_SWAPSIZE=' /etc/dphys-swapfile || echo 'CONF_SWAPSIZE=2048' >> /etc/dphys-swapfile
+    sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' "${DPHYS_SWAPFILE}"
+    grep -q '^CONF_SWAPSIZE=' "${DPHYS_SWAPFILE}" || echo 'CONF_SWAPSIZE=2048' >> "${DPHYS_SWAPFILE}"
     systemctl restart dphys-swapfile 2>/dev/null || warn "dphys-swapfile 重启失败，重启系统后生效"
     ok "swap: $(free -m | awk '/Swap/ {print $2}')MB"
   else
     ok "swap 已是 ${cur}MB，无需调整"
   fi
+elif [[ "${HOST_ARCH}" == "arm64" ]]; then
+  warn "未找到 ${DPHYS_SWAPFILE}（非 Raspberry Pi OS？），跳过 swap 调整；建议手动确保 swap ≥ 2GB"
 fi
 
 # ============================================================
@@ -278,12 +290,13 @@ fi
 # 第 9 步：systemd 开机自启 + 打印结果
 # ============================================================
 step 9 "安装 systemd 单元并启用开机自启"
-install -m 0644 "${PKG_DIR}/systemd/energy-tds.service" /etc/systemd/system/energy-tds.service
+mkdir -p "${SYSTEMD_DIR}"
+install -m 0644 "${PKG_DIR}/systemd/energy-tds.service" "${SYSTEMD_DIR}/energy-tds.service"
 # 静态安装的 docker 在 /usr/bin/docker；若为发行版安装可能在别处，做一次替换
 DOCKER_BIN="$(command -v docker)"
-sed -i "s|/usr/bin/docker|${DOCKER_BIN}|g" /etc/systemd/system/energy-tds.service
+sed -i -e "s|/usr/bin/docker|${DOCKER_BIN}|g" -e "s|/opt/energy-tds|${INSTALL_DIR}|g" "${SYSTEMD_DIR}/energy-tds.service"
 systemctl daemon-reload
-systemctl enable energy-tds.service >/dev/null 2>&1
+systemctl enable energy-tds.service >/dev/null 2>&1 || warn "systemctl enable energy-tds.service 失败，开机自启可能未生效：systemctl enable energy-tds"
 ok "energy-tds.service 已启用（开机自启）"
 
 KIOSK_MSG=""
@@ -292,8 +305,9 @@ if [[ "${HOST_ARCH}" == "arm64" && ${NO_KIOSK} -eq 0 && -f "${PKG_DIR}/systemd/e
     KIOSK_USER="${SUDO_USER:-pi}"
     [[ "${KIOSK_USER}" == "root" ]] && KIOSK_USER="pi"
     if id "${KIOSK_USER}" >/dev/null 2>&1; then
-      sed "s|__KIOSK_USER__|${KIOSK_USER}|g" "${PKG_DIR}/systemd/energy-tds-kiosk.service" \
-        > /etc/systemd/system/energy-tds-kiosk.service
+      install -m 0755 "${PKG_DIR}/systemd/energy-tds-kiosk.sh" "${INSTALL_DIR}/kiosk.sh"
+      sed -e "s|__KIOSK_USER__|${KIOSK_USER}|g" -e "s|/opt/energy-tds|${INSTALL_DIR}|g" \
+        "${PKG_DIR}/systemd/energy-tds-kiosk.service" > "${SYSTEMD_DIR}/energy-tds-kiosk.service"
       systemctl daemon-reload
       systemctl enable energy-tds-kiosk.service >/dev/null 2>&1
       KIOSK_MSG="  全屏展示   energy-tds-kiosk.service 已启用（用户 ${KIOSK_USER}，重启后 Chromium 自动全屏）"

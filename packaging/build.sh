@@ -23,8 +23,8 @@ set -euo pipefail
 # ---------- 常量 ----------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-BUILD_DIR="${ROOT_DIR}/build"
-DIST_DIR="${ROOT_DIR}/dist"
+BUILD_DIR="${ENERGY_TDS_BUILD_DIR:-${ROOT_DIR}/build}"     # 可覆盖，仅供 qa/deploy-sandbox
+DIST_DIR="${ENERGY_TDS_DIST_DIR:-${ROOT_DIR}/dist}"
 DL_DIR="${BUILD_DIR}/downloads"
 
 VERSION="1.0"
@@ -162,7 +162,8 @@ fi
 for f in algo-service/Dockerfile frontend/Dockerfile frontend/nginx.conf docker-compose.yml .env.example \
          packaging/install.sh packaging/uninstall.sh packaging/部署说明.md \
          packaging/assets/mysql-amd64.cnf packaging/assets/mysql-arm64.cnf \
-         packaging/assets/energy-tds.service packaging/assets/energy-tds-kiosk.service packaging/assets/docker.service; do
+         packaging/assets/energy-tds.service packaging/assets/energy-tds-kiosk.service packaging/assets/energy-tds-kiosk.sh \
+         packaging/assets/docker.service; do
   if [[ ! -f "${ROOT_DIR}/${f}" ]]; then
     [[ ${DRY_RUN} -eq 1 ]] && warn "缺少文件 ${f}（dry-run 继续）" || die "缺少文件 ${f}"
   fi
@@ -353,6 +354,12 @@ gen_pkg_compose() {   # $1 = 输出文件
         -e "s#image: mysql:8.0#image: ${DB_IMAGE}#" \
         -e "s#energy-tds/\([a-z-]*\):1.0#energy-tds/\1:${VERSION}#g" \
   > "${dst}"
+  # mariadb:11 镜像自带 healthcheck.sh（mysqladmin 别名在 11.x 已弃用），整体切换时连同健康检查一起换
+  if [[ "${DB_IMAGE}" == mariadb:* ]]; then
+    sed -i 's#"mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"#"healthcheck.sh --connect --innodb_initialized"#' "${dst}"
+  fi
+  grep -q '^    build:' "${dst}" && die "包内 compose 仍含 build: 块，gen_pkg_compose 失败"
+  return 0
 }
 
 for arch in "${ARCHES[@]}"; do
@@ -397,6 +404,7 @@ for arch in "${ARCHES[@]}"; do
   run cp "${SCRIPT_DIR}/assets/energy-tds.service" "${pkg}/systemd/"
   if [[ "${arch}" == "arm64" ]]; then
     run cp "${SCRIPT_DIR}/assets/energy-tds-kiosk.service" "${pkg}/systemd/"
+    run install -m 0755 "${SCRIPT_DIR}/assets/energy-tds-kiosk.sh" "${pkg}/systemd/energy-tds-kiosk.sh"
   fi
 
   # VERSION + 校验和

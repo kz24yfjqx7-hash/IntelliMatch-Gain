@@ -1,7 +1,7 @@
 /** 安全审计中心（契约 §2.7） */
 import { http, HttpResponse } from 'msw'
 import { db, chain } from '../db.js'
-import { BASE, handle, ok, query, paginate, requireAuth, writeAudit, raiseAlert, MockError, now, inRange } from '../helpers.js'
+import { BASE, handle, ok, query, paginate, requireAuth, requirePerm, writeAudit, raiseAlert, MockError, now, inRange } from '../helpers.js'
 import { toIso8 } from '../../utils/format.js'
 
 const RULES = {
@@ -48,6 +48,8 @@ function periodRange(period, date) {
 export const auditHandlers = [
   http.get(`${BASE}/audit/logs/export`, handle(async ({ request, traceId }) => {
     const user = requireAuth(request)
+    // 导出属于 export 动作：按 DB-SCHEMA 矩阵只有 sys_admin / grid_dispatcher / regulator 具备
+    requirePerm(user, 'asset:export', { request, traceId, resourceType: 'audit', detail: '无导出权限的批量导出尝试' })
     const q = query(request)
     const list = filterLogs(q)
     const header = ['id', 'traceId', 'at', 'actorName', 'actorDid', 'module', 'action', 'resourceType', 'resourceId', 'result', 'riskLevel', 'detail', 'ip', 'evidenceId', 'hash']

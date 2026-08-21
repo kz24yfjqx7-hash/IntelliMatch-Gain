@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+. "$(dirname "$0")/_log.sh"; flog "$@"
+echo "Avail"; echo "${FAKE_DISK_GB:-100}G"

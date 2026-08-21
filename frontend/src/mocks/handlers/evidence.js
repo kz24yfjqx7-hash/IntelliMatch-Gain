@@ -2,7 +2,15 @@
 import { http } from 'msw'
 import { db, chain } from '../db.js'
 import { toEvidenceDto } from '../chain.js'
-import { BASE, handle, ok, body, query, paginate, requireAuth, requirePerm, writeAudit, writeEvidence, MockError, now, inRange } from '../helpers.js'
+import { BASE, handle, ok, body, query, paginate, requireAuth, requirePerm, writeAudit, writeEvidence, MockError, now, inRange, isOwnOnly, ownDids } from '../helpers.js'
+
+/** 仅自有角色可见的存证：actor 为自有 DID，或 refId 为自有 DID / 自有资产 */
+export function visibleBlocks(user) {
+  if (!isOwnOnly(user)) return chain.blocks
+  const mine = ownDids(user)
+  const myAssetIds = new Set(db.assets.filter(a => mine.has(a.sourceDid) || a.ownerDid === user.did).map(a => String(a.id)))
+  return chain.blocks.filter(b => mine.has(b.actor_did) || mine.has(b.ref_id) || myAssetIds.has(b.ref_id))
+}
 
 export const evidenceHandlers = [
   http.get(`${BASE}/evidence/chain/status`, handle(async ({ request, traceId }) => {
@@ -63,7 +71,7 @@ export const evidenceHandlers = [
     const user = requireAuth(request)
     requirePerm(user, 'evidence:read', { request, traceId })
     const q = query(request)
-    let list = chain.blocks.slice().reverse()
+    let list = visibleBlocks(user).slice().reverse()
     if (q.category) list = list.filter(b => b.category === q.category)
     if (q.did) list = list.filter(b => b.actor_did === q.did || b.ref_id === q.did)
     if (q.dataType) list = list.filter(b => b.payload_snapshot?.dataType === q.dataType)
@@ -77,8 +85,9 @@ export const evidenceHandlers = [
 
   http.get(`${BASE}/evidence/:id/certificate`, handle(async ({ request, params, traceId }) => {
     const user = requireAuth(request)
+    requirePerm(user, 'evidence:read', { request, traceId })
     const rec = chain.get(params.id)
-    if (!rec) throw new MockError(1005, '存证不存在')
+    if (!rec || !visibleBlocks(user).includes(rec)) throw new MockError(1005, '存证不存在或无权查看')
     const v = chain.verify(rec.evidence_id)
     writeAudit({ traceId, user, module: 'evidence', action: 'evidence:certificate', resourceType: 'evidence', resourceId: rec.evidence_id, detail: '导出存证凭证' })
     return ok({
@@ -92,7 +101,7 @@ export const evidenceHandlers = [
     const user = requireAuth(request)
     requirePerm(user, 'evidence:read', { request, traceId })
     const rec = chain.get(params.id)
-    if (!rec) throw new MockError(1005, '存证不存在')
+    if (!rec || !visibleBlocks(user).includes(rec)) throw new MockError(1005, '存证不存在或无权查看')
     return ok({ ...toEvidenceDto(rec), tampered: chain.tampered.has(rec.evidence_id) }, traceId)
   }))
 ]

@@ -59,9 +59,19 @@ def load_cache(path: Path | None = None) -> dict:
     path = path or config.DEEPSEEK_CACHE_PATH
     _ensure_cache_file(path)
     try:
-        return json.loads(path.read_text(encoding="utf-8") or "{}")
-    except json.JSONDecodeError:
-        log.warning("deepseek 缓存文件损坏，已重置为空")
+        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+        if not isinstance(data, dict):
+            raise json.JSONDecodeError("cache root must be an object", "", 0)
+        return data
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        # 自愈：把损坏文件挪到 .corrupt 备份，重写为空对象，避免每个请求都重复解析失败并刷警告
+        try:
+            backup = path.with_suffix(f".corrupt-{time.strftime('%Y%m%d%H%M%S')}.json")
+            path.replace(backup)
+            path.write_text("{}", encoding="utf-8")
+            log.warning("deepseek 缓存文件损坏，已备份到 %s 并重置为空", backup.name)
+        except OSError as exc:  # 只读文件系统等：仅告警
+            log.warning("deepseek 缓存文件损坏且无法重置：%s", exc)
         return {}
 
 
@@ -70,7 +80,15 @@ def save_cache_entry(key: str, entry: dict, path: Path | None = None) -> None:
     with _lock:
         data = load_cache(path)
         data[key] = entry
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+        # 条目上限：淘汰最旧的精确 key 条目（场景兜底 "scene:*" 永不淘汰）
+        overflow = len(data) - max(1, config.DEEPSEEK_CACHE_MAX)
+        if overflow > 0:
+            evictable = sorted((k for k in data if not k.startswith("scene:") and k != key), key=lambda k: str((data[k] or {}).get("cachedAt", "")))
+            for k in evictable[:overflow]:
+                data.pop(k, None)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+        tmp.replace(path)  # 原子替换，避免写一半被读到
 
 
 def _fmt(v, nd: int = 1) -> str:
@@ -83,20 +101,54 @@ def _fmt(v, nd: int = 1) -> str:
 
 
 # ---------------------------------------------------------------- 规则模板
+def _num(v, default: float = 0.0) -> float:
+    """宽松取数：非数值/NaN/Inf 一律按 default，规则模板不会因脏 context 抛异常。"""
+    if isinstance(v, bool) or v is None:
+        return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    return f if f == f and abs(f) != float("inf") else default
+
+
+def _dicts(v) -> list[dict]:
+    """宽松取 dict 列表：非列表或元素非 dict 的一律丢弃。"""
+    if isinstance(v, dict):
+        return [v]
+    return [x for x in v if isinstance(x, dict)] if isinstance(v, (list, tuple)) else []
+
+
+def _dict(v) -> dict:
+    return v if isinstance(v, dict) else {}
+
+
+GENERIC_ANSWER = "能源可信数据空间平台通过 DID 身份认证、数据分类分级、权限控制、联邦学习 + 差分隐私计算、DQN 智能调度与区块链存证审计六个环节，实现能源数据「可用不可见、全程可追溯」。"
+GENERIC_REASONING = ["上下文字段不完整或格式异常，已按平台通用说明作答", "DeepSeek 仅提供解释性文本，不参与设备控制与策略求解"]
+
+
 def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple[str, list[str]]:
-    """规则化模板：用 context 中的数值填空；返回 (answer, reasoning[])。"""
+    """规则化模板：用 context 中的数值填空；返回 (answer, reasoning[])。任何脏 context 都不会抛异常。"""
+    try:
+        return _rule_answer(scene, context if isinstance(context, dict) else None, question if isinstance(question, str) else None)
+    except Exception as exc:  # noqa: BLE001  模板填空失败 → 通用说明
+        log.warning("规则模板填空失败（scene=%s）：%s", scene, exc)
+        return GENERIC_ANSWER, list(GENERIC_REASONING)
+
+
+def _rule_answer(scene: str, context: dict | None, question: str | None) -> tuple[str, list[str]]:
     ctx = context or {}
     scene = scene if scene in SCENES else "qa"
     reasoning: list[str] = []
 
     if scene == "dispatch":
-        nodes = ctx.get("nodes") or []
-        actions = ctx.get("actions") or (ctx.get("strategy") or {}).get("actions") or []
-        total_load = sum(float(n.get("load", 0) or 0) for n in nodes)
-        total_pv = sum(float(n.get("pv", 0) or 0) for n in nodes)
+        nodes = _dicts(ctx.get("nodes"))
+        actions = _dicts(ctx.get("actions")) or _dicts(_dict(ctx.get("strategy")).get("actions"))
+        total_load = sum(_num(n.get("load")) for n in nodes)
+        total_pv = sum(_num(n.get("pv")) for n in nodes)
         if nodes:
             reasoning.append(f"全网总负荷 {_fmt(total_load)}kW，总光伏出力 {_fmt(total_pv)}kW，净缺口 {_fmt(total_load - total_pv)}kW")
-            top = max(nodes, key=lambda n: float(n.get("load", 0) or 0))
+            top = max(nodes, key=lambda n: _num(n.get("load")))
             reasoning.append(f"节点 {top.get('id', top.get('nodeId', '?'))} 负荷 {_fmt(top.get('load'))}kW 为全网最高，SOC {_fmt(top.get('soc'))}%")
         dis = [a for a in actions if a.get("action") == "discharge"]
         ch = [a for a in actions if a.get("action") == "charge"]
@@ -104,7 +156,7 @@ def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple
             reasoning.append(f"节点 {a.get('nodeId')} 放电 {_fmt(a.get('powerKw'))}kW（Q值 {_fmt(a.get('qValue'), 2)}）：{a.get('reason', '')}")
         for a in ch[:2]:
             reasoning.append(f"节点 {a.get('nodeId')} 充电 {_fmt(a.get('powerKw'))}kW：{a.get('reason', '')}")
-        viol = (ctx.get("constraintsChecked") or {}).get("violations") or []
+        viol = _dicts(_dict(ctx.get("constraintsChecked")).get("violations"))
         if viol:
             reasoning.append(f"约束校验拦截 {len(viol)} 项：" + "；".join(v.get("detail", "") for v in viol[:2]))
         else:
@@ -119,7 +171,7 @@ def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple
         idle = [a.get("nodeId") for a in actions if a.get("action") == "idle"]
         if idle:
             parts.append("、".join(map(str, idle)) + " 待机")
-        total_r = ctx.get("totalReward", (ctx.get("strategy") or {}).get("totalReward"))
+        total_r = ctx.get("totalReward", _dict(ctx.get("strategy")).get("totalReward"))
         answer = (
             "本次调度由 DQN 模型基于各节点实时状态生成："
             + ("；".join(parts) if parts else "各节点维持当前运行状态")
@@ -132,10 +184,10 @@ def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple
     elif scene == "risk":
         score = ctx.get("riskScore")
         lv = ctx.get("level", "-")
-        factors = ctx.get("factors") or []
+        factors = _dicts(ctx.get("factors"))
         node = ctx.get("nodeId", "该节点")
-        feats = ctx.get("features") or {}
-        for f in sorted(factors, key=lambda f: -float(f.get("weight", 0)) * float(f.get("score", 0)))[:3]:
+        feats = _dict(ctx.get("features"))
+        for f in sorted(factors, key=lambda f: -_num(f.get("weight")) * _num(f.get("score")))[:3]:
             reasoning.append(f"{f.get('name')}：得分 {_fmt(f.get('score'))}（权重 {_fmt(f.get('weight'), 2)}）{('，' + f['desc']) if f.get('desc') else ''}")
         if feats:
             reasoning.append(f"输入特征：查询频率 {_fmt(feats.get('queryFreq'))} 次、粒度 {feats.get('dataGranularity', '-')}、暴露字段 {_fmt(feats.get('exposedFields'))} 个、剩余 ε {_fmt(feats.get('epsilonRemaining'), 2)}")
@@ -147,9 +199,9 @@ def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple
 
     elif scene == "data":
         total = ctx.get("total")
-        by_level = ctx.get("byLevel") or []
-        by_type = ctx.get("byType") or []
-        results = ctx.get("results") or []
+        by_level = _dicts(ctx.get("byLevel"))
+        by_type = _dicts(ctx.get("byType"))
+        results = _dicts(ctx.get("results"))
         if by_level:
             reasoning.append("分级分布：" + "、".join(f"{x.get('level')} {x.get('count')} 条" for x in by_level))
         if by_type:
@@ -171,10 +223,10 @@ def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple
     elif scene == "audit":
         total_logs = ctx.get("totalLogs", ctx.get("todayLogs"))
         high = ctx.get("highRiskLogs")
-        ident = ctx.get("identityOps") or {}
-        perm = ctx.get("permissionOps") or {}
-        ev = ctx.get("evidence") or {}
-        risks = ctx.get("riskEvents") or []
+        ident = _dict(ctx.get("identityOps"))
+        perm = _dict(ctx.get("permissionOps"))
+        ev = _dict(ctx.get("evidence"))
+        risks = _dicts(ctx.get("riskEvents"))
         period = {"day": "今日", "week": "本周", "month": "本月"}.get(str(ctx.get("period", "day")), "本期")
         date = ctx.get("date", "")
         if ident:
@@ -182,7 +234,7 @@ def rule_answer(scene: str, context: dict | None, question: str | None) -> tuple
         if perm:
             reasoning.append(f"权限操作：申请 {_fmt(perm.get('applied', 0))}、通过 {_fmt(perm.get('approved', 0))}、驳回 {_fmt(perm.get('rejected', 0))}、回收 {_fmt(perm.get('revoked', 0))}")
         if ev:
-            bc = ev.get("byCategory") or {}
+            bc = _dict(ev.get("byCategory"))
             reasoning.append(f"存证：累计 {_fmt(ev.get('total', 0))} 条" + ("（" + "、".join(f"{k} {v}" for k, v in bc.items()) + "）" if bc else ""))
         if risks:
             reasoning.append("风险事件：" + "、".join(f"{r.get('ruleCode')} {r.get('count')} 次（{r.get('level')}）" for r in risks))
@@ -255,7 +307,10 @@ def call_live(scene: str, context: dict | None, question: str | None, timeout: f
             timeout=timeout or config.DEEPSEEK_TIMEOUT,
         )
         resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"].strip()
+        content = resp.json()["choices"][0]["message"]["content"]
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("live 响应 content 为空或非字符串")
+        content = content.strip()
         # 模型可能用 ```json 包裹
         if content.startswith("```"):
             content = content.strip("`")
@@ -276,8 +331,17 @@ def call_live(scene: str, context: dict | None, question: str | None, timeout: f
 
 # ---------------------------------------------------------------- 对外
 def analyze(scene: str, context: dict | None, question: str | None) -> dict:
-    """契约 3.4：{answer, reasoning, source, latencyMs}，永远成功。"""
+    """契约 3.4：{answer, reasoning, source, latencyMs}，永远成功（任何内部异常都退化为规则模板/通用说明）。"""
     t0 = time.perf_counter()
+    try:
+        return _analyze(scene, context, question, t0)
+    except Exception as exc:  # noqa: BLE001
+        log.exception("deepseek.analyze 内部异常，退化为规则模板：%s", exc)
+        answer, reasoning = rule_answer(scene, context, question)
+        return {"answer": answer, "reasoning": reasoning, "source": "rule", "latencyMs": int((time.perf_counter() - t0) * 1000)}
+
+
+def _analyze(scene: str, context: dict | None, question: str | None, t0: float) -> dict:
     scene = scene if scene in SCENES else "qa"
     key = cache_key(scene, context, question)
 

@@ -20,7 +20,7 @@ max_heap_table_size            = 16M
 thread_cache_size              = 8
 key_buffer_size                = 8M
 slow_query_log                 = OFF
-log_error_verbosity            = 1
+loose-log_error_verbosity      = 1      # loose-：mariadb:11 无此变量时忽略而非启动失败
 
 [client]
 default-character-set = utf8mb4

@@ -31,13 +31,25 @@ def level_of(score: float) -> str:
     return "low"
 
 
+def _to_num(v, default: float) -> float:
+    """宽松取数：非数值 / NaN / Inf 按 default；负数按 0（频率、字段数、预算都不可能为负）。"""
+    if isinstance(v, bool) or v is None:
+        return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    if f != f or f in (float("inf"), float("-inf")):
+        return default
+    return max(0.0, f)
+
+
 def assess(node_id: str, features: dict) -> dict:
-    features = features or {}
-    qf = float(features.get("queryFreq") or 0)
+    features = features if isinstance(features, dict) else {}
+    qf = _to_num(features.get("queryFreq"), 0.0)
     gran = str(features.get("dataGranularity") or "hour").lower()
-    ef = float(features.get("exposedFields") or 0)
-    eps_rem = features.get("epsilonRemaining")
-    eps_rem = float(eps_rem) if eps_rem is not None else EPS0
+    ef = _to_num(features.get("exposedFields"), 0.0)
+    eps_rem = _to_num(features.get("epsilonRemaining"), EPS0)
 
     s_qf = min(100.0, qf / 20.0 * 100.0)
     s_gr = float(GRAN_SCORE.get(gran, 50))

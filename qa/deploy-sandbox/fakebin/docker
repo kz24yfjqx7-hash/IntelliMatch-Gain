@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# 假 docker：记录参数；行为由 FAKE_* 环境变量与 $FAKE_STATE 下的状态文件控制
+#   FAKE_DOCKER_DAEMON=1        守护进程可用（或 $FAKE_STATE/daemon_up 存在，由假 systemctl enable --now docker 创建）
+#   FAKE_COMPOSE=1              docker compose 子命令可用（或 $FAKE_STATE/compose_installed 存在）
+#   FAKE_OLD_RUNNING=1          compose ps -q 返回容器（模拟旧实例在跑）
+#   FAKE_LOAD_FAIL=1            docker load 失败
+#   FAKE_COMPOSE_UP_FAIL=1      compose up 失败
+#   FAKE_NO_ARM64_BUILDER=1     buildx inspect 不含 linux/arm64
+#   FAKE_NO_ARM64_IMAGES="mysql:8.0 ..."  这些镜像 imagetools inspect 无 arm64
+#   FAKE_IMAGETOOLS_UNAVAILABLE=1         imagetools inspect 直接失败（build.sh 退回 registry API）
+#   FAKE_BUILD_FAIL=1           buildx build 失败
+. "$(dirname "$0")/_log.sh"
+flog "$@"
+daemon_up() { [[ "${FAKE_DOCKER_DAEMON:-1}" == 1 || -f "${FAKE_STATE}/daemon_up" ]]; }
+compose_ok() { [[ "${FAKE_COMPOSE:-1}" == 1 || -f "${FAKE_STATE}/compose_installed" ]]; }
+# 若假 compose 插件被 install.sh 装到 CLI_PLUGIN_DIRS，则标记可用
+for d in ${ENERGY_TDS_CLI_PLUGIN_DIRS:-}; do [[ -x "$d/docker-compose" ]] && touch "${FAKE_STATE}/compose_installed"; done
+case "$1" in
+  info)    daemon_up ;;
+  version) daemon_up && echo "27.5.1" ;;
+  images)  echo "energy-tds/frontend:1.0  45MB"; echo "mysql:8.0  600MB"; echo "redis:7-alpine  40MB" ;;
+  load)    [[ "${FAKE_LOAD_FAIL:-0}" == 1 ]] && { echo "Error processing tar file(exit status 1): write /var/lib/docker: no space left on device" >&2; exit 1; }
+           echo "Loaded image: fake" ;;
+  pull)    daemon_up || exit 1; echo "Status: Downloaded ${*: -1}" ;;
+  save)    daemon_up || exit 1; printf 'FAKE-IMAGE-TAR %s\n' "${*: -1}" ;;
+  rmi)     daemon_up || exit 1; echo "Untagged: ${*: -1}" ;;
+  rm|network) exit 0 ;;
+  run)     echo "[fake docker run] $*"; exit 0 ;;
+  compose)
+    compose_ok || { echo "docker: 'compose' is not a docker command." >&2; exit 1; }
+    shift
+    args=("$@")
+    case " ${args[*]} " in
+      *" version "*)   echo "Docker Compose version v2.32.4"; [[ " ${args[*]} " == *" --short "* ]] && echo "2.32.4"; exit 0 ;;
+      *" config "*)    exec /usr/bin/docker compose "${args[@]}" ;;   # config 不需要守护进程，用真 compose 校验
+      *" ps -q "*)     [[ "${FAKE_OLD_RUNNING:-0}" == 1 ]] && echo "0123456789ab"; exit 0 ;;
+      *" ps "*)        echo "NAME  STATUS"; echo "energy-tds-mysql  Up (healthy)"; exit 0 ;;
+      *" up "*)        [[ "${FAKE_COMPOSE_UP_FAIL:-0}" == 1 ]] && { echo "Error response from daemon: port is already allocated" >&2; exit 1; }
+                       echo " ✔ Container energy-tds-mysql Started"; exit 0 ;;
+      *" down "*)      exit 0 ;;
+      *" logs "*)      echo "[fake] mysql  | ready for connections"; exit 0 ;;
+      *) exit 0 ;;
+    esac ;;
+  buildx)
+    shift
+    case "$1" in
+      version) echo "github.com/docker/buildx v0.19.3" ;;
+      inspect) echo "Name: energy-builder"; if [[ "${FAKE_NO_ARM64_BUILDER:-0}" == 1 ]]; then echo "Platforms: linux/amd64"; else echo "Platforms: linux/amd64, linux/arm64, linux/arm/v7"; fi ;;
+      imagetools)
+        [[ "${FAKE_IMAGETOOLS_UNAVAILABLE:-0}" == 1 ]] && exit 1
+        img="${*: -1}"
+        echo "Name: docker.io/library/${img}"; echo "MediaType: application/vnd.oci.image.index.v1+json"
+        echo "  Platform: linux/amd64"
+        [[ " ${FAKE_NO_ARM64_IMAGES:-} " == *" ${img} "* ]] || echo "  Platform: linux/arm64"
+        ;;
+      build)
+        [[ "${FAKE_BUILD_FAIL:-0}" == 1 ]] && { echo "ERROR: failed to solve" >&2; exit 1; }
+        dest=""; ctx="${*: -1}"
+        for a in "$@"; do case "$a" in --output=*) dest="${a#--output=}" ;; esac; done
+        prev=""; for a in "$@"; do [[ "$prev" == "--output" ]] && dest="$a"; prev="$a"; done
+        dest="${dest##*dest=}"
+        [[ -d "${ctx}" ]] || { echo "ERROR: unable to prepare context: path \"${ctx}\" not found" >&2; exit 1; }
+        [[ -f "${ctx}/Dockerfile" ]] || { echo "ERROR: failed to read dockerfile" >&2; exit 1; }
+        [[ -n "${dest}" ]] || { echo "fake buildx: 缺少 --output dest=" >&2; exit 1; }
+        t="$(mktemp -d)"; echo "{\"fake\":\"$(basename "${ctx}")\",\"args\":\"$*\"}" > "${t}/manifest.json"
+        mkdir -p "$(dirname "${dest}")"; tar -C "${t}" -cf "${dest}" manifest.json; rm -rf "${t}"
+        echo "=> exporting to docker image format, dest=${dest}" ;;
+      *) exit 0 ;;
+    esac ;;
+  *) echo "fake docker: 未处理的子命令 $*" >&2; exit 0 ;;
+esac

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# FAKE_BUSY_PORTS="80:nginx:1234 8000:python3:999"
+. "$(dirname "$0")/_log.sh"; flog "$@"
+echo "State   Recv-Q  Send-Q  Local Address:Port  Peer Address:Port  Process"
+for e in ${FAKE_BUSY_PORTS:-}; do
+  IFS=: read -r port proc pid <<< "$e"
+  echo "LISTEN  0       511     0.0.0.0:${port}  0.0.0.0:*  users:((\"${proc}\",pid=${pid},fd=6))"
+done

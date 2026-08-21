@@ -45,23 +45,34 @@ function b64urlDecode(str) {
   return typeof atob === 'function' ? decodeURIComponent(escape(atob(s))) : Buffer.from(s, 'base64').toString('utf8')
 }
 
+let tokenSeq = 0
 /** 生成 mock JWT（HS256 形式的三段式，签名为 sha256 摘要，仅演示） */
 export function issueToken(user, expiresIn = 28800) {
   const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
   const iat = Math.floor(Date.now() / 1000)
-  const payload = b64url(JSON.stringify({ sub: user.id, username: user.username, roles: user.roles, did: user.did, iat, exp: iat + expiresIn }))
+  // jti：同一秒内重复登录也要得到不同 token（否则登出黑名单会误伤新会话）
+  const jti = sha256Hex(`${user.id}|${iat}|${++tokenSeq}|${Math.random()}`).slice(0, 16)
+  const payload = b64url(JSON.stringify({ sub: user.id, username: user.username, roles: user.roles, did: user.did, iat, exp: iat + expiresIn, jti }))
   const sig = sha256Hex(`${header}.${payload}.mock-secret`).slice(0, 43)
   const token = `${header}.${payload}.${sig}`
   db.sessions.set(token, { userId: user.id, issuedAt: iat, expiresAt: iat + expiresIn })
   return token
 }
 
+/**
+ * 解析并校验 token：三段式、签名必须与本地重算一致、未过期。
+ * 伪造 token（仅有合法 payload、签名不对）→ null → 1002。
+ */
 export function parseToken(token) {
   if (!token) return null
   try {
-    const [, payload] = token.split('.')
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const [header, payload, sig] = parts
+    const expected = sha256Hex(`${header}.${payload}.mock-secret`).slice(0, 43)
+    if (sig !== expected) return null
     const data = JSON.parse(b64urlDecode(payload))
-    if (!data || data.exp * 1000 < Date.now()) return null
+    if (!data || typeof data.exp !== 'number' || data.exp * 1000 < Date.now()) return null
     return data
   } catch {
     return null
@@ -73,6 +84,7 @@ export function currentUser(request) {
   const auth = request.headers.get('Authorization') || request.headers.get('authorization') || ''
   const token = auth.replace(/^Bearer\s+/i, '').trim()
   if (!token) return null
+  if (db.revokedTokens.has(token)) return null
   const session = db.sessions.get(token)
   const payload = parseToken(token)
   if (!payload) return null
@@ -93,6 +105,20 @@ export function requireAuth(request) {
 
 export function permissionsOf(user) {
   return permissionsOfRoles(user.roles)
+}
+
+/** 是否为「仅自有」角色（energy_subject / edge_node，且不兼任其它全局角色） */
+export function isOwnOnly(user) {
+  if (!user || !user.roles?.length) return false
+  return user.roles.every(code => db.roles.find(r => r.code === code)?.scope === 'own')
+}
+
+/** 当前用户可视为"自有"的 DID 集合：本人 DID + 以本人为 controller 的 DID + 绑定到本人的节点 DID */
+export function ownDids(user) {
+  const set = new Set([user.did])
+  for (const d of db.dids) if (d.controllerDid === user.did) set.add(d.did)
+  for (const n of db.nodes) if (n.did && (n.did === user.did || db.dids.find(d => d.did === n.did)?.controllerDid === user.did)) set.add(n.did)
+  return set
 }
 
 /** 权限校验；拒绝时落 high 审计日志 + 计入 R01 规则 */

@@ -416,6 +416,7 @@ for (let d = 13; d >= 0; d--) {
 
 /* ---------- 会话 / 计数器 ---------- */
 const sessions = new Map() // token -> { userId, issuedAt, expiresAt }
+const revokedTokens = new Set() // 已登出的 token（在过期前一律拒绝）
 const counters = {
   asset: 1080, application: applications.length, grant: grants.length, permChange: permChangeLogs.length, key: keyId, keyRotation: keyRotations.length,
   fl: 2, model: 12, dispatch: 2, command: 2, alert: alerts.length, audit: auditId, ai: aiHistory.length, risk: riskHistory.length, user: users.length, did: dids.length
@@ -423,7 +424,7 @@ const counters = {
 
 export const db = {
   users, roles, dids, keys, keyRotations, nodes, nodeMetrics, assets, applications, grants, permChangeLogs,
-  auditLogs, alerts, flTasks, flModels, dispatchTasks, aiHistory, riskHistory, sessions, counters,
+  auditLogs, alerts, flTasks, flModels, dispatchTasks, aiHistory, riskHistory, sessions, revokedTokens, counters,
   ORG_DID, DEMO_TRACE, DENY_TRACE,
   /** 运行期 FL 作业句柄（taskId -> {cancel}） */
   flJobs: new Map(),
@@ -435,6 +436,8 @@ export const db = {
 wsMock.setNodeProvider(() => nodes)
 
 export function nextId(key) {
+  // 密钥 id 与 createDid() 共用同一计数器，避免运行时签发 DID 后与 POST /keys 产生 id 冲突
+  if (key === 'key') { counters.key = ++keyId; return keyId }
   counters[key] = (counters[key] || 0) + 1
   return counters[key]
 }

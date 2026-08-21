@@ -20,8 +20,8 @@ export function ruleStrategy(nodes, timeWindow) {
     let q = { charge: +chg.toFixed(2), idle: +idle.toFixed(2), discharge: +dis.toFixed(2) }
     let action = Object.entries(q).sort((a, b) => b[1] - a[1])[0][0]
     // 约束：SOC 20~95、单节点 ≤30kW；越限改为次优动作并记录
-    if (action === 'discharge' && m.soc <= 25) { violations.push({ nodeId: n.id, rule: 'socMin', detail: `SOC ${m.soc}% 不足，禁止放电` }); action = q.idle >= q.charge ? 'idle' : 'charge' }
-    if (action === 'charge' && m.soc >= 92) { violations.push({ nodeId: n.id, rule: 'socMax', detail: `SOC ${m.soc}% 过高，禁止充电` }); action = 'idle' }
+    if (action === 'discharge' && m.soc <= 25) { const applied = q.idle >= q.charge ? 'idle' : 'charge'; violations.push({ nodeId: n.id, constraint: 'socMin', attempted: 'discharge', applied, detail: `SOC ${m.soc}% 不足，禁止放电` }); action = applied }
+    if (action === 'charge' && m.soc >= 92) { violations.push({ nodeId: n.id, constraint: 'socMax', attempted: 'charge', applied: 'idle', detail: `SOC ${m.soc}% 过高，禁止充电` }); action = 'idle' }
     let powerKw = 0
     let reason = '功率平衡，维持待机'
     if (action === 'discharge') { powerKw = Math.min(30, (m.soc - 20) * 0.5, m.load * 0.2); reason = n.id === sorted[0].id ? '负荷最高且SOC充足' : '负荷偏高且SOC充足' }

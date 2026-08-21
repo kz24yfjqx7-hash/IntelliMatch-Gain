@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+. "$(dirname "$0")/_log.sh"; flog "$@"
+case " $* " in
+  *" enable --now docker "*|*" start docker "*) touch "${FAKE_STATE}/daemon_up" ;;
+  *" restart dphys-swapfile "*) [[ "${FAKE_SWAP_RESTART_FAIL:-0}" == 1 ]] && exit 1 ;;
+esac
+exit 0

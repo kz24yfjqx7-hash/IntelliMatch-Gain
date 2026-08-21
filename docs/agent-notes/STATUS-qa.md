@@ -13,6 +13,9 @@
 | MSG-qa-to-deploy-001 | deploy | P2 | `backend.env_file: .env` 硬依赖 | **已修复，qa 已验证关闭**（附注 FL_ROUND_DELAY 可选变量 P2 记录） |
 | MSG-qa-to-frontend-legacy-001 | frontend-legacy | P1 | Pyodide CDN URL；假实现文件未删 | **已修复，qa 已验证关闭** |
 
+## 第三轮综合回归（对抗测试后）
+- algo 314/314、check_algo_live 10/10、vitest 137/137、build/selfcheck 12/12/contract_audit 阻断 0、Playwright 28/28、deploy 沙箱 39/39、check_deploy 全过。四方修改无冲突。MSG-test-contract-security-to-test-e2e-001 P2 已核验关闭。详见 `qa/REPORT.md` 第三轮章节。
+
 ## 等待中
 - 无。全部缺陷单已关闭。最终报告见 `qa/REPORT.md`。
 

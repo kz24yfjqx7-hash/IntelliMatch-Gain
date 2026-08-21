@@ -20,7 +20,9 @@ export const authHandlers = [
   http.post(`${BASE}/auth/logout`, handle(async ({ request, traceId }) => {
     const user = requireAuth(request)
     const auth = request.headers.get('Authorization') || ''
-    db.sessions.delete(auth.replace(/^Bearer\s+/i, ''))
+    const token = auth.replace(/^Bearer\s+/i, '').trim()
+    db.sessions.delete(token)
+    db.revokedTokens.add(token)
     writeAudit({ traceId, user, module: 'auth', action: 'logout', detail: '退出登录' })
     return ok({ loggedOut: true }, traceId)
   })),

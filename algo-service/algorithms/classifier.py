@@ -60,15 +60,29 @@ def _granularity(freq: str) -> float:
     return FREQ_SCORE.get(str(freq).lower(), 0.5)
 
 
-def _volume(volume: float) -> float:
+def _to_num(v, default: float = 0.0) -> float:
+    """宽松取数：字符串数字可解析，其它非数值 / NaN / Inf / 负数按 default。"""
+    if isinstance(v, bool) or v is None:
+        return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    if f != f or f in (float("inf"), float("-inf")):
+        return default
+    return f
+
+
+def _volume(volume) -> float:
     """数据量对数归一：log10(volume+1)/5（10 万条 → 1.0）。"""
-    return float(min(1.0, math.log10(max(float(volume), 0.0) + 1.0) / 5.0))
+    return float(min(1.0, math.log10(max(_to_num(volume), 0.0) + 1.0) / 5.0))
 
 
 def extract_features(rec: dict) -> tuple[dict, list[str]]:
     """records 可能缺字段：dataType 默认 load，fields 默认 []，freq 默认 hour，volume 默认 0。"""
     data_type = str(rec.get("dataType") or "load")
-    fields = list(rec.get("fields") or [])
+    raw_fields = rec.get("fields") or []
+    fields = list(raw_fields) if isinstance(raw_fields, (list, tuple, set)) else [str(raw_fields)]
     sens, sensitive_fields = _field_sensitivity(fields, data_type)
     feats = {
         "sensitivity": round(sens, 4),
@@ -128,7 +142,7 @@ def classify(records: list[dict]) -> dict:
         elif f["granularity"] <= 0.2:
             reasons.append("采集粒度较粗（日级及以上）")
         if f["volume"] >= 0.6:
-            reasons.append(f"数据量较大（{int(rec.get('volume') or 0)} 条）")
+            reasons.append(f"数据量较大（{int(_to_num(rec.get('volume')))} 条）")
         dt = rec.get("dataType") or "load"
         if dt == "dispatch":
             reasons.append("属于调度指令类数据")

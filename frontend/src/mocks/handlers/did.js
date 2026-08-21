@@ -2,6 +2,7 @@
 import { http } from 'msw'
 import { db, createDid, genKeyPair, nextId } from '../db.js'
 import { BASE, handle, ok, body, query, paginate, requireAuth, writeAudit, writeEvidence, raiseAlert, MockError, now, clientIp } from '../helpers.js'
+import { toIso8 } from '../../utils/format.js'
 
 const DAY = 86400000
 
@@ -122,7 +123,7 @@ export const didHandlers = [
     const version = (db.keys.filter(k => k.did === did).reduce((m, k) => Math.max(m, k.version), 0)) + 1
     const kp = genKeyPair()
     if (old) old.status = 'revoked'
-    const key = { id: nextId('key'), did, algorithm: 'SM2', publicKey: kp.publicKey, status: 'active', version, boundAt: now(), expireAt: new Date(Date.now() + 365 * DAY).toISOString() }
+    const key = { id: nextId('key'), did, algorithm: 'SM2', publicKey: kp.publicKey, status: 'active', version, boundAt: now(), expireAt: toIso8(new Date(Date.now() + 365 * DAY)) }
     db.keys.push(key)
     db.keyRotations.push({ id: nextId('keyRotation'), keyId: old?.id || null, did, fromVersion: old?.version || null, toVersion: version, reason: '手动轮换', operator: user.did, at: now() })
     d.didDocument.verificationMethod[0].publicKeyHex = kp.publicKey

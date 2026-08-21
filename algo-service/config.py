@@ -30,6 +30,8 @@ DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "").strip().rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "8"))
 DEEPSEEK_OFFLINE_FALLBACK = os.getenv("DEEPSEEK_OFFLINE_FALLBACK", "true").lower() in ("1", "true", "yes")
+# live 回答缓存条目上限（超出淘汰最旧的精确 key 条目，场景兜底 key 永不淘汰），防止缓存文件无限增长
+DEEPSEEK_CACHE_MAX = int(os.getenv("DEEPSEEK_CACHE_MAX", "2000"))
 
 # ---- 联邦学习 ----
 # 每轮之间的停顿秒数，让前端看到曲线逐步增长；qa 测试时设为 0
@@ -45,6 +47,10 @@ FL_LR_DECAY = float(os.getenv("FL_LR_DECAY", "0.3"))
 # 投毒检测：节点更新与其余节点更新的平均余弦相似度低于该阈值判为可疑。
 # 正常 Non-IID 节点在收敛后期均值约在 -0.3~+0.9，翻转投毒约为 -0.97，取 -0.5 兼顾召回与误报
 POISON_COS_THRESHOLD = float(os.getenv("POISON_COS_THRESHOLD", "-0.5"))
+# 任务字典保护：最多保留的任务数（超出时淘汰最旧的终态任务）、终态任务 TTL 秒（0=不按时间清理）、最大并发训练数
+FL_MAX_JOBS = int(os.getenv("FL_MAX_JOBS", "200"))
+FL_JOB_TTL = float(os.getenv("FL_JOB_TTL", "3600"))
+FL_MAX_RUNNING = int(os.getenv("FL_MAX_RUNNING", "16"))
 
 # ---- DQN 调度约束（与契约 constraintsChecked 字段一致）----
 SOC_MIN = 20.0

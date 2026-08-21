@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+. "$(dirname "$0")/_log.sh"; flog "$@"
+m="${FAKE_MEM_MB:-3900}"; s="${FAKE_SWAP_MB:-100}"
+printf '               total        used        free      shared  buff/cache   available\n'
+printf 'Mem:       %8d %8d %8d %8d %8d %8d\n' "$m" 500 $((m-500)) 10 100 $((m-600))
+printf 'Swap:      %8d %8d %8d\n' "$s" 0 "$s"

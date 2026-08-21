@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+. "$(dirname "$0")/_log.sh"; flog "$@"
+case "$*" in *-m*) echo "${FAKE_ARCH:-x86_64}" ;; *) echo Linux ;; esac

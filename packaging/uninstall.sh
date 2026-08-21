@@ -7,7 +7,8 @@
 # ============================================================
 set -euo pipefail
 
-INSTALL_DIR="/opt/energy-tds"
+INSTALL_DIR="${ENERGY_TDS_INSTALL_DIR:-/opt/energy-tds}"     # 可覆盖，仅供沙箱测试
+SYSTEMD_DIR="${ENERGY_TDS_SYSTEMD_DIR:-/etc/systemd/system}"
 PURGE=0
 ASSUME_YES=0
 for a in "$@"; do
@@ -32,9 +33,9 @@ fi
 
 # 1. 停并禁用 systemd 单元
 for unit in energy-tds-kiosk.service energy-tds.service; do
-  if [[ -f "/etc/systemd/system/${unit}" ]]; then
+  if [[ -f "${SYSTEMD_DIR}/${unit}" ]]; then
     systemctl disable --now "${unit}" >/dev/null 2>&1 || true
-    rm -f "/etc/systemd/system/${unit}"
+    rm -f "${SYSTEMD_DIR}/${unit}"
     ok "已移除 ${unit}"
   fi
 done
@@ -72,7 +73,7 @@ if [[ ${PURGE} -eq 1 ]]; then
   ok "已删除 ${INSTALL_DIR}"
 else
   if [[ -d "${INSTALL_DIR}" ]]; then
-    find "${INSTALL_DIR}" -mindepth 1 ! -name '.env' -exec rm -rf {} + 2>/dev/null || true
+    find "${INSTALL_DIR}" -mindepth 1 -maxdepth 1 ! -name '.env' -exec rm -rf {} + 2>/dev/null || true
     ok "已清理 ${INSTALL_DIR}（保留 .env，以便重装后继续使用原数据卷）"
   fi
 fi

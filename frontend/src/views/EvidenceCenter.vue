@@ -35,13 +35,16 @@
       </div>
       <div class="chain-scroll" ref="chainScrollRef">
         <div class="chain-row">
-          <div v-for="b in blocks" :key="b.evidenceId" class="block" :class="blockClass(b)" @click="viewDetail(b)">
+          <template v-for="b in blocks" :key="b.evidenceId">
+          <div v-if="b.gap" class="block-gap" title="中间区块省略">···</div>
+          <div v-else class="block" :class="blockClass(b)" @click="viewDetail(b)">
             <div class="block-h">#{{ b.blockHeight }}</div>
             <div class="block-cat" :style="{ color: CATEGORY_COLORS[b.category] }">{{ CATEGORY_LABELS[b.category] || b.category }}</div>
             <div class="block-hash mono">{{ hash8(b.hash) }}</div>
             <div class="block-id mono">{{ b.evidenceId }}</div>
             <div class="block-link" />
           </div>
+          </template>
           <div v-if="!blocks.length" class="empty-tip">暂无区块</div>
         </div>
       </div>
@@ -222,9 +225,18 @@ const chainScrollRef = ref(null)
 async function loadBlocks() {
   try {
     const data = await listEvidence({ size: BLOCK_COUNT })
-    blocks.value = (data.items || []).slice().reverse()
+    const recent = (data.items || []).slice().reverse()
+    // 被篡改的块若不在最近 N 块窗口内，钉到链条最前面（带省略标记），保证演示时"标红"可见
+    const tamperedIds = (chain.value?.tamperedIds || []).filter(id => !recent.some(b => b.evidenceId === id))
+    const pinned = []
+    for (const id of tamperedIds) {
+      try { pinned.push({ ...(await getEvidence(id)), tampered: true, pinned: true }) } catch { /* 忽略 */ }
+    }
+    pinned.sort((a, b) => (a.blockHeight || 0) - (b.blockHeight || 0))
+    blocks.value = pinned.length ? [...pinned, { gap: true, evidenceId: '__gap__' }, ...recent] : recent
     await nextTick()
-    if (chainScrollRef.value) chainScrollRef.value.scrollLeft = chainScrollRef.value.scrollWidth
+    // 有被篡改块时停在链条起点让红块可见，否则滚到最新块
+    if (chainScrollRef.value) chainScrollRef.value.scrollLeft = pinned.length ? 0 : chainScrollRef.value.scrollWidth
   } catch { /* 拦截器已提示 */ }
 }
 function isTampered(b) { return Boolean(b.tampered) || (chain.value?.tamperedIds || []).includes(b.evidenceId) }
@@ -304,7 +316,12 @@ async function submitTamper() {
     logStore.addLog(`【演示】篡改存证 ${t.evidenceId}（高度 ${t.blockHeight || '--'}）的本地数据：${tamperForm.newValueText}`, 'ERROR', 'CHAIN')
     tamperVisible.value = false
     const r = await doVerify(t.evidenceId)
-    await Promise.all([loadStatus(), loadBlocks(), load()])
+    // 让被篡改记录出现在检索表首页：按其 DID / refId 过滤
+    const target = dataEvidences.value.find(e => e.evidenceId === t.evidenceId)
+    if (target?.did || target?.refId) { query.did = target.did || target.refId; query.page = 1 }
+    await loadStatus()
+    await Promise.all([loadBlocks(), load()])
+    selected.value = list.items.find(e => e.evidenceId === t.evidenceId) || selected.value
     if (chain.value && !chain.value.intact) logStore.addLog(`链状态：断裂于高度 ${chain.value.brokenAt}，之后 ${Math.max(0, chain.value.height - chain.value.brokenAt)} 个区块受影响`, 'ERROR', 'CHAIN')
     if (r && !r.intact) ElMessage.error(`校验失败：${r.message}`)
   } catch { /* 拦截器已提示 */ } finally { tampering.value = false }
@@ -371,7 +388,8 @@ onBeforeUnmount(() => { if (offWs) offWs(); if (wsTimer) clearTimeout(wsTimer) }
 .block.affected { border-color: var(--color-warning); background: linear-gradient(160deg, rgba(243, 156, 18, .25), rgba(243, 156, 18, .06)); }
 .block.affected .block-h { color: var(--color-warning); }
 @keyframes blinkRed { 0%, 100% { box-shadow: 0 0 10px rgba(230, 57, 70, .4); } 50% { box-shadow: 0 0 26px rgba(230, 57, 70, 1); } }
-.evidence-grid { grid-template-columns: 3fr 2fr; }
+.evidence-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.block-gap { flex: 0 0 auto; align-self: center; padding: 0 6px; color: var(--color-text-secondary); font-size: 18px; letter-spacing: 2px; }
 .trace-timeline { max-height: 520px; overflow: auto; padding-right: 6px; }
 .verify-box { padding: 16px; border-radius: 10px; border: 1px solid; text-align: center; display: flex; flex-direction: column; gap: 8px; }
 .verify-box.ok { border-color: var(--color-success); background: rgba(46, 204, 113, .08); }

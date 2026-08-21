@@ -16,7 +16,7 @@ tmp_table_size                 = 32M
 max_heap_table_size            = 32M
 performance_schema             = OFF    # 演示环境无需，省 200MB+ 内存
 slow_query_log                 = OFF
-log_error_verbosity            = 2
+loose-log_error_verbosity      = 2      # loose-：mariadb:11 无此变量时忽略而非启动失败
 
 [client]
 default-character-set = utf8mb4

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# 假 curl：-o 下载 → 生成文件；-I 探测 → FAKE_OFFLINE 控制；健康 URL → 第 FAKE_HEALTH_OK_AT 次起返回成功（0=永不）
+. "$(dirname "$0")/_log.sh"; flog "$@"
+url=""; out=""; head=0; prev=""
+for a in "$@"; do
+  case "$a" in http://*|https://*) url="$a" ;; -I|-fsI|-sI) head=1 ;; esac
+  [[ "$prev" == "-o" ]] && out="$a"; prev="$a"
+done
+[[ "${FAKE_OFFLINE:-0}" == 1 ]] && exit 7
+if [[ -n "$out" ]]; then
+  mkdir -p "$(dirname "$out")"
+  if [[ "$url" == *docker-*.tgz ]]; then
+    t="$(mktemp -d)"; mkdir -p "$t/docker"
+    cp "$(dirname "$0")/docker" "$t/docker/docker"; cp "$(dirname "$0")/_log.sh" "$t/docker/_log.sh"
+    for b in dockerd containerd runc docker-init docker-proxy ctr containerd-shim-runc-v2; do printf '#!/bin/sh\nexit 0\n' > "$t/docker/$b"; done
+    tar -C "$t" -czf "$out" docker; rm -rf "$t"
+  else
+    printf '#!/bin/sh\necho "Docker Compose version v2.32.4"\n' > "$out"
+  fi
+  exit 0
+fi
+case "$url" in
+  *auth.docker.io*) echo '{"token":"FAKETOKEN"}'; exit 0 ;;
+  *registry-1.docker.io*)
+    img="$(echo "$url" | sed -E 's#.*/v2/library/([^/]+)/manifests/(.+)#\1:\2#')"
+    printf '{"manifests":[{"platform":{"architecture":"amd64","os":"linux"}}'
+    [[ " ${FAKE_NO_ARM64_IMAGES:-} " == *" ${img} "* ]] || printf ',{"platform":{"architecture":"arm64","os":"linux"}}'
+    echo ']}'; exit 0 ;;
+  */api/v1/health|*/healthz)
+    n=0; [[ -f "${FAKE_STATE}/health_calls" ]] && n="$(cat "${FAKE_STATE}/health_calls")"; n=$((n+1)); echo "$n" > "${FAKE_STATE}/health_calls"
+    okat="${FAKE_HEALTH_OK_AT:-1}"
+    [[ "$okat" -gt 0 && "$n" -ge "$okat" ]] && { echo '{"code":0}'; exit 0; }; exit 7 ;;
+esac
+[[ $head -eq 1 ]] && exit 0
+exit 0

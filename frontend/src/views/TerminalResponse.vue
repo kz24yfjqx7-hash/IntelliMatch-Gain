@@ -48,6 +48,9 @@
             <span class="empty-icon">📭</span>
             <span class="empty-text">当前节点暂无已下发调度指令</span>
             <span class="empty-hint">请先在「云端聚合与调度」生成策略并签名下发，再返回边端查看执行过程</span>
+            <el-button v-if="otherNodeTask" size="small" type="primary" plain @click="perspectiveStore.setCurrentNode(otherNodeTask.nodeId)">
+              最新指令目标为 {{ otherNodeTask.nodeId }} → 切换到该节点查看
+            </el-button>
           </div>
         </div>
 
@@ -160,6 +163,16 @@ const nodeTasks = computed(() => dispatchStore.remoteTasks.filter(t =>
   ((t.targets || []).includes(node.value.id) || (t.strategy?.actions || []).some(a => a.nodeId === node.value.id && a.action !== 'idle'))
 ))
 const myAction = computed(() => task.value?.strategy?.actions?.find(a => a.nodeId === node.value.id) || null)
+/** 当前节点无指令时，找出最新一条已下发指令的目标节点，供一键切换（演示第 7 步：下发后到边端看回执） */
+const otherNodeTask = computed(() => {
+  if (nodeTasks.value.length) return null
+  const issued = dispatchStore.remoteTasks.filter(t => t.status === 'issued' || t.status === 'acked')
+  for (const t of issued) {
+    const target = (t.targets || [])[0] || (t.strategy?.actions || []).find(a => a.action !== 'idle')?.nodeId
+    if (target && target !== node.value.id) return { nodeId: target, task: t }
+  }
+  return null
+})
 /** 放电为正、充电为负 */
 const targetPower = computed(() => {
   const a = myAction.value

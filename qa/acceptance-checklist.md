@@ -1,5 +1,7 @@
 # 验收自检清单（qa 维护）
 
+> 第三轮（对抗测试）回归后更新：algo 314/314、vitest 137/137、Playwright 28/28、selfcheck 12/12、contract_audit 阻断 0、deploy 沙箱 39/39。
+
 图例：✅ 通过　❌ 失败　⏳ 待运行 / 等依赖　🚫 本环境无法验证（需真机 / docker 权限 / 甲方 backend）
 
 ## A. 契约第六部分 12 条链路
@@ -24,28 +26,28 @@
 | # | 项 | 验证方式 | 负责 | 状态 |
 |---|---|---|---|---|
 | 1 | 干净机器、拔网线 | 真机 | deploy / 总控 | 🚫 需硬件 |
-| 2 | 解压 `sudo ./install.sh` | `check_deploy.sh` 静态核九步要点（root / 架构 / 内存 / docker 离线 / 端口 / load+SHA / 随机密钥 / 180s 轮询 / systemd + 六账号）；`bash -n` | deploy | ✅ 静态；真机 🚫 |
+| 2 | 解压 `sudo ./install.sh` | `check_deploy.sh` 静态 + `qa/deploy-sandbox` 假命令沙箱实跑九步（含失败分支、密钥随机性、180s 轮询 60 次） | deploy | ✅ 沙箱 39/39；真机 🚫 |
 | 3 | 全程无联网请求 | 源码扫描（前端 ✅、algo ✅，DEEPSEEK_BASE_URL 仅 .env）；tcpdump 真机 🚫 | 全体 | ✅ 静态 |
 | 4 | 2 分钟内安装完成并打印地址与账号 | install.sh 含 180s 轮询与横幅输出 ✅；计时真机 🚫 | deploy | ✅ 静态 |
 | 5 | 浏览器 `admin/admin123` 登录 | 见 A2；`pages.spec.js` 以 admin/vpp 登录后挂载 11 页 | 甲 / frontend | 桩 ✅ |
 | 6 | 12 条业务链路 | 见 A | 全体 | 桩 ✅；真实 backend 待甲 |
 | 7 | reboot 自启（ARM 验证 kiosk 全屏） | `packaging/assets/energy-tds.service`、`energy-tds-kiosk.service` 存在 ✅；真机 🚫 | deploy | ✅ 静态 |
-| 8 | `uninstall.sh` 卸载干净 | `uninstall.sh --purge` 存在 + `bash -n` ✅；真机 🚫 | deploy | ✅ 静态 |
+| 8 | `uninstall.sh` 卸载干净 | 沙箱 D1-D3（默认保留卷 / `--purge -y` / 非 root 拒绝） ✅；真机 🚫 | deploy | ✅ 沙箱 |
 | 9 | ARM 包真实树莓派跑一遍 | 真机 | deploy / 总控 | 🚫 |
 
 ## C. DEV-PLAN §7 DoD
 
 | 模块 | 项 | 状态 |
 |---|---|---|
-| algo | `pytest algo-service/tests` 全绿 | ✅ 70/70 |
+| algo | `pytest algo-service/tests` 全绿 | ✅ 314/314（含对抗用例 244） |
 | algo | `uvicorn main:app` 起得来，health 返回 `{"status":"ok",...}` | ✅ `qa/check_algo_live.sh` 10/10 |
 | algo | DQN checkpoint 存在，推理 <200ms | ✅ |
 | algo | FL 10 轮 loss 趋势下降 | ✅（修复 MSG-qa-to-algo-001 后） |
 | frontend | `npm run build` 零错误 | ✅（P0 已修） |
-| frontend | 12 条链路在浏览器走通 | 自动化：11 页 + Banner 在 MSW 下挂载无抛错（`pages.spec.js` + 两份冒烟）；浏览器人工走查 ⏳ |
+| frontend | 12 条链路在浏览器走通 | 自动化：Playwright 28 例在真实 Chromium + MSW 下走通 12 条链路（含两分辨率布局与内存）；`selfcheck.mjs` 12/12；人工走查可选 |
 | frontend | `grep -rn "http://\|https://" src/` 仅剩允许项 | ✅ |
-| frontend | `npm test` 全绿 | ✅ 83/83（14 个文件） |
+| frontend | `npm test` 全绿 | ✅ 137/137（15 个文件）+ Playwright 28/28 |
 | deploy | `docker compose config` 通过 | ✅（env_file 硬依赖已去除） |
 | deploy | `docker build` 两镜像 | 🚫 本机无 docker 权限 |
 | deploy | `bash -n` 全部脚本 | ✅ |
-| deploy | 安装包目录结构与规范 §三一致 | ⏳ 需实际 build.sh 产物 |
+| deploy | 安装包目录结构与规范 §三一致 | ✅ 沙箱 `build.sh --arch all` 产物结构核对通过（`qa/deploy-sandbox` B1） |

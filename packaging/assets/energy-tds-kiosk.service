@@ -1,23 +1,19 @@
 # 能源可信数据空间平台 · 树莓派 Chromium 全屏 Kiosk（仅 arm64 包安装）
-# 等待平台健康检查通过后，以桌面用户身份全屏打开 http://localhost
-# install.sh 会把 __KIOSK_USER__ 替换为实际桌面用户（默认 pi）
+# 等待平台健康检查通过后，以桌面用户身份全屏打开 http://localhost（逻辑在 /opt/energy-tds/kiosk.sh）
+# install.sh 会把 __KIOSK_USER__ 替换为实际桌面用户（默认 pi），并把 kiosk.sh 装到 /opt/energy-tds/
 [Unit]
 Description=Energy TDS Kiosk (Chromium fullscreen)
 After=energy-tds.service graphical.target
 Wants=energy-tds.service
-PartOf=graphical-session.target
 
 [Service]
 Type=simple
 User=__KIOSK_USER__
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/__KIOSK_USER__/.Xauthority
-# 等平台就绪（最多 5 分钟），再拉起浏览器
-ExecStartPre=/bin/bash -c 'for i in $(seq 1 60); do curl -fs http://localhost/healthz >/dev/null 2>&1 && exit 0; sleep 5; done; exit 0'
-ExecStart=/bin/bash -c 'exec $(command -v chromium-browser || command -v chromium) \
-  --kiosk --noerrdialogs --disable-infobars --no-first-run --disable-restore-session-state \
-  --disable-gpu-compositing --disable-features=TranslateUI --enable-features=OverlayScrollbar \
-  --check-for-update-interval=31536000 http://localhost'
+Environment=KIOSK_URL=http://localhost
+Environment=KIOSK_WAIT_SECONDS=300
+ExecStart=/bin/bash /opt/energy-tds/kiosk.sh
 Restart=on-failure
 RestartSec=10
 

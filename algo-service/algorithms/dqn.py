@@ -263,7 +263,8 @@ def train(episodes: int = 3000, seed: int = 7, log_path: Path | None = None, ver
         # 训练曲线按每 10 个 episode 取均值，便于前端/答辩展示
         w = max(1, episodes // 300)
         curve_ds = [float(np.mean(curve[i : i + w])) for i in range(0, len(curve), w)]
-        json.dump({"meta": meta, "rewardCurve": curve_ds, "window": w, "lossCurve": [float(x) for x in losses[:: max(1, len(losses) // 300)]]}, open(log_path, "w"), ensure_ascii=False, indent=1)
+        with open(log_path, "w", encoding="utf-8") as fh:
+            json.dump({"meta": meta, "rewardCurve": curve_ds, "window": w, "lossCurve": [float(x) for x in losses[:: max(1, len(losses) // 300)]]}, fh, ensure_ascii=False, indent=1)
     return q, meta
 
 
@@ -285,6 +286,27 @@ def load_checkpoint(path: Path | None = None) -> tuple[QNetwork, dict]:
 
 
 # ---------------------------------------------------------------- 推理
+_NODE_BOUNDS = {"pv": (0.0, -1e6, 1e6), "load": (0.0, -1e6, 1e6), "soc": (50.0, 0.0, 100.0), "price": (0.62, 0.0, 1e4), "storage": (0.0, -1e6, 1e6)}
+
+
+def _finite(v, default: float) -> float:
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    return f if np.isfinite(f) else default
+
+
+def _sanitize_node(nd: dict) -> dict:
+    out = dict(nd)
+    for k, (dflt, lo, hi) in _NODE_BOUNDS.items():
+        out[k] = float(min(max(_finite(nd.get(k, dflt), dflt), lo), hi))
+    h = nd.get("hour")
+    if h is not None:
+        out["hour"] = int(_finite(h, 12)) % 24
+    return out
+
+
 class DQNDispatcher:
     """加载 checkpoint，对多节点给出调度动作，并做硬约束校验。"""
 
@@ -326,6 +348,9 @@ class DQNDispatcher:
         actions, q_table, violations = [], [], []
         total_reward = 0.0  # 策略期望累计回报 Σ_k Q(s_k, a_k)
         immediate = 0.0  # 各节点单步即时奖励之和 Σ_k r_k（可能为负：如为恢复 SOC 在峰时充电）
+        # 输入消毒（防御性，HTTP 层已做 pydantic 校验）：非有限值按默认、数值裁剪到物理合理范围，
+        # 避免 1e308 之类的输入让 Q 值溢出为 inf/nan 导致 JSON 序列化失败
+        nodes = [_sanitize_node(nd) for nd in nodes]
         loads = sorted(range(len(nodes)), key=lambda i: -nodes[i]["load"])
         rank = {i: r for r, i in enumerate(loads)}
         for i, nd in enumerate(nodes):

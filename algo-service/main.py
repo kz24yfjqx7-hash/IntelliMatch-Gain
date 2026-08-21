@@ -9,6 +9,7 @@ FastAPI 应用，实现 contract/API-CONTRACT.md 第三部分全部接口，路�
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 import uuid
@@ -55,9 +56,20 @@ def _startup() -> None:
 
 
 # ---------------------------------------------------------------- 中间件 / 异常
+_TRACE_ID_RE = re.compile(r"^[\x21-\x7e]{1,128}$")  # 可见 ASCII、≤128 字符
+
+
+def _sanitize_trace_id(raw: str | None) -> str:
+    """缺失/为空/含非法字符（非可见 ASCII、过长）时由服务自行生成，避免非法字节写回响应头。"""
+    raw = (raw or "").strip()
+    if raw and _TRACE_ID_RE.match(raw):
+        return raw
+    return f"tr-{time.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8]}"
+
+
 @app.middleware("http")
 async def trace_middleware(request: Request, call_next):
-    trace_id = request.headers.get("X-Trace-Id") or f"tr-{time.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8]}"
+    trace_id = _sanitize_trace_id(request.headers.get("X-Trace-Id"))
     request.state.trace_id = trace_id
     t0 = time.perf_counter()
     try:
@@ -93,60 +105,64 @@ async def _api_error_handler(request: Request, exc: ApiError):
 
 
 # ---------------------------------------------------------------- 请求模型（字段名与契约一致）
+# 字段校验原则：契约字段名/语义不变，只拒绝会导致 500 或无意义计算的取值（NaN/Inf、非正 ε、超长 id 等）
+ID_MAX = 128
+
+
 class FlNode(BaseModel):
-    id: str
-    samples: int | None = None
+    id: str = Field(..., min_length=1, max_length=ID_MAX)
+    samples: int | None = Field(None, ge=0, le=10_000_000)  # 0/None = 使用该节点全部样本
 
 
 class DpCfg(BaseModel):
     enabled: bool = False
-    epsilon: float = 1.0
-    delta: float = 1e-5
+    epsilon: float = Field(1.0, gt=0, le=1e6, allow_inf_nan=False)
+    delta: float = Field(1e-5, gt=0, lt=1, allow_inf_nan=False)
 
 
 class TopkCfg(BaseModel):
     enabled: bool = False
-    ratio: float = Field(0.1, gt=0, le=1)
+    ratio: float = Field(0.1, gt=0, le=1, allow_inf_nan=False)
 
 
 class FlTrainReq(BaseModel):
-    jobId: str
+    jobId: str = Field(..., min_length=1, max_length=ID_MAX)
     rounds: int = Field(10, ge=1, le=500)
-    nodes: list[FlNode] = Field(..., min_length=1)
+    nodes: list[FlNode] = Field(..., min_length=1, max_length=64)
     dp: DpCfg = DpCfg()
     topk: TopkCfg = TopkCfg()
-    simulatePoison: str | None = None  # 可选扩展：指定节点 id 模拟梯度投毒（甲不传则无影响）
+    simulatePoison: str | None = Field(None, max_length=ID_MAX)  # 可选扩展：指定节点 id 模拟梯度投毒（甲不传则无影响）
 
 
 class DqnNode(BaseModel):
-    id: str
-    pv: float = 0.0
-    load: float = 0.0
-    soc: float = 50.0
-    storage: float = 0.0
-    price: float = 0.62
-    hour: int | None = None  # 可选扩展：小时(0~23)，不传则按 timeWindow 或当前时间
+    id: str = Field(..., min_length=1, max_length=ID_MAX)
+    pv: float = Field(0.0, ge=-1e6, le=1e6, allow_inf_nan=False)
+    load: float = Field(0.0, ge=-1e6, le=1e6, allow_inf_nan=False)
+    soc: float = Field(50.0, ge=0, le=100, allow_inf_nan=False)  # SOC 百分比
+    storage: float = Field(0.0, ge=-1e6, le=1e6, allow_inf_nan=False)
+    price: float = Field(0.62, ge=0, le=1e4, allow_inf_nan=False)
+    hour: int | None = Field(None, ge=0, le=23)  # 可选扩展：小时(0~23)，不传则按 timeWindow 或当前时间
 
 
 class DqnReq(BaseModel):
-    taskId: str
-    timeWindow: str | None = None
-    nodes: list[DqnNode] = Field(..., min_length=1)
+    taskId: str = Field(..., min_length=1, max_length=ID_MAX)
+    timeWindow: str | None = Field(None, max_length=128)
+    nodes: list[DqnNode] = Field(..., min_length=1, max_length=500)
 
 
 class DeepseekReq(BaseModel):
-    scene: str = "qa"
+    scene: str = Field("qa", max_length=64)
     context: dict | None = None
-    question: str | None = None
+    question: str | None = Field(None, max_length=20_000)
 
 
 class ClassifyReq(BaseModel):
-    records: list[dict] = Field(..., min_length=1)
+    records: list[dict] = Field(..., min_length=1, max_length=5000)
 
 
 class RiskReq(BaseModel):
-    nodeId: str
-    features: dict = Field(default_factory=dict)
+    nodeId: str = Field(..., min_length=1, max_length=ID_MAX)
+    features: dict | None = Field(default_factory=dict)  # null 视为 {}
 
 
 # ---------------------------------------------------------------- FL 任务管理器
@@ -222,6 +238,19 @@ class FlJob:
 
 JOBS: dict[str, FlJob] = {}
 JOBS_LOCK = threading.Lock()
+TERMINAL = ("success", "failed", "cancelled")
+
+
+def _prune_jobs_locked() -> None:
+    """任务字典上限/TTL 清理（须持有 JOBS_LOCK）：只淘汰终态任务，先按 TTL，再按最旧优先直到不超过上限。"""
+    now = time.time()
+    if config.FL_JOB_TTL > 0:
+        for jid in [j.id for j in JOBS.values() if j.status in TERMINAL and now - j.createdAt > config.FL_JOB_TTL]:
+            JOBS.pop(jid, None)
+    if len(JOBS) >= config.FL_MAX_JOBS:
+        finished = sorted((j for j in JOBS.values() if j.status in TERMINAL), key=lambda j: j.createdAt)
+        for j in finished[: max(0, len(JOBS) - config.FL_MAX_JOBS + 1)]:
+            JOBS.pop(j.id, None)
 
 
 # ---------------------------------------------------------------- 路由
@@ -240,6 +269,10 @@ def fl_train(req: FlTrainReq):
         old = JOBS.get(req.jobId)
         if old is not None and old.status in ("created", "running"):
             raise ApiError(409, f"任务 {req.jobId} 正在运行")
+        _prune_jobs_locked()
+        running = sum(1 for j in JOBS.values() if j.status in ("created", "running") and j.thread is not None and j.thread.is_alive())
+        if running >= config.FL_MAX_RUNNING:
+            raise ApiError(429, f"并发训练任务已达上限 {config.FL_MAX_RUNNING}，请稍后重试")
         job = FlJob(req)
         JOBS[req.jobId] = job
         job.status = "running"  # 立即返回 running，线程内真正开始
@@ -313,7 +346,7 @@ def classify(req: ClassifyReq):
 
 @app.post(PREFIX + "/risk/assess")
 def risk_assess(req: RiskReq):
-    return risk.assess(req.nodeId, req.features)
+    return risk.assess(req.nodeId, req.features or {})
 
 
 if __name__ == "__main__":

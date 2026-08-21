@@ -2,6 +2,7 @@
 import { http } from 'msw'
 import { db, genKeyPair, nextId } from '../db.js'
 import { BASE, handle, ok, body, query, paginate, requireAuth, writeAudit, writeEvidence, MockError, now } from '../helpers.js'
+import { toIso8 } from '../../utils/format.js'
 
 const DAY = 86400000
 
@@ -25,7 +26,7 @@ export const keyHandlers = [
     const algorithm = ['SM2', 'ECC', 'RSA'].includes(data.algorithm) ? data.algorithm : 'SM2'
     const version = db.keys.filter(k => k.did === did).reduce((m, k) => Math.max(m, k.version), 0) + 1
     const kp = genKeyPair()
-    const key = { id: nextId('key'), did, algorithm, publicKey: kp.publicKey, status: 'active', version, boundAt: now(), expireAt: new Date(Date.now() + (Number(data.validDays) || 365) * DAY).toISOString() }
+    const key = { id: nextId('key'), did, algorithm, publicKey: kp.publicKey, status: 'active', version, boundAt: now(), expireAt: toIso8(new Date(Date.now() + (Number(data.validDays) || 365) * DAY)) }
     db.keys.push(key)
     const ev = writeEvidence({ category: 'identity', refId: did, actorDid: user.did, traceId, payload: { op: 'key:create', did, keyId: key.id, algorithm, version, publicKey: kp.publicKey } })
     writeAudit({ traceId, user, module: 'key', action: 'key:create', resourceType: 'did', resourceId: did, detail: `生成并绑定 ${algorithm} 密钥 v${version}`, evidenceId: ev.evidence_id })
