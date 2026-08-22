@@ -14,6 +14,7 @@ from core.exceptions import DidInvalidError, NotFoundError
 from core.gm_crypto import payload_hash as calc_payload_hash
 from core.middleware import current_principal, current_trace_id
 from core.response import iso, now_cst
+from core.retry import run_with_retry
 from modules.algo import client as algo_client
 from modules.asset.model import EnergyAsset, EnergyAssetLineage
 from modules.evidence.service import write_evidence
@@ -164,41 +165,47 @@ def create_asset(db: Session, payload) -> dict:
                                "reason": first.get("reason"), "source": "algo"}
         level = classify_result["level"]
 
-    asset = EnergyAsset(
-        name=payload.name, data_type=payload.dataType, source_did=payload.sourceDid,
-        owner_did=payload.sourceDid, level=level, payload=payload.payload,
-        payload_hash=phash, description=payload.description,
-        record_count=payload.recordCount, auth_status="unauthorized",
-        classify_score=Decimal(str(classify_result["score"])) if classify_result and classify_result.get("score") is not None else None,
-        classify_reason=classify_result["reason"] if classify_result else None,
-        trace_id=trace_id,
-    )
-    db.add(asset)
-    db.flush()
+    def _persist() -> dict:
+        asset = EnergyAsset(
+            name=payload.name, data_type=payload.dataType, source_did=payload.sourceDid,
+            owner_did=payload.sourceDid, level=level, payload=payload.payload,
+            payload_hash=phash, description=payload.description,
+            record_count=payload.recordCount, auth_status="unauthorized",
+            classify_score=Decimal(str(classify_result["score"])) if classify_result and classify_result.get("score") is not None else None,
+            classify_reason=classify_result["reason"] if classify_result else None,
+            trace_id=trace_id,
+        )
+        db.add(asset)
+        db.flush()
 
-    evidence = write_evidence(db, category="data", ref_id=asset.id, payload={
-        "action": "asset:register", "assetId": asset.id, "name": payload.name,
-        "dataType": payload.dataType, "level": level, "payloadHash": phash,
-        "sourceDid": payload.sourceDid, "createdAt": iso(now_cst()),
-    })
-    asset.evidence_id = evidence["evidenceId"]
-    asset.chain_tx_id = evidence["txId"]
+        evidence = write_evidence(db, category="data", ref_id=asset.id, payload={
+            "action": "asset:register", "assetId": asset.id, "name": payload.name,
+            "dataType": payload.dataType, "level": level, "payloadHash": phash,
+            "sourceDid": payload.sourceDid, "createdAt": iso(now_cst()),
+        })
+        asset.evidence_id = evidence["evidenceId"]
+        asset.chain_tx_id = evidence["txId"]
 
-    _add_lineage(db, asset.id, "register", evidence["evidenceId"], phash,
-                 "数据登记并生成 SM3 摘要上链", actor_did=payload.sourceDid)
-    db.commit()
+        _add_lineage(db, asset.id, "register", evidence["evidenceId"], phash,
+                     "数据登记并生成 SM3 摘要上链", actor_did=payload.sourceDid)
+        db.commit()
 
-    return {
-        "id": asset.id,
-        "hash": phash,
-        "level": level,
-        "chainTxId": asset.chain_tx_id,
-        "evidenceId": asset.evidence_id,
-        "authStatus": asset.auth_status,
-        "classifySource": classify_result["source"] if classify_result else "manual",
-        "classifyReason": asset.classify_reason,
-        "createdAt": iso(asset.created_at),
-    }
+        return {
+            "id": asset.id,
+            "hash": phash,
+            "level": level,
+            "chainTxId": asset.chain_tx_id,
+            "evidenceId": asset.evidence_id,
+            "authStatus": asset.auth_status,
+            "classifySource": classify_result["source"] if classify_result else "manual",
+            "classifyReason": asset.classify_reason,
+            "createdAt": iso(asset.created_at),
+        }
+
+    # B-014：并发登记时存证上链撞死锁 → MySQL 回滚整个事务 → 紧接着的
+    # `UPDATE energy_asset SET evidence_id=...` 匹配 0 行 → StaleDataError → 500。
+    # 整段写事务作为一个可重放单元，实在冲突才按契约返回 1006。
+    return run_with_retry(db, _persist, what="数据资产登记")
 
 
 def _assert_source_did_active(db: Session, did: str) -> None:

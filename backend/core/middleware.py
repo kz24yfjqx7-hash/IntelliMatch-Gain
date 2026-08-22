@@ -78,6 +78,73 @@ def get_principal() -> Principal:
     return p
 
 
+def adopt_trace(trace_id: str | None) -> str:
+    """让当前请求沿用某个业务对象**发起时**的 traceId。
+
+    契约 1.2：「该请求产生的所有审计日志、存证记录共用同一 traceId」。
+    联邦学习（创建 → 启动 → 每轮上链 → 完成）与智能调度（创建 → run → issue → ack）
+    是跨多个 HTTP 请求的长流程，如果每个请求各自生成新 traceId，
+    `/audit/trace/{traceId}` 就只能查到孤零零的一步（B-015）。
+    因此这些接口在拿到任务后立刻把上下文里的 traceId 换成任务的 traceId，
+    后续的 @audited 审计日志、write_evidence 存证、WebSocket 推送就自动串到同一条链上。
+
+    调用点必须在被 @audited 包裹的函数体内（同一个 contextvar 上下文），
+    这样装饰器收尾写审计日志时取到的才是任务的 traceId。
+    """
+    if trace_id:
+        current_trace_id.set(trace_id)
+        # 同步写回 request.state：同步接口跑在线程池里，contextvar 改动传不回事件循环，
+        # 而全局异常处理器（1001/1006 那些分支）是在事件循环里取 traceId 的。
+        # 不写回的话，被拒绝的响应会带着一个查不到任何日志的 traceId。
+        request = current_request.get()
+        if request is not None:
+            try:
+                request.state.trace_id = trace_id
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("回写 request.state.trace_id 失败：%s", exc)
+    return current_trace_id.get()
+
+
+def audit_step(*, module: str, action: str, risk: str = "low",
+               resource_type: str | None = None, resource_id: str | None = None,
+               result: str = "success", detail: str | None = None,
+               trace_id: str | None = None, actor_did: str | None = None,
+               evidence_id: str | None = None, chain: bool | None = None) -> None:
+    """给「不在 HTTP 请求里」的流程步骤补一条审计埋点。
+
+    @audited 只能覆盖请求-响应式的调用；联邦学习每轮结果是后台协程轮询算法服务后落库的，
+    没有请求可以挂装饰器，但它同样属于「任务级全流程」的一步，必须留痕，
+    否则 /audit/trace 的时间轴上会缺掉整个训练过程。
+
+    仍然遵守「业务代码不许直接调 add_audit_log」的原则——业务侧只声明发生了什么，
+    落库细节由本模块统一处理。
+    """
+    payload = {
+        "traceId": trace_id or current_trace_id.get(),
+        "actorDid": actor_did,
+        "actorName": None,
+        "module": module,
+        "action": action,
+        "resourceType": resource_type,
+        "resourceId": resource_id,
+        "result": result,
+        "riskLevel": _escalate(risk, result, module),
+        "detail": detail,
+        "ip": "",
+        "costMs": 0,
+        # 关联到业务侧已经写好的那条存证（例如某一轮梯度哈希）。
+        # 审计模块暂时只在自己上链时才填 evidence_id，这里先带上，
+        # 待 modules/audit 支持透传后 /audit/trace 的 steps[].evidenceId 即可非空。
+        "evidenceId": evidence_id,
+    }
+    try:
+        from modules.audit.service import write_audit_log
+
+        write_audit_log(payload, to_chain=chain)
+    except ImportError:
+        logger.info("[审计·暂存] %s", json.dumps(payload, ensure_ascii=False))
+
+
 def get_client_ip(request: Request | None = None) -> str:
     request = request or current_request.get()
     if request is None:
@@ -109,17 +176,30 @@ class TraceMiddleware(BaseHTTPMiddleware):
         trace_id = request.headers.get("x-trace-id") or new_trace_id()
         token_trace = current_trace_id.set(trace_id)
         token_req = current_request.set(request)
+        # B-014：未捕获异常会一路冒泡到 Starlette 最外层的 ServerErrorMiddleware，
+        # 那里已经在本中间件的 finally 之外，contextvar 一旦 reset 就只剩默认值，
+        # 于是 500 响应的 traceId 退化成 tr-00000000-00000000，全流程追踪彻底断掉。
+        # 把 traceId 同时挂到 request.state 上，异常分支再不 reset，兜住这条路径。
+        request.state.trace_id = trace_id
         started = time.perf_counter()
         try:
             response = await call_next(request)
-        finally:
+        except BaseException:
             cost = (time.perf_counter() - started) * 1000
             current_request.reset(token_req)
-            logger.info(
-                "%s %s trace=%s cost=%.1fms", request.method, request.url.path, trace_id, cost
-            )
-            current_trace_id.reset(token_trace)
-        response.headers["X-Trace-Id"] = trace_id
+            logger.info("%s %s trace=%s cost=%.1fms（异常）",
+                        request.method, request.url.path, trace_id, cost)
+            # 故意不 reset current_trace_id：本请求的上下文是独立副本，
+            # 留给外层异常处理器取真实 traceId，请求结束即随上下文一起销毁。
+            raise
+        cost = (time.perf_counter() - started) * 1000
+        current_request.reset(token_req)
+        logger.info(
+            "%s %s trace=%s cost=%.1fms", request.method, request.url.path, trace_id, cost
+        )
+        current_trace_id.reset(token_trace)
+        # 走过 adopt_trace 的接口（FL / 调度全流程）会把 traceId 换成任务的，响应头跟着一起换
+        response.headers["X-Trace-Id"] = getattr(request.state, "trace_id", trace_id)
         return response
 
 
@@ -389,6 +469,9 @@ def _verify_signature(kwargs: dict, did_arg: str, signature_arg: str, message_ar
         if not signature:
             raise DidInvalidError("缺少签名，且该身份没有可用的托管密钥")
         logger.info("使用托管私钥为 %s 补签", did)
+        # B-004：代签出来的签名必须回写给业务层，否则 algo_dispatch_task.signature 恒为 NULL，
+        # 事后既无法追溯是谁签的，边端也拿不到签名字节做复核验签。
+        _write_back(body, signature_arg, signature)
 
     if not verify_signature(did, message or "", signature):
         raise DidInvalidError("签名校验失败")
@@ -407,6 +490,19 @@ def _extract(body: Any, name: str):
     if isinstance(body, dict):
         return body.get(name)
     return getattr(body, name, None)
+
+
+def _write_back(body: Any, name: str, value: str) -> None:
+    """把托管代签补出来的签名写回请求体，业务层照常从 body.signature 取。"""
+    if body is None:
+        return
+    try:
+        if isinstance(body, dict):
+            body[name] = value
+        else:
+            setattr(body, name, value)
+    except Exception as exc:  # noqa: BLE001  请求体是 frozen 模型时降级，不影响验签
+        logger.debug("回写托管签名失败：%s", exc)
 
 
 def audited(*, module: str, action: str, risk: str = "low",

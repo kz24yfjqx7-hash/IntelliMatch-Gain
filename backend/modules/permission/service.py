@@ -12,13 +12,14 @@
 import json
 import logging
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session
 
 from core import redis_client
 from core.exceptions import ConflictError, NotFoundError, ParamError
 from core.database import SessionLocal
 from core.response import now_cst
+from core.retry import run_with_retry
 from modules.permission.model import PermGrant, SysRolePermission
 
 logger = logging.getLogger(__name__)
@@ -294,9 +295,14 @@ def _parse_expire(value: str | None, default_days: int = _DEFAULT_GRANT_DAYS) ->
     if not value:
         return (now_cst() + timedelta(days=default_days)).replace(tzinfo=None)
     try:
-        return datetime.fromisoformat(value).replace(tzinfo=None)
+        expire_at = datetime.fromisoformat(value).replace(tzinfo=None)
     except ValueError as exc:
         raise ParamError(f"expireAt 格式非法，应为 ISO 8601：{value}") from exc
+    # B-003：过去的时间等于「申请一个一生效就过期的授权」，没有任何业务含义，
+    # 放行只会在 perm_grant 里留下一批天生失效的记录，按契约 1.1 返回 1001。
+    if expire_at <= now_cst().replace(tzinfo=None):
+        raise ParamError(f"expireAt 必须晚于当前时间：{value}")
+    return expire_at
 
 
 def _log_change(db: Session, *, target_did: str, change_type: str, resource_type: str | None,
@@ -338,6 +344,11 @@ def _app_to_item(app: PermApplication) -> dict:
 
 
 def apply_permission(db: Session, principal, payload) -> dict:
+    return run_with_retry(db, lambda: _apply_permission(db, principal, payload),
+                          what="提交权限申请")
+
+
+def _apply_permission(db: Session, principal, payload) -> dict:
     if not principal.did:
         raise DidInvalidError("当前账号未绑定 DID，无法提交权限申请")
 
@@ -397,17 +408,41 @@ def list_applications(db: Session, page: int, size: int, *, status: str | None =
     return [_app_to_item(a) for a in apps], total
 
 
-def _get_pending(db: Session, application_id: int) -> PermApplication:
+def _claim_pending(db: Session, application_id: int, new_status: str) -> PermApplication:
+    """把一条 pending 申请原子地「占」下来。
+
+    B-012：原来是先 `db.get()` 读出来判断 status，再改字段提交。两个审批人同时点，
+    两边都读到 pending，于是两边都发 UPDATE —— 后到的那条 0 行匹配，
+    SQLAlchemy 抛 StaleDataError 冒泡成 500。
+
+    改成条件更新 `WHERE id=:id AND status='pending'`：InnoDB 会让后到者阻塞到
+    先到者提交，再以最新版本重新求值 —— 匹配 0 行即说明已被处理，按契约返回 1006。
+    """
     app = db.get(PermApplication, application_id)
     if app is None:
         raise NotFoundError(f"权限申请 {application_id} 不存在")
     if app.status != "pending":
         raise ConflictError(f"申请已处于 {app.status} 状态，不能重复审批")
+
+    claimed = db.execute(
+        update(PermApplication)
+        .where(PermApplication.id == application_id, PermApplication.status == "pending")
+        .values(status=new_status)
+        .execution_options(synchronize_session=False)
+    ).rowcount
+    if not claimed:
+        # 不主动 rollback：占位失败没有改动任何数据，事务随请求结束自然回滚
+        raise ConflictError("该申请已被其他审批人处理，不能重复审批")
     return app
 
 
 def approve_application(db: Session, application_id: int, principal, payload) -> dict:
-    app = _get_pending(db, application_id)
+    return run_with_retry(db, lambda: _approve_application(db, application_id, principal, payload),
+                          what="权限审批")
+
+
+def _approve_application(db: Session, application_id: int, principal, payload) -> dict:
+    app = _claim_pending(db, application_id, "approved")
 
     app.status = "approved"
     app.approver_did = principal.did
@@ -451,7 +486,12 @@ def approve_application(db: Session, application_id: int, principal, payload) ->
 
 
 def reject_application(db: Session, application_id: int, principal, payload) -> dict:
-    app = _get_pending(db, application_id)
+    return run_with_retry(db, lambda: _reject_application(db, application_id, principal, payload),
+                          what="权限驳回")
+
+
+def _reject_application(db: Session, application_id: int, principal, payload) -> dict:
+    app = _claim_pending(db, application_id, "rejected")
 
     app.status = "rejected"
     app.approver_did = principal.did
@@ -509,7 +549,22 @@ def list_grants(db: Session, page: int, size: int, *, did: str | None = None,
 
 
 def revoke_grant(db: Session, grant_id: int, principal, reason: str) -> dict:
+    return run_with_retry(db, lambda: _revoke_grant(db, grant_id, principal, reason),
+                          what="撤销授权")
+
+
+def _revoke_grant(db: Session, grant_id: int, principal, reason: str) -> dict:
     grant = db.get(PermGrant, grant_id)
+    if grant is not None and grant.status == "active":
+        # 并发撤销同一条授权：只有把 active 改成 revoked 的那个请求算数
+        claimed = db.execute(
+            update(PermGrant)
+            .where(PermGrant.id == grant_id, PermGrant.status == "active")
+            .values(status="revoked")
+            .execution_options(synchronize_session=False)
+        ).rowcount
+        if not claimed:
+            raise ConflictError("该授权已被撤销")
     if grant is None:
         raise NotFoundError(f"授权记录 {grant_id} 不存在")
     if grant.status != "active":

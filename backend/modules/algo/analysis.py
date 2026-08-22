@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from core.exceptions import NotFoundError
 from core.middleware import current_principal, current_trace_id
 from core.response import iso
+from core.retry import run_with_retry
 from modules.algo import client as algo_client
 from modules.algo.model import AlgoAiAnalysis, AlgoRiskAssessment
 from modules.evidence.service import write_evidence
@@ -84,25 +85,30 @@ def analyze(db: Session, scene: str, context: dict, question: str) -> dict:
         latency = int((time.perf_counter() - started) * 1000)
         logger.info("算法服务不可用，AI 分析（scene=%s）退回规则化文本", scene)
 
-    record = AlgoAiAnalysis(
-        scene=scene, context=context, question=question, answer=answer,
-        reasoning=reasoning, source=source, latency_ms=latency,
-        actor_did=principal.did if principal else None, trace_id=trace_id,
-    )
-    db.add(record)
-    db.flush()
+    def _persist() -> dict:
+        record = AlgoAiAnalysis(
+            scene=scene, context=context, question=question, answer=answer,
+            reasoning=reasoning, source=source, latency_ms=latency,
+            actor_did=principal.did if principal else None, trace_id=trace_id,
+        )
+        db.add(record)
+        db.flush()
 
-    evidence = write_evidence(db, category="algo", ref_id=str(record.id), payload={
-        "action": "ai:analyze", "scene": scene, "question": question,
-        "source": source, "answerHash": answer[:200],
-    })
-    record.evidence_id = evidence["evidenceId"]
-    db.commit()
+        evidence = write_evidence(db, category="algo", ref_id=str(record.id), payload={
+            "action": "ai:analyze", "scene": scene, "question": question,
+            "source": source, "answerHash": answer[:200],
+        })
+        record.evidence_id = evidence["evidenceId"]
+        db.commit()
 
-    return {
-        "id": record.id, "answer": answer, "reasoning": reasoning, "source": source,
-        "latencyMs": latency, "evidenceId": record.evidence_id, "traceId": trace_id,
-    }
+        return {
+            "id": record.id, "answer": answer, "reasoning": reasoning, "source": source,
+            "latencyMs": latency, "evidenceId": record.evidence_id, "traceId": trace_id,
+        }
+
+    # B-014：并发下存证上链撞锁会让 MySQL 把整个事务回滚，
+    # 紧接着的 UPDATE 匹配 0 行抛 StaleDataError —— 重放整段写事务，实在冲突才返回 1006
+    return run_with_retry(db, _persist, what="AI 分析落库")
 
 
 def analysis_history(db: Session, page: int, size: int,
@@ -206,25 +212,30 @@ def assess(db: Session, node_id: str, features: dict) -> dict:
         result = assess_locally(node_id, features)
 
     principal = current_principal.get()
-    record = AlgoRiskAssessment(
-        node_id=node_id, risk_score=Decimal(str(result["riskScore"])),
-        level=result["level"], features=features, factors=result.get("factors"),
-        suggestion=result.get("suggestion"),
-        actor_did=principal.did if principal else None,
-        trace_id=current_trace_id.get(),
-    )
-    db.add(record)
-    db.flush()
 
-    evidence = write_evidence(db, category="algo", ref_id=node_id, payload={
-        "action": "risk:assess", "nodeId": node_id, "riskScore": result["riskScore"],
-        "level": result["level"], "features": features,
-    })
-    record.evidence_id = evidence["evidenceId"]
-    db.commit()
+    def _persist() -> dict:
+        record = AlgoRiskAssessment(
+            node_id=node_id, risk_score=Decimal(str(result["riskScore"])),
+            level=result["level"], features=features, factors=result.get("factors"),
+            suggestion=result.get("suggestion"),
+            actor_did=principal.did if principal else None,
+            trace_id=current_trace_id.get(),
+        )
+        db.add(record)
+        db.flush()
 
-    return {**result, "evidenceId": record.evidence_id,
-            "traceId": record.trace_id, "at": iso(record.created_at)}
+        evidence = write_evidence(db, category="algo", ref_id=node_id, payload={
+            "action": "risk:assess", "nodeId": node_id, "riskScore": result["riskScore"],
+            "level": result["level"], "features": features,
+        })
+        record.evidence_id = evidence["evidenceId"]
+        db.commit()
+
+        return {**result, "evidenceId": record.evidence_id,
+                "traceId": record.trace_id, "at": iso(record.created_at)}
+
+    # B-014：并发下这里原本会抛 StaleDataError → 500，且 500 响应的 traceId 还是全零串
+    return run_with_retry(db, _persist, what="隐私风险评估落库")
 
 
 def risk_history(db: Session, page: int, size: int,

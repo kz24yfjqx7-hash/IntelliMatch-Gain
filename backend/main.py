@@ -38,10 +38,14 @@ app.add_middleware(TraceMiddleware)
 # ---------------------------------------------------------------- 全局异常处理
 # 契约 1.1：所有 /api/v1/** 响应（包括错误）都必须是统一包装
 
-def _envelope(code: int, message: str, data=None, status: int = 200) -> JSONResponse:
+def _envelope(code: int, message: str, data=None, status: int = 200,
+              request: Request | None = None) -> JSONResponse:
+    # B-014：未捕获异常的处理器跑在 ServerErrorMiddleware 里（比 TraceMiddleware 更外层），
+    # 优先从 request.state 取 traceId，contextvar 只作兜底，绝不能返回全零串。
+    trace_id = getattr(getattr(request, "state", None), "trace_id", None) or current_trace_id.get()
     return JSONResponse(
         status_code=status,
-        content={"code": code, "message": message, "data": data, "traceId": current_trace_id.get()},
+        content={"code": code, "message": message, "data": data, "traceId": trace_id},
     )
 
 
@@ -49,7 +53,7 @@ def _envelope(code: int, message: str, data=None, status: int = 200) -> JSONResp
 async def biz_error_handler(request: Request, exc: BizError):
     logger.warning("业务异常 %s %s code=%s msg=%s", request.method, request.url.path, exc.code, exc.message)
     await _feed_risk_rules(request, exc)
-    return _envelope(exc.code, exc.message, exc.data, exc.http_status)
+    return _envelope(exc.code, exc.message, exc.data, exc.http_status, request)
 
 
 async def _feed_risk_rules(request: Request, exc: BizError) -> None:
@@ -88,7 +92,7 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     first = exc.errors()[0] if exc.errors() else {}
     loc = ".".join(str(x) for x in first.get("loc", [])[1:])
     message = f"参数错误：{loc} {first.get('msg', '')}".strip()
-    return _envelope(ErrorCode.PARAM_ERROR, message, None, 400)
+    return _envelope(ErrorCode.PARAM_ERROR, message, None, 400, request)
 
 
 # HTTP 层异常（404 / 405 / 401 …）也必须套统一包装，
@@ -116,13 +120,13 @@ async def http_error_handler(request: Request, exc: StarletteHTTPException):
         405: "请求方法不被允许",
         401: "未登录或登录已失效",
     }.get(exc.status_code, str(exc.detail))
-    return _envelope(code, message, None, exc.status_code)
+    return _envelope(code, message, None, exc.status_code, request)
 
 
 @app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception):
     logger.exception("未捕获异常 %s %s", request.method, request.url.path)
-    return _envelope(ErrorCode.INTERNAL_ERROR, "服务器内部错误", None, 500)
+    return _envelope(ErrorCode.INTERNAL_ERROR, "服务器内部错误", None, 500, request)
 
 
 # ---------------------------------------------------------------- 路由注册

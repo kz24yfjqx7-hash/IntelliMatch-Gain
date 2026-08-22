@@ -10,14 +10,15 @@ import asyncio
 import logging
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from core.database import SessionLocal
-from core.exceptions import ConflictError, NotFoundError
+from core.exceptions import ConflictError, NotFoundError, ParamError
 from core.gm_crypto import payload_hash, sm3_tag
-from core.middleware import current_principal, current_trace_id
+from core.middleware import adopt_trace, audit_step, current_principal, current_trace_id
 from core.response import iso, now_cst
+from core.retry import run_with_retry
 from modules.algo import client as algo_client
 from modules.algo.model import AlgoDispatchTask, AlgoFlRound, AlgoFlTask, AlgoModelVersion
 from modules.evidence.service import write_evidence
@@ -45,22 +46,26 @@ def create_fl_task(db: Session, payload) -> dict:
     _assert_nodes_exist(db, payload.nodeIds)
     principal = current_principal.get()
 
-    task = AlgoFlTask(
-        task_id=_next_id(db, AlgoFlTask, AlgoFlTask.task_id, "fl"),
-        name=payload.name, node_ids=payload.nodeIds, rounds=payload.rounds,
-        current_round=0, status="created",
-        dp_enabled=1 if payload.dp.enabled else 0,
-        dp_epsilon=Decimal(str(payload.dp.epsilon)), dp_delta=payload.dp.delta,
-        dp_epsilon_spent=Decimal("0"),
-        topk_enabled=1 if payload.topk.enabled else 0,
-        topk_ratio=Decimal(str(payload.topk.ratio)),
-        creator_did=principal.did if principal else None,
-        trace_id=current_trace_id.get(),
-    )
-    db.add(task)
-    db.commit()
-    return {"id": task.task_id, "status": task.status,
-            "createdAt": iso(task.created_at), "traceId": task.trace_id}
+    def _persist() -> dict:
+        task = AlgoFlTask(
+            task_id=_next_id(db, AlgoFlTask, AlgoFlTask.task_id, "fl"),
+            name=payload.name, node_ids=payload.nodeIds, rounds=payload.rounds,
+            current_round=0, status="created",
+            dp_enabled=1 if payload.dp.enabled else 0,
+            dp_epsilon=Decimal(str(payload.dp.epsilon)), dp_delta=payload.dp.delta,
+            dp_epsilon_spent=Decimal("0"),
+            topk_enabled=1 if payload.topk.enabled else 0,
+            topk_ratio=Decimal(str(payload.topk.ratio)),
+            creator_did=principal.did if principal else None,
+            trace_id=current_trace_id.get(),
+        )
+        db.add(task)
+        db.commit()
+        return {"id": task.task_id, "status": task.status,
+                "createdAt": iso(task.created_at), "traceId": task.trace_id}
+
+    # 并发创建会撞任务号（_next_id 按 count+1 生成），重放一次即可
+    return run_with_retry(db, _persist, what="创建联邦学习任务")
 
 
 def _assert_nodes_exist(db: Session, node_ids: list[str]) -> None:
@@ -190,6 +195,10 @@ def start_fl_task(db: Session, task_id: str) -> dict:
     if task.status == "success":
         raise ConflictError("任务已完成，如需重跑请新建任务")
 
+    # B-015：训练、每轮上链、完成都沿用任务创建时的 traceId，
+    # 这样 /audit/trace/{traceId} 能看到「创建 → 启动 → 每一轮 → 完成」的完整链
+    trace_id = adopt_trace(task.trace_id)
+
     nodes = [{"id": nid, "samples": _sample_count(db, nid)} for nid in task.node_ids or []]
     algo_client.call("POST", "/fl/train", json={
         "jobId": task.task_id, "rounds": task.rounds, "nodes": nodes,
@@ -200,7 +209,8 @@ def start_fl_task(db: Session, task_id: str) -> dict:
 
     task.status = "running"
     task.started_at = now_cst().replace(tzinfo=None)
-    task.trace_id = current_trace_id.get()
+    if not task.trace_id:
+        task.trace_id = trace_id
     db.commit()
 
     return {"id": task.task_id, "status": "running", "traceId": task.trace_id}
@@ -210,6 +220,7 @@ def cancel_fl_task(db: Session, task_id: str) -> dict:
     task = _fl_task_or_404(db, task_id)
     if task.status not in ("running", "created"):
         raise ConflictError(f"任务状态为 {task.status}，不可取消")
+    adopt_trace(task.trace_id)
 
     algo_client.call("POST", f"/fl/jobs/{task_id}/cancel", raise_on_error=False)
     task.status = "cancelled"
@@ -324,10 +335,30 @@ def persist_fl_progress(task_id: str, job: dict, trace_id: str) -> bool:
                 _upsert_model_version(db, task, job["modelVersion"])
 
         anomaly = job.get("anomaly")
+        creator_did = task.creator_did
+        total_rounds = task.rounds
         db.commit()
 
     for payload in pushes:
         ws_manager.push("fl_progress", payload, trace_id)
+        # B-015：每一轮都补一条审计埋点，且沿用任务的 traceId，
+        # 否则 /audit/trace 的时间轴上整个训练过程是空白的（只有一条 fl:train）
+        audit_step(
+            module="algo", action="fl:round", risk="low", resource_type="algo",
+            resource_id=task_id, trace_id=trace_id, actor_did=creator_did,
+            evidence_id=payload["evidenceId"],
+            detail=(f"第 {payload['round']}/{payload['totalRounds']} 轮聚合完成："
+                    f"loss={payload['loss']}，acc={payload['acc']}，"
+                    f"梯度哈希已上链 {payload['evidenceId']}"),
+        )
+
+    if finished:
+        audit_step(
+            module="algo", action="fl:finish", risk="low", resource_type="algo",
+            resource_id=task_id, trace_id=trace_id, actor_did=creator_did,
+            result="success" if status == "success" else "failed",
+            detail=f"联邦学习任务 {task_id} 结束，状态 {status}，共 {total_rounds} 轮",
+        )
 
     # 契约 3.2 明确要求：算法服务上报 anomaly 时必须生成 R05 高危审计日志
     if anomaly:
@@ -397,6 +428,13 @@ def publish_model(db: Session, version: str) -> dict:
     if model.status == "published":
         raise ConflictError("该模型版本已发布")
 
+    # 模型是某个联邦学习任务的产出，发布这一步也串回该任务的 traceId（B-015）
+    if model.task_id:
+        task_trace = db.execute(
+            select(AlgoFlTask.trace_id).where(AlgoFlTask.task_id == model.task_id)
+        ).scalar_one_or_none()
+        adopt_trace(task_trace)
+
     principal = current_principal.get()
     model.status = "published"
     model.publisher_did = principal.did if principal else None
@@ -422,16 +460,19 @@ def create_dispatch_task(db: Session, payload) -> dict:
     window = payload.timeWindow or (
         f"{now:%Y-%m-%dT%H}:00~{(now.hour + 1) % 24:02d}:00+08:00")
 
-    task = AlgoDispatchTask(
-        task_id=_next_id(db, AlgoDispatchTask, AlgoDispatchTask.task_id, "dp"),
-        name=payload.name, node_ids=payload.nodeIds, time_window=window,
-        status="created", creator_did=principal.did if principal else None,
-        trace_id=current_trace_id.get(),
-    )
-    db.add(task)
-    db.commit()
-    return {"id": task.task_id, "status": "created", "timeWindow": window,
-            "createdAt": iso(task.created_at), "traceId": task.trace_id}
+    def _persist() -> dict:
+        task = AlgoDispatchTask(
+            task_id=_next_id(db, AlgoDispatchTask, AlgoDispatchTask.task_id, "dp"),
+            name=payload.name, node_ids=payload.nodeIds, time_window=window,
+            status="created", creator_did=principal.did if principal else None,
+            trace_id=current_trace_id.get(),
+        )
+        db.add(task)
+        db.commit()
+        return {"id": task.task_id, "status": "created", "timeWindow": window,
+                "createdAt": iso(task.created_at), "traceId": task.trace_id}
+
+    return run_with_retry(db, _persist, what="创建调度任务")
 
 
 def _dispatch_or_404(db: Session, task_id: str) -> AlgoDispatchTask:
@@ -458,6 +499,9 @@ def _dispatch_to_item(task: AlgoDispatchTask) -> dict:
         "issued": bool(task.issued),
         "commandId": task.command_id,
         "signerDid": task.signer_did,
+        # B-004 / B-016：签名字节本就是公开可验证数据，回传给边端才能做真验签
+        # （前端 TerminalResponse.vue 拿到 signature + signPayload 就走 SM2 验签分支）
+        "signature": task.signature,
         "issuedAt": iso(task.issued_at),
         "ackStatus": task.ack_status,
         "ackDetail": task.ack_detail,
@@ -510,7 +554,9 @@ def run_dispatch(db: Session, task_id: str) -> dict:
     if task.issued:
         raise ConflictError("该任务已下发，不能重新生成策略")
 
-    trace_id = current_trace_id.get()
+    # B-015：run / issue / ack 全部沿用任务创建时的 traceId，
+    # 调度链路在 /audit/trace 上才是一条「创建 → 生成策略 → 下发 → 回执」的时间轴
+    trace_id = adopt_trace(task.trace_id)
     ws_manager.push("dispatch_progress",
                     {"taskId": task_id, "stage": "aggregating",
                      "detail": "汇集各节点实时运行数据"}, trace_id)
@@ -541,33 +587,38 @@ def run_dispatch(db: Session, task_id: str) -> dict:
         "timeWindow": task.time_window,
         "constraintsChecked": result.get("constraintsChecked"),
     }
-    task.strategy = strategy
-    task.total_reward = _dec(result.get("totalReward"))
-    task.q_table = result.get("qTable")
-    task.status = "success"
 
     ws_manager.push("dispatch_progress",
                     {"taskId": task_id, "stage": "explaining",
                      "detail": "生成策略解释"}, trace_id)
 
     explanation, source = _explain_dispatch(task, strategy)
-    task.explanation = explanation
-    task.explanation_source = source
 
-    evidence = write_evidence(db, category="algo", ref_id=task_id, payload={
-        "action": "dispatch:run", "taskId": task_id, "strategy": strategy,
-        "explanationSource": source,
-    })
-    task.evidence_id = evidence["evidenceId"]
-    db.commit()
+    def _persist() -> dict:
+        # 每次重放都重新取一遍任务，避免用到上一次失败事务里的脏对象
+        row = _dispatch_or_404(db, task_id)
+        row.strategy = strategy
+        row.total_reward = _dec(result.get("totalReward"))
+        row.q_table = result.get("qTable")
+        row.status = "success"
+        row.explanation = explanation
+        row.explanation_source = source
 
-    return {
-        "id": task_id, "status": "success", "strategy": strategy,
-        "qTable": task.q_table,
-        "explanation": explanation, "explanationSource": source,
-        "evidenceId": task.evidence_id, "traceId": trace_id,
-        "signPayload": build_sign_message(task),
-    }
+        evidence = write_evidence(db, category="algo", ref_id=task_id, payload={
+            "action": "dispatch:run", "taskId": task_id, "strategy": strategy,
+            "explanationSource": source,
+        })
+        row.evidence_id = evidence["evidenceId"]
+        db.commit()
+        return {
+            "id": task_id, "status": "success", "strategy": strategy,
+            "qTable": row.q_table,
+            "explanation": explanation, "explanationSource": source,
+            "evidenceId": row.evidence_id, "traceId": trace_id,
+            "signPayload": build_sign_message(row),
+        }
+
+    return run_with_retry(db, _persist, what="生成调度策略")
 
 
 def _current_price(db: Session, node_id: str) -> float | None:
@@ -611,62 +662,110 @@ def issue_dispatch(db: Session, task_id: str, signature: str | None) -> dict:
     from ws import manager as ws_manager
 
     task = _dispatch_or_404(db, task_id)
+    trace_id = adopt_trace(task.trace_id)
     if task.status != "success" or not task.strategy:
         raise ConflictError("请先运行 DQN 生成策略，再下发指令")
     if task.issued:
         raise ConflictError("该任务已下发，不能重复下发")
 
     principal = current_principal.get()
-    task.issued = 1
-    task.command_id = f"cmd-{task.id:06d}"
-    task.signer_did = principal.did if principal else None
-    task.signature = signature
-    task.issued_at = now_cst().replace(tzinfo=None)
-    task.ack_status = "none"
-    task.ack_detail = []
 
-    targets = [a.get("nodeId") for a in task.strategy.get("actions", [])]
-    evidence = write_evidence(db, category="algo", ref_id=task_id, payload={
-        "action": "dispatch:issue", "taskId": task_id, "commandId": task.command_id,
-        "signerDid": task.signer_did, "targets": targets,
-        "strategyHash": payload_hash(task.strategy),
-    })
-    db.commit()
+    def _persist() -> dict:
+        row = _dispatch_or_404(db, task_id)
+        # 条件更新占位：并发下只有把 issued 从 0 改成 1 的那个请求算下发成功，
+        # 后到者拿到 rowcount=0，按契约返回 1006 而不是重复下发或 500
+        claimed = db.execute(
+            update(AlgoDispatchTask)
+            .where(AlgoDispatchTask.task_id == task_id, AlgoDispatchTask.issued == 0)
+            .values(issued=1)
+            .execution_options(synchronize_session=False)
+        ).rowcount
+        if not claimed:
+            raise ConflictError("该任务已下发，不能重复下发")
 
-    ws_manager.push("dispatch_progress",
-                    {"taskId": task_id, "stage": "issued",
-                     "detail": f"指令已下发至 {'、'.join(targets)}"}, task.trace_id)
+        row.issued = 1
+        row.command_id = f"cmd-{row.id:06d}"
+        row.signer_did = principal.did if principal else None
+        # B-004：托管代签的签名由 @require_signature 回写进请求体，这里必须落库，
+        # 否则 algo_dispatch_task.signature 恒为 NULL，签名无从追溯、边端也无法复核
+        row.signature = signature
+        row.issued_at = now_cst().replace(tzinfo=None)
+        row.ack_status = "none"
+        row.ack_detail = []
 
-    return {
-        "issued": True, "commandId": task.command_id, "signerDid": task.signer_did,
-        "evidenceId": evidence["evidenceId"], "targets": targets,
-    }
+        targets = [a.get("nodeId") for a in (row.strategy or {}).get("actions", [])]
+        evidence = write_evidence(db, category="algo", ref_id=task_id, payload={
+            "action": "dispatch:issue", "taskId": task_id, "commandId": row.command_id,
+            "signerDid": row.signer_did, "targets": targets,
+            "signature": row.signature,
+            "strategyHash": payload_hash(row.strategy),
+        })
+        db.commit()
+
+        ws_manager.push("dispatch_progress",
+                        {"taskId": task_id, "stage": "issued",
+                         "detail": f"指令已下发至 {'、'.join(targets)}"}, trace_id)
+
+        return {
+            "issued": True, "commandId": row.command_id, "signerDid": row.signer_did,
+            "evidenceId": evidence["evidenceId"], "targets": targets,
+        }
+
+    return run_with_retry(db, _persist, what="下发调度指令")
+
+
+def _issue_targets(task: AlgoDispatchTask) -> set[str]:
+    """本次下发真正覆盖到的节点：策略里有动作的节点，退化时用任务的节点列表。"""
+    targets = {a.get("nodeId") for a in (task.strategy or {}).get("actions", [])
+               if a.get("nodeId")}
+    return targets or set(task.node_ids or [])
 
 
 def ack_dispatch(db: Session, task_id: str, node_id: str, accepted: bool,
                  detail: str | None) -> dict:
-    """边缘节点回执。"""
+    """边缘节点回执。回执是「端侧执行确认」，属于调度闭环的最后一环，同样要上链。"""
     from ws import manager as ws_manager
 
     task = _dispatch_or_404(db, task_id)
+    # 先沿用任务的 traceId，被拒的回执同样要落在这条任务链上（B-015）
+    trace_id = adopt_trace(task.trace_id)
     if not task.issued:
         raise ConflictError("该任务尚未下发，无法回执")
 
-    acks = list(task.ack_detail or [])
-    acks = [a for a in acks if a.get("nodeId") != node_id]
-    acks.append({"nodeId": node_id, "accepted": accepted, "detail": detail,
-                 "at": iso(now_cst())})
-    task.ack_detail = acks
+    # B-008：只有本次下发的目标节点才能回执。
+    # 不校验的话任意节点都能把 ackStatus 顶成 partial，回执数据失去可信度。
+    targets = _issue_targets(task)
+    if node_id not in targets:
+        raise ParamError(
+            f"节点 {node_id} 不在本次下发的目标节点内（{('、'.join(sorted(targets))) or '无'}），拒绝回执")
 
-    targets = {a.get("nodeId") for a in (task.strategy or {}).get("actions", [])}
-    acked = {a["nodeId"] for a in acks if a["accepted"]}
-    task.ack_status = "all" if targets and targets <= acked else ("partial" if acked else "none")
-    db.commit()
+    def _persist() -> dict:
+        row = _dispatch_or_404(db, task_id)
+        acks = [a for a in list(row.ack_detail or []) if a.get("nodeId") != node_id]
+        acks.append({"nodeId": node_id, "accepted": accepted, "detail": detail,
+                     "at": iso(now_cst())})
+        row.ack_detail = acks
 
-    ws_manager.push("dispatch_progress",
-                    {"taskId": task_id, "stage": "acked",
-                     "detail": f"节点 {node_id} 已回执（{len(acked)}/{len(targets)}）"},
-                    task.trace_id)
+        acked = {a["nodeId"] for a in acks if a["accepted"]}
+        row.ack_status = ("all" if targets and targets <= acked
+                          else ("partial" if acked else "none"))
 
-    return {"taskId": task_id, "nodeId": node_id, "ackStatus": task.ack_status,
-            "acked": len(acked), "total": len(targets)}
+        # B-026：回执上链，前端「回执存证」才有内容，调度链路在存证中心也才完整
+        evidence = write_evidence(db, category="algo", ref_id=task_id, payload={
+            "action": "dispatch:ack", "taskId": task_id, "commandId": row.command_id,
+            "nodeId": node_id, "accepted": accepted, "detail": detail,
+            "ackStatus": row.ack_status, "at": iso(now_cst()),
+        }, trace_id=trace_id)
+        db.commit()
+
+        ws_manager.push("dispatch_progress",
+                        {"taskId": task_id, "stage": "acked",
+                         "detail": f"节点 {node_id} 已回执（{len(acked)}/{len(targets)}）",
+                         "evidenceId": evidence["evidenceId"]},
+                        trace_id)
+
+        return {"taskId": task_id, "nodeId": node_id, "ackStatus": row.ack_status,
+                "acked": len(acked), "total": len(targets),
+                "evidenceId": evidence["evidenceId"]}
+
+    return run_with_retry(db, _persist, what="调度回执")

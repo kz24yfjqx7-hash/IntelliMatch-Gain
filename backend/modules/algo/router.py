@@ -77,11 +77,15 @@ def get_fl_rounds(task_id: str, db: Session = Depends(get_db),
 async def start_fl_task(task_id: str, db: Session = Depends(get_db),
                         _p: Principal = Depends(current_user)):
     """异步任务：立刻返回，进度由后台协程轮询算法服务后通过 WebSocket 推送。"""
-    from core.middleware import current_trace_id
+    from core.middleware import adopt_trace
 
     result = await asyncio.to_thread(service.start_fl_task, db, task_id)
+    # B-015：service 跑在线程池里（上下文是副本），adopt_trace 的效果传不回来，
+    # 所以在这里再沿用一次任务的 traceId——@audited 写 fl:train 审计日志、
+    # 后台每轮上链、WebSocket 推送就都挂在同一个 traceId 下。
+    trace_id = adopt_trace(result.get("traceId"))
     # 用协程而不是线程池跑轮询——树莓派上 backend 只有 300MB 内存
-    asyncio.create_task(service.poll_fl_job(task_id, current_trace_id.get()))
+    asyncio.create_task(service.poll_fl_job(task_id, trace_id))
     return ok(result)
 
 
