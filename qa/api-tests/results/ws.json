@@ -1,0 +1,132 @@
+[
+ {
+  "id": "API-WS-01",
+  "module": "WS",
+  "basis": "契约 2.13 鉴权失败关闭码 4001",
+  "step": "ws://…/ws 不带 token",
+  "expect": "WS 关闭码 4001（契约 2.13）",
+  "actual": "实际握手被拒 http403（后端在 accept 前 close(4001)，Starlette 转为 HTTP 403，浏览器侧 onclose.code=1006）",
+  "verdict": "失败",
+  "evidence": "{\"close\": \"http403\"}"
+ },
+ {
+  "id": "API-WS-02",
+  "module": "WS",
+  "basis": "契约 2.13 鉴权",
+  "step": "token 伪造",
+  "expect": "WS 关闭码 4001；至少不得建立连接",
+  "actual": "实际 http403",
+  "verdict": "失败",
+  "evidence": "{\"close\": \"http403\"}"
+ },
+ {
+  "id": "API-WS-03",
+  "module": "WS",
+  "basis": "安全·登出后 token 不能建 WS",
+  "step": "用已登出 token 连接",
+  "expect": "WS 关闭码 4001；至少不得建立连接",
+  "actual": "实际 http403",
+  "verdict": "失败",
+  "evidence": "{\"close\": \"http403\"}"
+ },
+ {
+  "id": "API-WS-04",
+  "module": "WS",
+  "basis": "契约 2.13 消息格式 {type,ts,traceId,payload}",
+  "step": "连接后首条消息",
+  "expect": "type=log 且四字段齐全 ts ISO8601",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"type\": \"log\", \"ts\": \"2026-08-22T19:04:52+08:00\", \"traceId\": null, \"payload\": {\"level\": \"info\", \"module\": \"ws\", \"content\": \"admin 已接入实时通道\", \"traceId\": null}}"
+ },
+ {
+  "id": "API-WS-05",
+  "module": "WS",
+  "basis": "契约 2.13 ping/pong",
+  "step": "发送 {type:ping}",
+  "expect": "收到 {type:pong}",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"type\": \"pong\"}"
+ },
+ {
+  "id": "API-WS-06",
+  "module": "WS",
+  "basis": "契约 2.13 evidence_written {evidenceId,category,blockHeight}；traceId 沿用请求",
+  "step": "注册 DID 后监听",
+  "expect": "收到 evidence_written，payload 字段齐全，traceId==请求 X-Trace-Id",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"type\": \"evidence_written\", \"ts\": \"2026-08-22T19:04:52+08:00\", \"traceId\": \"tr-20260822-96692023\", \"payload\": {\"evidenceId\": \"ev-000753\", \"category\": \"identity\", \"blockHeight\": 753}}]"
+ },
+ {
+  "id": "API-WS-07",
+  "module": "WS",
+  "basis": "契约 2.13 audit_alert {alertId,ruleCode,riskLevel,message,actorDid} / 验收 6",
+  "step": "vpp 连续越权后监听",
+  "expect": "收到 audit_alert R01 字段齐全",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"type\": \"audit_alert\", \"ts\": \"2026-08-22T19:04:52+08:00\", \"traceId\": \"tr-20260822-fe2238ae\", \"payload\": {\"alertId\": \"al-000027\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问…"
+ },
+ {
+  "id": "API-WS-08",
+  "module": "WS",
+  "basis": "契约 2.13 log {level,module,content,traceId}",
+  "step": "高危操作滚动日志",
+  "expect": "收到 log 且字段齐全",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"type\": \"log\", \"ts\": \"2026-08-22T19:04:52+08:00\", \"traceId\": \"tr-20260822-96692023\", \"payload\": {\"level\": \"warn\", \"module\": \"did\", \"content\": \"系统管理员 did:register → success\", \"traceId\": \"tr-20260822-96692023\"}}]"
+ },
+ {
+  "id": "API-WS-09",
+  "module": "WS",
+  "basis": "契约 2.13 fl_progress {taskId,round,totalRounds,loss,acc,compressionRatio,epsilonSpent} / 验收 7",
+  "step": "启动 2 轮 FL 后监听",
+  "expect": "每轮一条，字段齐全",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"type\": \"fl_progress\", \"ts\": \"2026-08-22T19:05:01+08:00\", \"traceId\": \"tr-20260822-8104d79e\", \"payload\": {\"taskId\": \"fl-000025\", \"round\": 1, \"totalRounds\": 2, \"loss\": 0.009467, \"acc\": 0.355, \"compressionRatio\": 90.06, \"…"
+ },
+ {
+  "id": "API-WS-10",
+  "module": "WS",
+  "basis": "契约 2.13 dispatch_progress stage aggregating/computing/explaining/issued/acked",
+  "step": "run→issue→ack 后监听",
+  "expect": "stage 依次包含 computing…issued、acked",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[\"aggregating\", \"computing\", \"explaining\", \"issued\", \"acked\"]"
+ },
+ {
+  "id": "API-WS-11a",
+  "module": "WS",
+  "basis": "契约 2.13 node_status 周期推送（5 秒一次）",
+  "step": "静候 ≥6 秒不触发任何节点操作",
+  "expect": "收到周期性 node_status",
+  "actual": "6 秒内无 node_status（后端仅在设备上线时推送，无周期任务）",
+  "verdict": "失败",
+  "evidence": "{\"n\": 0}"
+ },
+ {
+  "id": "API-WS-11",
+  "module": "WS",
+  "basis": "契约 2.13 node_status {nodeId,status,metrics}",
+  "step": "设备上线后监听",
+  "expect": "收到 node_status 字段齐全",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"type\": \"node_status\", \"ts\": \"2026-08-22T19:05:36+08:00\", \"traceId\": \"tr-20260822-e7267436\", \"payload\": {\"nodeId\": \"Node-D\", \"status\": \"online\", \"metrics\": {\"pvOutput\": 38.9, \"storageOutput\": 5.2, \"load\": 95.0, \"soc\": …"
+ },
+ {
+  "id": "API-WS-12",
+  "module": "WS",
+  "basis": "契约 2.13 仅六类消息且格式统一",
+  "step": "检查全部 153 条收到的消息",
+  "expect": "type 均在六类内，四字段齐全",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"types\": [\"audit_alert\", \"dispatch_progress\", \"evidence_written\", \"fl_progress\", \"log\", \"node_status\"]}"
+ }
+]

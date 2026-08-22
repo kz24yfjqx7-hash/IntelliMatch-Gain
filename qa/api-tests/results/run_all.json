@@ -1,0 +1,2452 @@
+[
+ {
+  "id": "API-AUTH-01",
+  "module": "AUTH",
+  "basis": "契约 2.1 login / 文档(三)3 统一鉴权",
+  "step": "POST /auth/login admin/admin123",
+  "expect": "200 code0；data 含 token/expiresIn=28800/user{id,username,realName,roles,did,orgName}",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGVzIjpbInN5c19hZG1pbiJdLCJkaWQiOiJkaWQ6dnBwOnVzZXI6MHgzNGJhOWNhMDYxMTM3YjliNDZmYzczZDEwM2J…"
+ },
+ {
+  "id": "API-AUTH-02",
+  "module": "AUTH",
+  "basis": "契约 1.3 JWT HS256 payload sub/username/roles/did/exp",
+  "step": "解析 login 返回的 JWT",
+  "expect": "alg=HS256；payload 含 sub/username/roles/did/exp；exp-iat≈28800",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"header\": {\"alg\": \"HS256\", \"typ\": \"JWT\"}, \"payload\": {\"sub\": \"1\", \"username\": \"admin\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"iat\": 1787396983, \"exp\": 1787425783, \"jti\": \"5892…"
+ },
+ {
+  "id": "API-AUTH-03",
+  "module": "AUTH",
+  "basis": "契约 1.1 1002",
+  "step": "登录密码错误",
+  "expect": "401/1002 且统一包裹；message 不区分用户名是否存在",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260822-bb5db909\"}"
+ },
+ {
+  "id": "API-AUTH-04",
+  "module": "AUTH",
+  "basis": "安全·账号枚举",
+  "step": "登录不存在的用户名",
+  "expect": "与密码错误同样 401/1002，message 相同",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260822-1303a3d8\"}"
+ },
+ {
+  "id": "API-AUTH-05",
+  "module": "AUTH",
+  "basis": "契约 1.1 1001",
+  "step": "登录缺少 password 字段",
+  "expect": "400/1001 统一包裹（非 FastAPI 422）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password Field required\", \"data\": null, \"traceId\": \"tr-20260822-5e8dad52\"}"
+ },
+ {
+  "id": "API-AUTH-06",
+  "module": "AUTH",
+  "basis": "契约 1.1 1002",
+  "step": "GET /auth/me 不带 token",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260822-dad191b1\"}"
+ },
+ {
+  "id": "API-AUTH-07",
+  "module": "AUTH",
+  "basis": "契约 2.1 /auth/me permissions 扁平串",
+  "step": "GET /auth/me admin",
+  "expect": "含 id/username/realName/roles/did/permissions；permissions 为 <res>:<act> 串且含 dispatch:issue",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1, \"username\": \"admin\", \"realName\": \"系统管理员\", \"orgName\": \"平台运营方\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"permissions\": [\"algo:execute…"
+ },
+ {
+  "id": "API-AUTH-08",
+  "module": "AUTH",
+  "basis": "DB-SCHEMA 角色矩阵 energy_subject",
+  "step": "GET /auth/me subject",
+  "expect": "permissions 含 asset:read/asset:write/evidence:read，不含 dispatch:issue、algo:execute",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 4, \"username\": \"subject\", \"realName\": \"能源主体\", \"orgName\": \"XX工业园区\", \"roles\": [\"energy_subject\"], \"did\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"permissions\": [\"asset…"
+ },
+ {
+  "id": "API-AUTH-09",
+  "module": "AUTH",
+  "basis": "安全·登出后 token 失效（jti 黑名单）",
+  "step": "grid 登录→logout→用旧 token 访问 /auth/me",
+  "expect": "logout 200；之后 401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"登录已失效，请重新登录\", \"data\": null, \"traceId\": \"tr-20260822-7b68ae26\"}"
+ },
+ {
+  "id": "API-AUTH-10",
+  "module": "AUTH",
+  "basis": "安全·JWT 篡改 payload 提权",
+  "step": "vpp token 改 roles=sys_admin 不重签 → GET /users",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-4b73f5b2\"}"
+ },
+ {
+  "id": "API-AUTH-11",
+  "module": "AUTH",
+  "basis": "安全·alg=none",
+  "step": "alg=none 无签名 token",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-8a990d67\"}"
+ },
+ {
+  "id": "API-AUTH-12",
+  "module": "AUTH",
+  "basis": "安全·用契约示例密钥伪造 token",
+  "step": "用 .env 示例 JWT_SECRET 重签 sys_admin token",
+  "expect": "401/1002（运行实例未使用示例密钥）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-588b93ed\"}"
+ },
+ {
+  "id": "API-AUTH-13",
+  "module": "AUTH",
+  "basis": "安全·过期 token",
+  "step": "exp 已过期的 token",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-81a483f9\"}"
+ },
+ {
+  "id": "API-AUTH-14",
+  "module": "AUTH",
+  "basis": "安全·畸形 token",
+  "step": "Bearer garbage",
+  "expect": "401/1002 不 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-74164287\"}"
+ },
+ {
+  "id": "API-AUTH-15",
+  "module": "AUTH",
+  "basis": "契约 1.2 traceId 沿用",
+  "step": "GET /auth/me 带 X-Trace-Id:tr-20260822-96984339",
+  "expect": "响应头 X-Trace-Id 与 body.traceId 均回显",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1, \"username\": \"admin\", \"realName\": \"系统管理员\", \"orgName\": \"平台运营方\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"permissions\": [\"algo:execute…"
+ },
+ {
+  "id": "API-AUTH-16",
+  "module": "AUTH",
+  "basis": "契约 1.2 traceId 格式",
+  "step": "不带 X-Trace-Id 请求",
+  "expect": "traceId 形如 tr-YYYYMMDD-8hex",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1, \"username\": \"admin\", \"realName\": \"系统管理员\", \"orgName\": \"平台运营方\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"permissions\": [\"algo:execute…"
+ },
+ {
+  "id": "API-USER-01",
+  "module": "USER",
+  "basis": "契约 2.1 GET /users 分页",
+  "step": "admin GET /users?page=1&size=5",
+  "expect": "分页结构 items/total/page/size；不含 password/hash 字段",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1, \"username\": \"admin\", \"realName\": \"系统管理员\", \"orgName\": \"平台运营方\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"phone\": \"13800000…"
+ },
+ {
+  "id": "API-USER-02",
+  "module": "USER",
+  "basis": "契约 2.1 需 sys_admin / 1003",
+  "step": "vpp GET /users",
+  "expect": "403/1003 message 点名 sys_admin",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-c454e8d6\"}"
+ },
+ {
+  "id": "API-USER-03",
+  "module": "USER",
+  "basis": "契约 2.1 POST /users",
+  "step": "admin 新建用户（bindDid）",
+  "expect": "200；返回 id/username/did；不返回密码",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 18, \"username\": \"test-user-96984375\", \"realName\": \"测试用户\", \"orgName\": \"测试机构\", \"roles\": [\"vpp_operator\"], \"did\": \"did:vpp:user:0xe727d76b7f2fac6501f674e253ab9e04\", \"phone\": null,…"
+ },
+ {
+  "id": "API-USER-04",
+  "module": "USER",
+  "basis": "DB-SCHEMA 密码 bcrypt 存储",
+  "step": "查 sys_user.password_hash (test-user-96984375)",
+  "expect": "$2b$ 开头 60 字符，非明文",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"hash\": \"$2b$12$K6D6u…\"}"
+ },
+ {
+  "id": "API-USER-05",
+  "module": "USER",
+  "basis": "契约 1.1 1006 重复注册",
+  "step": "重复 username 新建",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"用户名 test-user-96984375 已存在\", \"data\": null, \"traceId\": \"tr-20260822-c0e3b685\"}"
+ },
+ {
+  "id": "API-USER-06",
+  "module": "USER",
+  "basis": "契约 1.1 1001",
+  "step": "roles 含不存在角色",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password String should have at least 6 characters\", \"data\": null, \"traceId\": \"tr-20260822-e18c0a7f\"}"
+ },
+ {
+  "id": "API-USER-07",
+  "module": "USER",
+  "basis": "契约 2.1 PUT /users/{id}",
+  "step": "修改 realName 并停用",
+  "expect": "200 status=disabled",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 18, \"username\": \"test-user-96984375\", \"realName\": \"测试用户-改\", \"orgName\": \"测试机构\", \"roles\": [\"vpp_operator\"], \"did\": \"did:vpp:user:0xe727d76b7f2fac6501f674e253ab9e04\", \"phone\": nul…"
+ },
+ {
+  "id": "API-USER-08",
+  "module": "USER",
+  "basis": "README 加固·停用账号即时生效",
+  "step": "停用后用该账号登录",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"账号已被停用，请联系系统管理员\", \"data\": null, \"traceId\": \"tr-20260822-dd59acc6\"}"
+ },
+ {
+  "id": "API-USER-09",
+  "module": "USER",
+  "basis": "契约 1.1 1005",
+  "step": "PUT 不存在用户",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"用户 999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-42f35a57\"}"
+ },
+ {
+  "id": "API-USER-10",
+  "module": "USER",
+  "basis": "1003 越权",
+  "step": "vpp DELETE /users/{id}",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-80590f4a\"}"
+ },
+ {
+  "id": "API-DID-01",
+  "module": "DID",
+  "basis": "契约 2.2 register / 文档(一)1 SM2 生成 DID",
+  "step": "注册 device DID（custody=false）",
+  "expect": "did 形如 did:vpp:device:0x+32hex；didDocument @context/id/controller/verificationMethod[type=SM2VerificationKey2023]；publicKey 04 开头 130；privateKey 64；evidenceId ev-；chainTxId blk-",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"didDocument\": {\"@context\": \"https://w3id.org/did/v1\", \"id\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"control…"
+ },
+ {
+  "id": "API-DID-02",
+  "module": "DID",
+  "basis": "契约 2.2 DID 标识 = SM3(publicKey) 前 32 hex",
+  "step": "本地用 SM3 重算 DID",
+  "expect": "与返回 did 一致",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"recalc\": \"did:vpp:device:0xd2f8ffbdceb7502575077cd13aa86860\"}"
+ },
+ {
+  "id": "API-DID-03",
+  "module": "DID",
+  "basis": "README 私钥不明文落库（custody=false 不留存）",
+  "step": "查 did_key.private_key_enc",
+  "expect": "为 NULL/空，且不等于明文私钥",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"private_key_enc\": \"None\", \"custody\": \"0\", \"public_key\": \"04dbed8d697609947198c366\"}"
+ },
+ {
+  "id": "API-DID-04",
+  "module": "DID",
+  "basis": "README 托管私钥 SM4 密文存储",
+  "step": "注册 custody=true，查 did_key.private_key_enc",
+  "expect": "非空密文（hex，长度>64）且 ≠ 返回的明文私钥",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"enc_prefix\": \"10798019ae1dafcbb3f3f37b\", \"len\": 192}"
+ },
+ {
+  "id": "API-DID-05",
+  "module": "DID",
+  "basis": "1.6 枚举 subjectType / 1001",
+  "step": "subjectType=alien",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：subjectType String should match pattern '^(user|device|org|edge)$'\", \"data\": null, \"traceId\": \"tr-20260822-084529bb\"}"
+ },
+ {
+  "id": "API-DID-06",
+  "module": "DID",
+  "basis": "1002",
+  "step": "未登录注册 DID",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260822-78406ebe\"}"
+ },
+ {
+  "id": "API-DID-07",
+  "module": "DID",
+  "basis": "契约 2.2 GET /did 筛选分页",
+  "step": "GET /did?subjectType=device&status=active&keyword=test-dev-96985212",
+  "expect": "分页结构；items 均 device/active；命中刚注册的",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-96985212\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"stat…"
+ },
+ {
+  "id": "API-DID-08",
+  "module": "DID",
+  "basis": "契约 1.4 size 最大 200",
+  "step": "GET /did?size=500",
+  "expect": "400/1001 或被截到 200",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：size Input should be less than or equal to 200\", \"data\": null, \"traceId\": \"tr-20260822-bf97ed17\"}"
+ },
+ {
+  "id": "API-DID-09",
+  "module": "DID",
+  "basis": "契约 2.2 GET /did/{did}",
+  "step": "查 DID 文档",
+  "expect": "200；含 did/didDocument/status=active；不含 privateKey",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-96985212\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"status\": \"activ…"
+ },
+ {
+  "id": "API-DID-10",
+  "module": "DID",
+  "basis": "1005",
+  "step": "查不存在 DID",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"身份 did:vpp:device:0x00000000000000000000000000000000 不存在\", \"data\": null, \"traceId\": \"tr-20260822-4f45900c\"}"
+ },
+ {
+  "id": "API-DID-11",
+  "module": "DID",
+  "basis": "契约 2.2 verify / 文档(一)3 验签工具",
+  "step": "本地 SM2 私钥签名 → /did/verify",
+  "expect": "valid=true subjectType=device status=active reason=null",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": true, \"subjectType\": \"device\", \"status\": \"active\", \"keyVersion\": 1, \"reason\": null}, \"traceId\": \"tr-20260822-434fc178\"}"
+ },
+ {
+  "id": "API-DID-12",
+  "module": "DID",
+  "basis": "安全·篡改原文验签",
+  "step": "原文改动后验签",
+  "expect": "200 valid=false",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyVersion\": 1, \"reason\": \"签名与公钥不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260822-e26c8de6\"}"
+ },
+ {
+  "id": "API-DID-13",
+  "module": "DID",
+  "basis": "安全·错私钥签名",
+  "step": "用别的私钥签名",
+  "expect": "valid=false",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyVersion\": 1, \"reason\": \"签名与公钥不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260822-5bd65e74\"}"
+ },
+ {
+  "id": "API-DID-14",
+  "module": "DID",
+  "basis": "健壮性·非法签名 hex",
+  "step": "signature=zz",
+  "expect": "400/1001 或 valid=false，不 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyVersion\": 1, \"reason\": \"签名与公钥不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260822-27326b46\"}"
+ },
+ {
+  "id": "API-DID-15",
+  "module": "DID",
+  "basis": "契约 2.2 resolve 批量解析",
+  "step": "resolve 1 个存在 + 1 个不存在",
+  "expect": "200；存在的有文档，不存在的标注",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-96985212\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"stat…"
+ },
+ {
+  "id": "API-DID-16",
+  "module": "DID",
+  "basis": "契约 2.2 status freeze / 文档(一)2 生命周期",
+  "step": "冻结",
+  "expect": "status=frozen 带 evidenceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"status\": \"frozen\", \"reason\": \"test-冻结\", \"evidenceId\": \"ev-000935\"}, \"traceId\": \"tr-20260822-4b323804\"}"
+ },
+ {
+  "id": "API-DID-17",
+  "module": "DID",
+  "basis": "文档(一)3 冻结身份验签拒绝",
+  "step": "冻结后验签",
+  "expect": "valid=false status=frozen",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"frozen\", \"reason\": \"身份状态为 frozen，不可用于验签\"}, \"traceId\": \"tr-20260822-3e8452db\"}"
+ },
+ {
+  "id": "API-DID-18",
+  "module": "DID",
+  "basis": "1006 状态冲突",
+  "step": "再次冻结已冻结 DID",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"身份已处于 frozen 状态\", \"data\": null, \"traceId\": \"tr-20260822-b92240b7\"}"
+ },
+ {
+  "id": "API-DID-19",
+  "module": "DID",
+  "basis": "契约 2.2 unfreeze（挂失恢复）",
+  "step": "解冻",
+  "expect": "status=active",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"status\": \"active\", \"reason\": \"test-解冻\", \"evidenceId\": \"ev-000938\"}, \"traceId\": \"tr-20260822-36140ffa\"}"
+ },
+ {
+  "id": "API-DID-20",
+  "module": "DID",
+  "basis": "1001 action 枚举",
+  "step": "action=destroy",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：action String should match pattern '^(freeze|unfreeze|revoke)$'\", \"data\": null, \"traceId\": \"tr-20260822-9d3940b7\"}"
+ },
+ {
+  "id": "API-DID-21",
+  "module": "DID",
+  "basis": "1003 越权",
+  "step": "vpp 冻结 DID",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-b1f1f748\"}"
+ },
+ {
+  "id": "API-DID-22",
+  "module": "DID",
+  "basis": "契约 2.2 rotate-key / 文档(一)2 密钥轮换",
+  "step": "轮换密钥",
+  "expect": "version=2；publicKey 变化；did 不变",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"publicKey\": \"041905ad1889185e08709254b539c4fafbb3f1f39ec938243640b699e892f83f7132eb1ca6e907417f4191a1b74c37cde311d1871518…"
+ },
+ {
+  "id": "API-DID-23",
+  "module": "DID",
+  "basis": "安全·轮换后旧密钥签名失效",
+  "step": "用 v1 私钥签名验签",
+  "expect": "valid=false",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyVersion\": 2, \"reason\": \"签名与公钥不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260822-e88368e2\"}"
+ },
+ {
+  "id": "API-DID-24",
+  "module": "DID",
+  "basis": "文档(一)5 密钥轮换日志表",
+  "step": "查 did_key_rotation_log",
+  "expect": "≥1 条",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": 1}]"
+ },
+ {
+  "id": "API-DID-25",
+  "module": "DID",
+  "basis": "契约 2.2 revoke 注销不可恢复",
+  "step": "注销 org DID 后再 unfreeze",
+  "expect": "revoke→revoked；unfreeze 409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"身份已注销，注销不可逆\", \"data\": null, \"traceId\": \"tr-20260822-63f52216\"}"
+ },
+ {
+  "id": "API-DID-26",
+  "module": "DID",
+  "basis": "文档(四)3 R02 异常 DID 登录 / 1004",
+  "step": "冻结测试用户 DID 后用其 token 访问",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"身份 did:vpp:user:0xe727d76b7f2fac6501f674e253ab9e04 状态为 frozen，已被拒绝接入\", \"data\": null, \"traceId\": \"tr-20260822-2441f5a1\"}"
+ },
+ {
+  "id": "API-DID-27",
+  "module": "DID",
+  "basis": "契约 2.7 R02_ABNORMAL_DID 告警",
+  "step": "查 /audit/alerts",
+  "expect": "存在 R02_ABNORMAL_DID 告警",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [{\"id\": 35, \"alertId\": \"al-000035\", \"ruleCode\": \"R02_ABNORMAL_DID\", \"ruleName\": \"异常 DID 登录\", \"riskLevel\": \"critical\", \"message\": \"DID 状态为 frozen，拒绝接入\", \"actorDid\": \"did:vpp:user:0xe727d76b7f2fac6501f674e253ab9e04\", \"acto…"
+ },
+ {
+  "id": "API-KEY-01",
+  "module": "KEY",
+  "basis": "契约 2.3 GET /keys",
+  "step": "GET /keys?did=did:vpp:device:0xeae4966bb5889…",
+  "expect": "分页；items 字段 id/did/algorithm=SM2/publicKey/status/version/boundAt/expireAt；无私钥",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 87, \"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"algorithm\": \"SM2\", \"publicKey\": \"041905ad1889185e08709254b539c4fafbb3f1f39ec938243640b699e892f83f713…"
+ },
+ {
+  "id": "API-KEY-02",
+  "module": "KEY",
+  "basis": "契约 2.3 POST /keys",
+  "step": "为 DID 生成新密钥",
+  "expect": "200 返回 id/version 递增",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 89, \"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"algorithm\": \"SM2\", \"publicKey\": \"045d4e790869d06c568a09bcd1be8c5b1afd0f71e00375f5238a2911d394c01b94d70c44861a32…"
+ },
+ {
+  "id": "API-KEY-03",
+  "module": "KEY",
+  "basis": "2.3 algorithm 枚举 / 1001",
+  "step": "algorithm=DSA",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：algorithm String should match pattern '^(SM2|ECC|RSA)$'\", \"data\": null, \"traceId\": \"tr-20260822-7798df17\"}"
+ },
+ {
+  "id": "API-KEY-04",
+  "module": "KEY",
+  "basis": "1005",
+  "step": "为不存在 DID 生成密钥",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"身份 did:vpp:device:0x00000000000000000000000000000000 不存在\", \"data\": null, \"traceId\": \"tr-20260822-80b31fe2\"}"
+ },
+ {
+  "id": "API-KEY-05",
+  "module": "KEY",
+  "basis": "契约 2.3 freeze",
+  "step": "冻结密钥",
+  "expect": "200 status=frozen",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 89, \"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"status\": \"frozen\", \"reason\": \"test\", \"evidenceId\": \"ev-000954\"}, \"traceId\": \"tr-20260822-6585bead\"}"
+ },
+ {
+  "id": "API-KEY-06",
+  "module": "KEY",
+  "basis": "契约 2.3 revoke",
+  "step": "注销密钥",
+  "expect": "200 status=revoked",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 89, \"did\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"status\": \"revoked\", \"reason\": \"test\", \"evidenceId\": \"ev-000956\"}, \"traceId\": \"tr-20260822-4f5c61d0\"}"
+ },
+ {
+  "id": "API-KEY-07",
+  "module": "KEY",
+  "basis": "1006",
+  "step": "冻结已注销密钥",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"密钥已注销，注销不可逆\", \"data\": null, \"traceId\": \"tr-20260822-ba3e0e47\"}"
+ },
+ {
+  "id": "API-KEY-08",
+  "module": "KEY",
+  "basis": "契约 2.3 history / 文档(一)5 轮换日志",
+  "step": "密钥历史",
+  "expect": "200 列表非空",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"currentVersion\": 3, \"n\": 3}"
+ },
+ {
+  "id": "API-KEY-09",
+  "module": "KEY",
+  "basis": "1005",
+  "step": "不存在密钥历史",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"密钥 999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-90f65ac8\"}"
+ },
+ {
+  "id": "API-KEY-10",
+  "module": "KEY",
+  "basis": "1003",
+  "step": "subject 注销密钥",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260822-f584e7e7\"}"
+ },
+ {
+  "id": "API-ASSET-01",
+  "module": "ASSET",
+  "basis": "契约 2.4 POST /assets 自动分级+SM3+上链 / 文档(二)1",
+  "step": "登记 pv 资产（不填 level）",
+  "expect": "id/hash=sm3:64hex/level∈L1-L4/chainTxId/evidenceId/authStatus/createdAt",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1107, \"hash\": \"sm3:145056bc512548eb4731745b9b89bcb0d4e925ed52c8b67d5d41be7df9c27b42\", \"level\": \"L4\", \"chainTxId\": \"blk-000959-0\", \"evidenceId\": \"ev-000959\", \"authStatus\": \"unau…"
+ },
+ {
+  "id": "API-ASSET-02",
+  "module": "ASSET",
+  "basis": "契约 2.4 原始 payload 存库、hash=SM3(payload)",
+  "step": "GET /assets/{id} 并本地 SM3 重算",
+  "expect": "payload 完整；本地 payload_hash == 返回 hash",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1107, \"name\": \"test-pv-96988069\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"ownerDid\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d448…"
+ },
+ {
+  "id": "API-ASSET-03",
+  "module": "ASSET",
+  "basis": "文档(二)1 原始数据不上链仅存哈希",
+  "step": "查资产对应存证 payload",
+  "expect": "存证 payload 无 pvOutput/location 原始值",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000959\", \"category\": \"data\", \"refId\": \"1107\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:2613bf861d7284caa032d0498d1a7e30ecd7ce1850…"
+ },
+ {
+  "id": "API-ASSET-04",
+  "module": "ASSET",
+  "basis": "契约 2.4 GET /assets 筛选",
+  "step": "dataType/level/keyword 筛选",
+  "expect": "分页；items 符合筛选",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1107, \"name\": \"test-pv-96988069\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"ownerDid\": \"did:vpp:device:0xeae4966bb5889078b…"
+ },
+ {
+  "id": "API-ASSET-05",
+  "module": "ASSET",
+  "basis": "1.6 dataType 枚举",
+  "step": "dataType=oil",
+  "expect": "400/1001（或空列表）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：dataType String should match pattern '^(pv|wind|storage|load|dispatch)$'\", \"data\": null, \"traceId\": \"tr-20260822-e5daca71\"}"
+ },
+ {
+  "id": "API-ASSET-06",
+  "module": "ASSET",
+  "basis": "1005",
+  "step": "不存在资产",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"数据资产 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-6798c50a\"}"
+ },
+ {
+  "id": "API-ASSET-07",
+  "module": "ASSET",
+  "basis": "契约 2.4 lineage / 文档(二)3 溯源",
+  "step": "GET lineage",
+  "expect": "assetId/traceId/chain[stage,at,actorDid,evidenceId]；含 register 与 access",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"assetId\": 1107, \"traceId\": \"tr-20260822-6c1a798b\", \"chain\": [{\"stage\": \"register\", \"at\": \"2026-08-22T11:09:48+08:00\", \"actorDid\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\"…"
+ },
+ {
+  "id": "API-ASSET-08",
+  "module": "ASSET",
+  "basis": "契约 2.4 classify 代理算法",
+  "step": "classify 1 条",
+  "expect": "200 results[0].level/score/reason",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"results\": [{\"index\": 0, \"level\": \"L4\", \"score\": 0.8163, \"reason\": \"包含敏感字段 gps，采集粒度为分钟级，数据量较大（1440 条），规则综合敏感度 0.78，聚类簇 2（高敏感簇）\", \"cluster\": 2, \"factors\": {\"sensitivity\": 0.895, \"gran…"
+ },
+ {
+  "id": "API-ASSET-09",
+  "module": "ASSET",
+  "basis": "契约 1.1 2001 算法服务错误映射",
+  "step": "classify records=[]（算法服务返回 400）",
+  "expect": "400/1001 或 502/2001，不得 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：records List should have at least 1 item after validation, not 0\", \"data\": null, \"traceId\": \"tr-20260822-166b6f7a\"}"
+ },
+ {
+  "id": "API-ASSET-10",
+  "module": "ASSET",
+  "basis": "契约 2.4 stats",
+  "step": "GET /assets/stats",
+  "expect": "byLevel/byType/total/authorized/onChain；total≥81",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"byLevel\": [{\"level\": \"L1\", \"count\": 12}, {\"level\": \"L2\", \"count\": 45}, {\"level\": \"L3\", \"count\": 33}, {\"level\": \"L4\", \"count\": 16}], \"byType\": [{\"dataType\": \"pv\", \"count\": 44}, {\"dat…"
+ },
+ {
+  "id": "API-ASSET-11",
+  "module": "ASSET",
+  "basis": "DB-SCHEMA energy_subject asset:read 仅自有 / 1003",
+  "step": "subject 读 admin 登记的资产",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260822-a74f397e\"}"
+ },
+ {
+  "id": "API-ASSET-12",
+  "module": "ASSET",
+  "basis": "energy_subject 列表仅自有",
+  "step": "subject GET /assets 全量",
+  "expect": "items 中无他人资产（sourceDid 不属于 subject 及其控制的 DID）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 0, \"own\": [\"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\"]}"
+ },
+ {
+  "id": "API-ASSET-13",
+  "module": "ASSET",
+  "basis": "仅自有·lineage",
+  "step": "subject 查他人资产溯源",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260822-6169efbe\"}"
+ },
+ {
+  "id": "API-ASSET-14",
+  "module": "ASSET",
+  "basis": "1001 level 枚举",
+  "step": "level=L9",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：level String should match pattern '^(L1|L2|L3|L4)$'\", \"data\": null, \"traceId\": \"tr-20260822-1428676c\"}"
+ },
+ {
+  "id": "API-ASSET-15",
+  "module": "ASSET",
+  "basis": "矩阵 regulator 无 asset:write / 1003",
+  "step": "regulator 登记资产",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 regulator 无 asset:write 权限\", \"data\": null, \"traceId\": \"tr-20260822-5d958578\"}"
+ },
+ {
+  "id": "API-PERM-01",
+  "module": "PERM",
+  "basis": "契约 2.5 GET /roles / 1.6 六角色",
+  "step": "角色列表",
+  "expect": "含 sys_admin/grid_dispatcher/vpp_operator/energy_subject/regulator/edge_node",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": [{\"code\": \"sys_admin\", \"name\": \"系统管理员\", \"description\": \"平台最高权限，负责身份签发、权限审批与安全审计\", \"isBuiltin\": true, \"userCount\": 1, \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"a…"
+ },
+ {
+  "id": "API-PERM-02",
+  "module": "PERM",
+  "basis": "契约 2.5 POST /roles / 文档(三)1 自定义角色",
+  "step": "新建自定义角色",
+  "expect": "200",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"code\": \"test_role_96988602\", \"name\": \"测试自定义角色\", \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"all\"}]}, \"traceId\": \"tr-20260822-964cfe1b\"}"
+ },
+ {
+  "id": "API-PERM-03",
+  "module": "PERM",
+  "basis": "1006",
+  "step": "重复角色 code",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"角色码 test_role_96988602 已存在\", \"data\": null, \"traceId\": \"tr-20260822-612e7c13\"}"
+ },
+ {
+  "id": "API-PERM-04",
+  "module": "PERM",
+  "basis": "契约 2.5 PUT /roles/{code}",
+  "step": "修改角色权限",
+  "expect": "200",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"code\": \"test_role_96988602\", \"name\": \"测试自定义角色\", \"description\": null, \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"all\"}, {\"resourceType\": \"evidence\", \"action\": \"…"
+ },
+ {
+  "id": "API-PERM-05",
+  "module": "PERM",
+  "basis": "1.6 action 枚举 / 1001",
+  "step": "action=fly",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：grants.0.action String should match pattern '^(read|write|execute|issue|export|manage)$'\", \"data\": null, \"traceId\": \"tr-20260822-1bb8fd69\"}"
+ },
+ {
+  "id": "API-PERM-06",
+  "module": "PERM",
+  "basis": "1005",
+  "step": "修改不存在角色",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"角色 no_such_role_x 不存在\", \"data\": null, \"traceId\": \"tr-20260822-e1024472\"}"
+ },
+ {
+  "id": "API-PERM-07",
+  "module": "PERM",
+  "basis": "1003",
+  "step": "vpp 新建角色",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-199f0f9d\"}"
+ },
+ {
+  "id": "API-PERM-08",
+  "module": "PERM",
+  "basis": "契约 2.5 matrix",
+  "step": "权限矩阵",
+  "expect": "resources 5 项/actions 5 项/roles≥6；sys_admin.grants.dispatch 含 issue",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"resources\": [\"asset\", \"model\", \"dispatch\", \"evidence\", \"algo\"], \"actions\": [\"read\", \"write\", \"execute\", \"issue\", \"export\"], \"roles\": 12}"
+ },
+ {
+  "id": "API-PERM-09",
+  "module": "PERM",
+  "basis": "契约 2.5 check / 文档(三)3 统一鉴权接口",
+  "step": "vpp check dispatch:issue",
+  "expect": "allowed=false reason 含 vpp_operator；含 matchedRule/level",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"allowed\": false, \"reason\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"matchedRule\": null, \"level\": null}, \"traceId\": \"tr-20260822-9ab2c84f\"}"
+ },
+ {
+  "id": "API-PERM-10",
+  "module": "PERM",
+  "basis": "check 正向",
+  "step": "admin check dispatch:issue",
+  "expect": "allowed=true matchedRule 非空",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"allowed\": true, \"reason\": null, \"matchedRule\": \"role:sys_admin:dispatch:issue\", \"level\": null}, \"traceId\": \"tr-20260822-c703702b\"}"
+ },
+ {
+  "id": "API-PERM-11",
+  "module": "PERM",
+  "basis": "1001 resourceType 枚举",
+  "step": "resourceType=planet",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：resourceType String should match pattern '^(asset|model|dispatch|evidence|algo|user)$'\", \"data\": null, \"traceId\": \"tr-20260822-805f9e62\"}"
+ },
+ {
+  "id": "API-PERM-12",
+  "module": "PERM",
+  "basis": "契约 2.5 apply / 文档(三)4 授权流转+上链",
+  "step": "subject 申请 asset read",
+  "expect": "id/status=pending/applicantDid/createdAt/evidenceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 34, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1107\", \"action\": \"read\", \"reason\": \"test…"
+ },
+ {
+  "id": "API-PERM-13",
+  "module": "PERM",
+  "basis": "1001 expireAt 非法/过去",
+  "step": "expireAt=2020-01-01",
+  "expect": "400/1001",
+  "actual": "HTTP 200≠400；code 0≠1001",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 35, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1107\", \"action\": \"write\", \"reason\": \"x\",…"
+ },
+ {
+  "id": "API-PERM-14",
+  "module": "PERM",
+  "basis": "契约 2.5 applications 筛选",
+  "step": "status=pending",
+  "expect": "分页；全部 pending；含刚提交的",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 35, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1107\", \"action\": \"write\", \"re…"
+ },
+ {
+  "id": "API-PERM-15",
+  "module": "PERM",
+  "basis": "1003 越权审批",
+  "step": "vpp 审批",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-5001ca95\"}"
+ },
+ {
+  "id": "API-PERM-16",
+  "module": "PERM",
+  "basis": "契约 2.5 approve → 权限生效",
+  "step": "审批前 subject 读资产→approve→审批后再读",
+  "expect": "审批前 403；approve status=approved 带 grantId；审批后 200",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1107, \"name\": \"test-pv-96988069\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d44814a9\", \"ownerDid\": \"did:vpp:device:0xeae4966bb5889078b105a6f9d448…"
+ },
+ {
+  "id": "API-PERM-17",
+  "module": "PERM",
+  "basis": "1006 状态不允许",
+  "step": "重复审批",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"申请已处于 approved 状态，不能重复审批\", \"data\": null, \"traceId\": \"tr-20260822-e36bc14a\"}"
+ },
+ {
+  "id": "API-PERM-18",
+  "module": "PERM",
+  "basis": "1005",
+  "step": "驳回不存在申请",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"权限申请 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-65df0025\"}"
+ },
+ {
+  "id": "API-PERM-19",
+  "module": "PERM",
+  "basis": "契约 2.5 grants?did",
+  "step": "按 did 查已授权",
+  "expect": "含刚生效的 grantId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 19, \"applicationId\": 34, \"granteeDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"granteeName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1107\", \"acti…"
+ },
+ {
+  "id": "API-PERM-20",
+  "module": "PERM",
+  "basis": "契约 2.5 revoke 回收即时失效 / 文档(三)5",
+  "step": "回收授权后 subject 再读",
+  "expect": "revoke 200；之后 403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260822-48c330a6\"}"
+ },
+ {
+  "id": "API-PERM-21",
+  "module": "PERM",
+  "basis": "1006",
+  "step": "重复回收",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"授权已处于 revoked 状态\", \"data\": null, \"traceId\": \"tr-20260822-f02536e9\"}"
+ },
+ {
+  "id": "API-PERM-22",
+  "module": "PERM",
+  "basis": "契约 2.5 reject",
+  "step": "驳回",
+  "expect": "status=rejected",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 36, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1107\", \"action\": \"read\", \"reason\": \"test…"
+ },
+ {
+  "id": "API-PERM-23",
+  "module": "PERM",
+  "basis": "文档(三)5 权限变更留痕 perm_change_log",
+  "step": "查最近 10 分钟 perm_change_log",
+  "expect": "≥3 条（approve/revoke/reject）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": 18}]"
+ },
+ {
+  "id": "API-PERM-24",
+  "module": "PERM",
+  "basis": "文档(三)4 授权记录同步上链",
+  "step": "查 chain_evidence category=permission",
+  "expect": "最近存在 permission 类存证",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"evidence_id\": \"ev-000979\"}, {\"evidence_id\": \"ev-000978\"}, {\"evidence_id\": \"ev-000974\"}]"
+ },
+ {
+  "id": "API-EV-01",
+  "module": "EV",
+  "basis": "契约 2.6 POST /evidence / 文档(二)1 SM3 摘要上链",
+  "step": "写入 data 存证",
+  "expect": "evidenceId/hash/blockHeight/txId/prevHash/timestamp；hash==本地 SM3(canonical payload)",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000980\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7970f30d487e51ac8c30e021321c03\", \"blockHeight\": 980, \"txId\": \"blk-000980-0\", \"prevHash\": \"sm3:f1f40bebdacbfb…"
+ },
+ {
+  "id": "API-EV-02",
+  "module": "EV",
+  "basis": "1.6 category 枚举 / 1001",
+  "step": "category=video",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：category String should match pattern '^(data|identity|permission|audit|algo)$'\", \"data\": null, \"traceId\": \"tr-20260822-26630d8b\"}"
+ },
+ {
+  "id": "API-EV-03",
+  "module": "EV",
+  "basis": "契约 2.6 GET /evidence 多维检索",
+  "step": "category+时间范围",
+  "expect": "分页；items 全为 data",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"evidenceId\": \"ev-000980\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd…"
+ },
+ {
+  "id": "API-EV-04",
+  "module": "EV",
+  "basis": "1001",
+  "step": "from 非法时间",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"from 格式非法，应为 ISO 8601：not-a-date\", \"data\": null, \"traceId\": \"tr-20260822-f1fc0fe7\"}"
+ },
+ {
+  "id": "API-EV-05",
+  "module": "EV",
+  "basis": "契约 2.6 GET /evidence/{id}",
+  "step": "存证详情",
+  "expect": "evidenceId/category/refId/hash/blockHeight/prevHash/txId/timestamp 或 createdAt",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000980\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
+ },
+ {
+  "id": "API-EV-06",
+  "module": "EV",
+  "basis": "1005",
+  "step": "不存在存证",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"存证 ev-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-dae40abe\"}"
+ },
+ {
+  "id": "API-EV-07",
+  "module": "EV",
+  "basis": "契约 2.6 verify（库内重算）/ 文档(二)4",
+  "step": "verify 不带 payload",
+  "expect": "intact=true localHash==chainHash",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000980\", \"intact\": true, \"localHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7970f30d487e51ac8c30e021321c03\", \"chainHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
+ },
+ {
+  "id": "API-EV-08",
+  "module": "EV",
+  "basis": "文档(二)4 本地数据与链上比对",
+  "step": "verify 带被改 payload",
+  "expect": "intact=false message 提示篡改",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000980\", \"intact\": false, \"localHash\": \"sm3:6b8b2fc639f437331cf41364b91ecb9c3e161e452b95a9e3eb25da87e6ee6755\", \"chainHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7…"
+ },
+ {
+  "id": "API-EV-09",
+  "module": "EV",
+  "basis": "契约 2.6 chain/status",
+  "step": "链状态",
+  "expect": "height/lastHash/intact=true/brokenAt=null/totalRecords/byCategory(5 类)",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 981, \"lastHash\": \"sm3:d6b3b6eb44255dbe54c8cb05cf675c96c481b546ff150c0b283c46f420b18dca\", \"intact\": true, \"brokenAt\": null, \"totalRecords\": 981, \"byCategory\": {\"data\": 139, …"
+ },
+ {
+  "id": "API-EV-10",
+  "module": "EV",
+  "basis": "契约 2.6 trace/{traceId} / 1.2 存证共用 traceId",
+  "step": "带 X-Trace-Id 写存证后按 traceId 查",
+  "expect": "200 且含该存证",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-96993488\", \"total\": 1, \"steps\": [{\"evidenceId\": \"ev-000981\", \"category\": \"data\", \"refId\": \"test-trace\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103…"
+ },
+ {
+  "id": "API-EV-11",
+  "module": "EV",
+  "basis": "契约 2.6 tamper 仅 sys_admin / 1003",
+  "step": "vpp 调 tamper",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-3733bd9f\"}"
+ },
+ {
+  "id": "API-EV-12",
+  "module": "EV",
+  "basis": "契约 2.6 tamper→verify→chain/status 断裂点 / 验收 9",
+  "step": "admin 篡改→校验→链状态",
+  "expect": "tampered=true；verify intact=false；chain intact=false brokenAt==evidenceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 983, \"lastHash\": \"sm3:c1f7ffe8973dc16d0c1a04ba3591d27bb7fbdd6120922972ad8fbb9605538b66\", \"intact\": false, \"brokenAt\": \"ev-000980\", \"totalRecords\": 983, \"byCategory\": {\"data…"
+ },
+ {
+  "id": "API-EV-13",
+  "module": "EV",
+  "basis": "演示还原 restore（契约外，验证清单 4.19）",
+  "step": "restore 后链状态",
+  "expect": "restored=true；链 intact=true",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 984, \"lastHash\": \"sm3:f6cebb35559839245f7fe2a9fbbc44ae1a243165003ddf669762bbee36c7d295\", \"intact\": true, \"brokenAt\": null, \"totalRecords\": 984, \"byCategory\": {\"data\": 140, …"
+ },
+ {
+  "id": "API-EV-14",
+  "module": "EV",
+  "basis": "1005",
+  "step": "篡改不存在存证",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"存证 ev-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-6fea1e29\"}"
+ },
+ {
+  "id": "API-EV-15",
+  "module": "EV",
+  "basis": "契约 2.6 certificate / 文档(二)3 导出凭证",
+  "step": "导出凭证",
+  "expect": "含 chainProof 与 signature（SM2）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"certificateType\": \"EnergyTDS-Evidence-Certificate\", \"version\": \"1.0\", \"issuedAt\": \"2026-08-22T19:09:57+08:00\", \"evidence\": \"{'evidenceId': 'ev-000980', 'category': 'data', 'refId': 'test-ref-1', 'actorDid\", \"chainProof…"
+ },
+ {
+  "id": "API-EV-16",
+  "module": "EV",
+  "basis": "凭证 SM2 签名可核验",
+  "step": "message=canonical_json(凭证去掉 signature) 用 signerDid 调 /did/verify",
+  "expect": "valid=true",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"algorithm\": \"SM2\", \"signerDid\": \"did:vpp:org:0xc383a2980017246306b257b8805675b0\", \"value\": \"2515ce4943f83be0354cb74650a0bd405ea6e336861dc997e159ae5123a7be3570984c813e99b51032e357653c005bf432c0097749b7877815e4f92bda17d3…"
+ },
+ {
+  "id": "API-EV-17",
+  "module": "EV",
+  "basis": "DB-SCHEMA energy_subject evidence:read 仅自有",
+  "step": "subject GET /evidence",
+  "expect": "只返回 actorDid 为自己的存证",
+  "actual": "含 158 条他人存证 actorDid=did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"total\": 985}"
+ },
+ {
+  "id": "API-EV-17b",
+  "module": "EV",
+  "basis": "energy_subject evidence:read 仅自有（详情）",
+  "step": "subject 读 admin 写的存证详情",
+  "expect": "403/1003",
+  "actual": "HTTP 200≠403；code 0≠1003",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000980\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
+ },
+ {
+  "id": "API-EV-18",
+  "module": "EV",
+  "basis": "矩阵 edge_node 无 evidence:read / 1003",
+  "step": "edge 查链状态",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 edge_node 无 evidence:read 权限\", \"data\": null, \"traceId\": \"tr-20260822-0fc4ff75\"}"
+ },
+ {
+  "id": "API-AUD-01",
+  "module": "AUD",
+  "basis": "契约 2.7 / 文档(四)1 全链路埋点：所有被拒请求写审计 / 验证清单 4.22",
+  "step": "vpp GET /users（require_roles 拒绝 1003）后按 traceId 查日志",
+  "expect": "命中 1 条 result=denied riskLevel=high",
+  "actual": "未命中：require_roles 路径的 1003 未写审计日志（仅计入 R01）",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [], \"total\": 0, \"page\": 1, \"size\": 20}, \"traceId\": \"tr-20260822-7092ccb8\"}"
+ },
+ {
+  "id": "API-AUD-01b",
+  "module": "AUD",
+  "basis": "契约 2.7 logs?traceId 字段逐字对照 / 1.2 审计共用 traceId",
+  "step": "vpp POST /evidence（require_permission 拒绝）后按 traceId 查日志",
+  "expect": "命中 1 条；字段 id/traceId/actorDid/actorName/action/resourceType/resourceId/result=denied/riskLevel=high/module/detail/ip/at/evidenceId/hash；actorName 为中文姓名；高危已上链",
+  "actual": "高危未上链",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1516, \"traceId\": \"tr-20260822-97000385\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
+ },
+ {
+  "id": "API-AUD-02",
+  "module": "AUD",
+  "basis": "契约 2.7 logs 组合筛选",
+  "step": "riskLevel=high&result=denied",
+  "expect": "全部 high/denied",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1516, \"traceId\": \"tr-20260822-97000385\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
+ },
+ {
+  "id": "API-AUD-03",
+  "module": "AUD",
+  "basis": "1001 riskLevel 枚举",
+  "step": "riskLevel=ultra",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：riskLevel String should match pattern '^(low|medium|high|critical)$'\", \"data\": null, \"traceId\": \"tr-20260822-f5e00404\"}"
+ },
+ {
+  "id": "API-AUD-04",
+  "module": "AUD",
+  "basis": "安全·SQL 注入（keyword）",
+  "step": "keyword=' OR 1=1 --",
+  "expect": "200 正常结果或 400，不 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [], \"total\": 0, \"page\": 1, \"size\": 5}, \"traceId\": \"tr-20260822-09fd5697\"}"
+ },
+ {
+  "id": "API-AUD-05",
+  "module": "AUD",
+  "basis": "DB-SCHEMA 按月分表 + 跨月 UNION ALL 查询",
+  "step": "from=2026-07-01 to=2026-08-31 查询",
+  "expect": "total ≥ audit_log_202607 行数，并 ≤ 07+08 两表之和",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 1517, \"db\": {\"a\": 0, \"b\": 1517}}"
+ },
+ {
+  "id": "API-AUD-06",
+  "module": "AUD",
+  "basis": "契约 2.7 trace/{traceId} 任务级追踪 / 验收 10",
+  "step": "按 traceId 查链路",
+  "expect": "traceId/summary{startAt,endAt,durationMs,actorDid,result,riskLevel}/steps[seq,module,action,at,result]",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-97000385\", \"summary\": {\"startAt\": \"2026-08-22T19:10:00+08:00\", \"endAt\": \"2026-08-22T19:10:00+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x09019061e23e…"
+ },
+ {
+  "id": "API-AUD-07",
+  "module": "AUD",
+  "basis": "1005",
+  "step": "不存在 traceId",
+  "expect": "404/1005（或空 steps）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"未找到 traceId tr-00000000-00000000 的记录\", \"data\": null, \"traceId\": \"tr-20260822-2747cd81\"}"
+ },
+ {
+  "id": "API-AUD-08",
+  "module": "AUD",
+  "basis": "契约 2.7 R01_UNAUTHORIZED ≥3 次/5 分钟 / 文档(四)3",
+  "step": "vpp 连续越权 ≥3 次后查 alerts?status=open",
+  "expect": "出现 R01_UNAUTHORIZED riskLevel=high 含 evidenceId；字段 id/ruleCode/riskLevel/message/actorDid/status",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [{\"id\": 33, \"alertId\": \"al-000033\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/audit/logs（该操作仅限 sys_admin/regulator，当前角色 grid_dispatcher）\", \"actorDid\": \"did:v…"
+ },
+ {
+  "id": "API-AUD-09",
+  "module": "AUD",
+  "basis": "1001 status 枚举",
+  "step": "status=weird",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：status String should match pattern '^(open|acked)$'\", \"data\": null, \"traceId\": \"tr-20260822-3bfae482\"}"
+ },
+ {
+  "id": "API-AUD-10",
+  "module": "AUD",
+  "basis": "契约 2.7 ack",
+  "step": "确认告警；再确认一次",
+  "expect": "首次 status=acked；重复 409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该告警已确认\", \"data\": null, \"traceId\": \"tr-20260822-7815ba2d\"}"
+ },
+ {
+  "id": "API-AUD-11",
+  "module": "AUD",
+  "basis": "1005",
+  "step": "确认不存在告警",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"告警 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-e0e0da34\"}"
+ },
+ {
+  "id": "API-AUD-12",
+  "module": "AUD",
+  "basis": "1003",
+  "step": "vpp 确认告警",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-11ab1c27\"}"
+ },
+ {
+  "id": "API-AUD-13",
+  "module": "AUD",
+  "basis": "契约 2.7 report / 文档(四)4 审计报告+DeepSeek",
+  "step": "日报",
+  "expect": "period/date/identityOps{register,freeze,revoke,rotate}/permissionOps{applied,approved,rejected,revoked}/evidence/riskEvents/narrative/narrativeSource∈live|cache|rule",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"period\": \"day\", \"date\": \"2026-08-22\", \"range\": {\"from\": \"2026-08-21T00:00:00+08:00\", \"to\": \"2026-08-22T23:59:59+08:00\"}, \"totalLogs\": 1522, \"identityOps\": {\"register\": 51, \"freeze\":…"
+ },
+ {
+  "id": "API-AUD-14",
+  "module": "AUD",
+  "basis": "1001 period 枚举",
+  "step": "period=year",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：period String should match pattern '^(day|week|month)$'\", \"data\": null, \"traceId\": \"tr-20260822-ad3357fa\"}"
+ },
+ {
+  "id": "API-AUD-15",
+  "module": "AUD",
+  "basis": "契约 2.7 stats",
+  "step": "看板统计",
+  "expect": "todayLogs/highRiskLogs/openAlerts/onChainLogs/byModule/byRisk/trend(7 天)",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"todayLogs\": 1434, \"highRiskLogs\": 377, \"openAlerts\": 25, \"onChainLogs\": 373, \"byModule\": \"[9]\", \"byRisk\": \"[4]\", \"trend\": \"[7]\"}, \"traceId\": \"tr-20260822-0b1740c5\"}"
+ },
+ {
+  "id": "API-AUD-16",
+  "module": "AUD",
+  "basis": "文档(四)3 五类风险规则",
+  "step": "GET /audit/rules（契约外）",
+  "expect": "R01~R05 五条",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [\"R01_UNAUTHORIZED\", \"R02_ABNORMAL_DID\", \"R03_PERM_CHURN\", \"R04_BULK_EXPORT\", \"R05_SUSPICIOUS_GRAD\"]"
+ },
+ {
+  "id": "API-AUD-17",
+  "module": "AUD",
+  "basis": "契约 2.7 export CSV 文件流非 JSON 包装 / 文档(四)2 导出",
+  "step": "导出 high 日志",
+  "expect": "content-type text/csv；X-Total-Rows；UTF-8 BOM 中文表头",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 ﻿日志ID,追踪ID,操作主体DID,主体名称,模块,操作,资源类型,资源ID,结果,风险等级,详情,IP,存证ID,摘要,时间\r\n1516,tr-20260822-97000385,did:vpp:user:0x09019061e23e7"
+ },
+ {
+  "id": "API-AUD-18",
+  "module": "AUD",
+  "basis": "1003 导出需审计角色",
+  "step": "vpp 导出",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-e80c223c\"}"
+ },
+ {
+  "id": "API-AUD-19",
+  "module": "AUD",
+  "basis": "1003 审计仅 sys_admin/regulator",
+  "step": "subject 查审计日志",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260822-7c2c368d\"}"
+ },
+ {
+  "id": "API-AUD-20",
+  "module": "AUD",
+  "basis": "regulator 可查审计",
+  "step": "regulator 查审计日志",
+  "expect": "200",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 1525}"
+ },
+ {
+  "id": "API-AUD-21",
+  "module": "AUD",
+  "basis": "文档(四)5 日志防篡改·高危日志摘要上链",
+  "step": "查 audit_log_202608 高危日志",
+  "expect": "hash 非空且 evidence_id 非空",
+  "actual": "[{'id': 1516, 'hash': 'sm3:e77597882d71e4eca6894a84ae4fcc77a17348c204481aa796f1472fba0fe3d3', 'evidence_id': None, 'risk_level': 'high'}]",
+  "verdict": "失败",
+  "evidence": "[{\"id\": 1516, \"hash\": \"sm3:e77597882d71e4eca6894a84ae4fcc77a17348c204481aa796f1472fba0fe3d3\", \"evidence_id\": null, \"risk_level\": \"high\"}, {\"id\": 1511, \"hash\": \"sm3:9f0274b93ef43d00b2445aca8caceb07921d1417455470c0a8bf43a5…"
+ },
+ {
+  "id": "API-AUD-22",
+  "module": "AUD",
+  "basis": "契约 2.7 R04_BULK_EXPORT",
+  "step": "10 分钟内导出 ≥3 次",
+  "expect": "出现 R04_BULK_EXPORT 告警",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [{\"id\": 32, \"alertId\": \"al-000032\", \"ruleCode\": \"R04_BULK_EXPORT\", \"ruleName\": \"批量数据导出\", \"riskLevel\": \"medium\", \"message\": \"10 分钟内多次导出数据，最近一次 286 条\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorN…"
+ },
+ {
+  "id": "API-AUDIT-ERR",
+  "module": "AUDIT",
+  "basis": "脚本异常",
+  "step": "audit",
+  "expect": "-",
+  "actual": "脚本异常：[Errno 104] Connection reset by peer",
+  "verdict": "阻塞",
+  "evidence": ""
+ },
+ {
+  "id": "API-NODE-01",
+  "module": "NODE",
+  "basis": "契约 2.8 GET /nodes / DB-SCHEMA 种子节点",
+  "step": "节点列表",
+  "expect": "4 节点；字段 id/name/status/model/did/didStatus/metrics{pvOutput,storageOutput,load,soc}/lastSeenAt；Node-A 45.3/-12.0/120/65；Node-C warning",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"id\": \"Node-A\", \"name\": \"虚拟电厂节点A\", \"status\": \"online\", \"model\": \"VPP-2000\", \"did\": \"did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1\", \"didStatus\": \"active\", \"location\": \"A区厂房屋顶\", \"capacityKw\": 200.0, \"metrics\": {\"pvOutp…"
+ },
+ {
+  "id": "API-NODE-02",
+  "module": "NODE",
+  "basis": "契约 2.8 GET /nodes/{id}",
+  "step": "节点详情",
+  "expect": "200 id=Node-A",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"Node-A\", \"name\": \"虚拟电厂节点A\", \"status\": \"online\", \"model\": \"VPP-2000\", \"did\": \"did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1\", \"didStatus\": \"active\", \"location\": \"A区厂房屋顶\", \"ca…"
+ },
+ {
+  "id": "API-NODE-03",
+  "module": "NODE",
+  "basis": "1005",
+  "step": "不存在节点",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点 Node-Z 不存在\", \"data\": null, \"traceId\": \"tr-20260822-9a87680e\"}"
+ },
+ {
+  "id": "API-NODE-04",
+  "module": "NODE",
+  "basis": "契约 2.8 metrics 历史 / 种子 30 天",
+  "step": "interval=hour（默认窗口）",
+  "expect": "total ≥100 点；truncated=false；点含 ts 与四指标",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 158, \"first\": {\"ts\": \"2026-08-15T20:00:00+08:00\", \"pvOutput\": 46.66, \"storageOutput\": 28.19, \"load\": 148.32, \"soc\": 20.0, \"price\": 1.05}}"
+ },
+ {
+  "id": "API-NODE-05",
+  "module": "NODE",
+  "basis": "1001 interval 枚举",
+  "step": "interval=year",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：interval String should match pattern '^(raw|hour|day)$'\", \"data\": null, \"traceId\": \"tr-20260822-7415b3a5\"}"
+ },
+ {
+  "id": "API-NODE-06",
+  "module": "NODE",
+  "basis": "契约 2.8 online 无合法签名拒绝 / 文档(一)2 设备上线校验 DID / 1004",
+  "step": "伪造签名上线",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-cb735fcb\"}"
+ },
+ {
+  "id": "API-NODE-07a",
+  "module": "NODE",
+  "basis": "文档(一)5 设备身份绑定关系表·DID 与节点绑定校验",
+  "step": "用合法签名但未绑定到 Node-A 的 DID 上线",
+  "expect": "403/1004 message 说明绑定不符",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"节点 Node-A 已绑定身份 did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1，与请求身份不符\", \"data\": null, \"traceId\": \"tr-20260822-5567944d\"}"
+ },
+ {
+  "id": "API-NODE-07",
+  "module": "NODE",
+  "basis": "契约 2.8 online 正向（客户端持私钥 SM2 签 nonce）",
+  "step": "Node-D 绑定 edge DID 轮换后用新私钥签 nonce 上线",
+  "expect": "accepted=true nodeId=Node-D sessionToken evidenceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"accepted\": true, \"nodeId\": \"Node-D\", \"sessionToken\": null, \"evidenceId\": null}, \"traceId\": \"tr-20260822-bfef8665\"}"
+ },
+ {
+  "id": "API-NODE-08",
+  "module": "NODE",
+  "basis": "安全·nonce 重放",
+  "step": "同 nonce 同签名再上线",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"nonce 已被使用过，疑似重放攻击\", \"data\": null, \"traceId\": \"tr-20260822-64138317\"}"
+ },
+ {
+  "id": "API-NODE-09",
+  "module": "NODE",
+  "basis": "安全·他人私钥冒用 edge DID",
+  "step": "用测试设备私钥为 Node-D DID 签名",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-6c8cc918\"}"
+ },
+ {
+  "id": "API-NODE-10",
+  "module": "NODE",
+  "basis": "文档(一)2 冻结 DID 上线拒绝",
+  "step": "冻结 Node-D DID 后合法签名上线（随后立即解冻）",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-017b12d6\"}"
+ },
+ {
+  "id": "API-NODE-11",
+  "module": "NODE",
+  "basis": "1002",
+  "step": "未登录上线",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260822-c8bbeae1\"}"
+ },
+ {
+  "id": "API-FL-01",
+  "module": "FL",
+  "basis": "契约 2.9 POST /fl/tasks",
+  "step": "创建 FL 任务 3 轮",
+  "expect": "id=fl-xxxxxx status=created createdAt traceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000031\", \"status\": \"created\", \"createdAt\": \"2026-08-22T11:10:34+08:00\", \"traceId\": \"tr-20260822-aed9eeec\"}, \"traceId\": \"tr-20260822-aed9eeec\"}"
+ },
+ {
+  "id": "API-FL-02",
+  "module": "FL",
+  "basis": "1005/1001 节点不存在",
+  "step": "nodeIds=[Node-Z]",
+  "expect": "404/1005 或 400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点不存在：Node-Z\", \"data\": null, \"traceId\": \"tr-20260822-3340e4fd\"}"
+ },
+ {
+  "id": "API-FL-03",
+  "module": "FL",
+  "basis": "1001",
+  "step": "rounds=0",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：rounds Input should be greater than or equal to 1\", \"data\": null, \"traceId\": \"tr-20260822-9652149a\"}"
+ },
+ {
+  "id": "API-FL-04",
+  "module": "FL",
+  "basis": "文档(三) 联邦聚合仅管理员可执行 / 1003",
+  "step": "vpp 创建 FL 任务",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260822-7c23b1ed\"}"
+ },
+ {
+  "id": "API-FL-05",
+  "module": "FL",
+  "basis": "algo:execute 仅 sys_admin/grid_dispatcher / 1003",
+  "step": "vpp 启动",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260822-bd99e67f\"}"
+ },
+ {
+  "id": "API-FL-06",
+  "module": "FL",
+  "basis": "契约 2.9 start / 验收 7",
+  "step": "admin 启动",
+  "expect": "200 status=running",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000031\", \"status\": \"running\", \"traceId\": \"tr-20260822-61153ee8\"}, \"traceId\": \"tr-20260822-61153ee8\"}"
+ },
+ {
+  "id": "API-FL-07",
+  "module": "FL",
+  "basis": "1006 任务已在运行",
+  "step": "重复启动",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"任务已在运行中\", \"data\": null, \"traceId\": \"tr-20260822-78b6d55b\"}"
+ },
+ {
+  "id": "API-FL-08",
+  "module": "FL",
+  "basis": "契约 2.9 GET /fl/tasks/{id} / 文档(三) 梯度哈希上链",
+  "step": "轮询至完成",
+  "expect": "status=success currentRound=3；nodes[nodeId,did,joined,samples]；dp.epsilonSpent 累加；rounds[round,loss,acc,compressionRatio,epsilonSpent,gradientHash,evidenceId]；每轮 evidenceId；modelVersion 非空",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"status\": \"success\", \"losses\": [0.045464, 0.006835, 0.008074], \"dp\": {\"enabled\": true, \"epsilon\": 1.0, \"delta\": 1e-05, \"epsilonSpent\": 1.0}, \"modelVersion\": \"v31\", \"round1\": [{\"round\": 1, \"loss\": 0.045464, \"acc\": 0.0575…"
+ },
+ {
+  "id": "API-FL-09",
+  "module": "FL",
+  "basis": "DB-SCHEMA algo_fl_round 轮次指标入库",
+  "step": "查 algo_fl_round",
+  "expect": "3 行，evidence_id 非空",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"id\": 465, \"task_id\": \"fl-000031\", \"round\": 1, \"loss\": \"0.045464\", \"acc\": \"0.0575\", \"compression_ratio\": \"90.06\", \"epsilon_spent\": \"0.5774\", \"gradient_hash\": \"62097cf50900a16b3778b8963c5fc84dd39ebca4d2aeac2dd1f5fc638d9…"
+ },
+ {
+  "id": "API-FL-10",
+  "module": "FL",
+  "basis": "DB-SCHEMA algo_model_version",
+  "step": "查模型版本表",
+  "expect": "存在该版本",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"id\": \"21\", \"version\": \"v31\", \"task_id\": \"fl-000031\", \"name\": \"test-fl-97033944 产出模型 v31\", \"metrics\": \"{\\\"loss\\\": 0.008074, \\\"acc\\\": 0.3975, \\\"round\", \"status\": \"draft\", \"publisher_did\": \"None\", \"published_at\": \"None\", …"
+ },
+ {
+  "id": "API-FL-11",
+  "module": "FL",
+  "basis": "文档(三)(二) 梯度存证只存哈希",
+  "step": "查 algo 类存证 payload_snapshot",
+  "expect": "含 gradientHash，不含原始梯度数组",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "\"{\\\"action\\\": \\\"fl:round\\\", \\\"taskId\\\": \\\"fl-000031\\\", \\\"round\\\": 3, \\\"loss\\\": 0.008074, \\\"acc\\\": 0.3975, \\\"gradientHash\\\": \\\"9cde53a0c219f9221e072337"
+ },
+ {
+  "id": "API-FL-12",
+  "module": "FL",
+  "basis": "契约 2.9 rounds",
+  "step": "每轮指标",
+  "expect": "200 3 条",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"n\": 3}"
+ },
+ {
+  "id": "API-FL-13",
+  "module": "FL",
+  "basis": "契约 2.9 GET /fl/tasks 分页",
+  "step": "任务列表",
+  "expect": "分页；含该任务",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 31}"
+ },
+ {
+  "id": "API-FL-14",
+  "module": "FL",
+  "basis": "1005",
+  "step": "不存在任务",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"联邦学习任务 fl-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-c635589e\"}"
+ },
+ {
+  "id": "API-FL-15",
+  "module": "FL",
+  "basis": "1006 已完成不可取消",
+  "step": "取消已完成任务",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"任务状态为 success，不可取消\", \"data\": null, \"traceId\": \"tr-20260822-99801ed3\"}"
+ },
+ {
+  "id": "API-FL-16",
+  "module": "FL",
+  "basis": "契约 2.9 cancel",
+  "step": "取消运行中任务",
+  "expect": "status=cancelled",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000032\", \"status\": \"cancelled\"}, \"traceId\": \"tr-20260822-c7af157a\"}"
+ },
+ {
+  "id": "API-FL-17",
+  "module": "FL",
+  "basis": "契约 2.9 GET /fl/models",
+  "step": "模型版本列表",
+  "expect": "含本次 modelVersion",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"n\": 20}"
+ },
+ {
+  "id": "API-FL-18",
+  "module": "FL",
+  "basis": "契约 2.9 publish + 1006 重复发布",
+  "step": "发布模型；再次发布",
+  "expect": "首次 200；重复 409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该模型版本已发布\", \"data\": null, \"traceId\": \"tr-20260822-28599004\"}"
+ },
+ {
+  "id": "API-FL-19",
+  "module": "FL",
+  "basis": "1005",
+  "step": "发布不存在版本",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"模型版本 v-none 不存在\", \"data\": null, \"traceId\": \"tr-20260822-90a1120f\"}"
+ },
+ {
+  "id": "API-FL-20",
+  "module": "FL",
+  "basis": "矩阵 energy_subject 无 model:read / 1003",
+  "step": "subject 查 FL 任务",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 无 model:read 权限\", \"data\": null, \"traceId\": \"tr-20260822-572da470\"}"
+ },
+ {
+  "id": "API-DP-01",
+  "module": "DP",
+  "basis": "契约 2.10 POST /dispatch/tasks",
+  "step": "创建调度任务",
+  "expect": "id=dp-xxxxxx status=created",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"dp-000028\", \"status\": \"created\", \"timeWindow\": \"2026-08-22T19:00~20:00+08:00\", \"createdAt\": \"2026-08-22T11:10:50+08:00\", \"traceId\": \"tr-20260822-43149f02\"}, \"traceId\": \"tr-202…"
+ },
+ {
+  "id": "API-DP-02",
+  "module": "DP",
+  "basis": "1001",
+  "step": "nodeIds 为空",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：nodeIds List should have at least 1 item after validation, not 0\", \"data\": null, \"traceId\": \"tr-20260822-888cd27b\"}"
+ },
+ {
+  "id": "API-DP-03",
+  "module": "DP",
+  "basis": "1006 状态不允许",
+  "step": "未 run 先 issue",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"请先运行 DQN 生成策略，再下发指令\", \"data\": null, \"traceId\": \"tr-20260822-4fb39b9b\"}"
+ },
+ {
+  "id": "API-DP-04",
+  "module": "DP",
+  "basis": "1003",
+  "step": "subject run",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260822-04db5e40\"}"
+ },
+ {
+  "id": "API-DP-05",
+  "module": "DP",
+  "basis": "契约 2.10 run DQN + DeepSeek 解释 / 验收 8",
+  "step": "admin run",
+  "expect": "status=success；strategy.actions[nodeId,action∈charge|idle|discharge,powerKw,qValue,reason] 每节点一条；totalReward/timeWindow；explanation 中文；explanationSource∈live|cache|rule；evidenceId/traceId；signPayload",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"actions\": [[\"Node-A\", \"discharge\", 18.4], [\"Node-C\", \"discharge\", 16.5], [\"Node-D\", \"discharge\", 17.4]], \"explanationSource\": \"live\", \"signPayload\": \"dispatch:issue:dp-000028:sm3:9815bd55ef4529b8fd622ceeeb8ff2111be17b1…"
+ },
+ {
+  "id": "API-DP-06",
+  "module": "DP",
+  "basis": "契约 2.10 issue 无权限 1003 + high 审计 / 验收 6",
+  "step": "vpp issue",
+  "expect": "403/1003 message 含 dispatch:issue",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"data\": null, \"traceId\": \"tr-20260822-d97f0887\"}"
+ },
+ {
+  "id": "API-DP-07",
+  "module": "DP",
+  "basis": "契约 2.10 两种失败都记 high 审计",
+  "step": "按 vpp issue 的 traceId 查审计",
+  "expect": "result=denied riskLevel=high evidenceId 非空 action=dispatch:issue",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"id\": 1578, \"traceId\": \"tr-20260822-d97f0887\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"algo\", \"action\": \"dispatch:issue\", \"resourceType\": \"dispatch\", \"resourceId…"
+ },
+ {
+  "id": "API-DP-08",
+  "module": "DP",
+  "basis": "契约 2.10 签名无效 1004 / 文档(一) 调度指令 DID 验签",
+  "step": "admin 用错私钥签 signPayload 下发",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-cedad896\"}"
+ },
+ {
+  "id": "API-DP-09",
+  "module": "DP",
+  "basis": "安全·签名绑定策略摘要",
+  "step": "签错误原文",
+  "expect": "403/1004",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-e31b2092\"}"
+ },
+ {
+  "id": "API-DP-10",
+  "module": "DP",
+  "basis": "契约 2.10 issue 正向（托管私钥代签+验签）",
+  "step": "admin issue",
+  "expect": "issued=true commandId/signerDid=admin did/evidenceId/targets",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"issued\": true, \"commandId\": \"cmd-000028\", \"signerDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-001020\", \"targets\": [\"Node-A\", \"Node-C\", \"Node-D\"]}, \"tra…"
+ },
+ {
+  "id": "API-DP-11",
+  "module": "DP",
+  "basis": "1006 重复下发",
+  "step": "再次 issue",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该任务已下发，不能重复下发\", \"data\": null, \"traceId\": \"tr-20260822-07e9c201\"}"
+ },
+ {
+  "id": "API-DP-12",
+  "module": "DP",
+  "basis": "1006 已下发不可重跑",
+  "step": "下发后 run",
+  "expect": "409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该任务已下发，不能重新生成策略\", \"data\": null, \"traceId\": \"tr-20260822-d76af568\"}"
+ },
+ {
+  "id": "API-DP-13",
+  "module": "DP",
+  "basis": "契约 2.10 ack",
+  "step": "Node-C 回执",
+  "expect": "200 ackStatus",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"taskId\": \"dp-000028\", \"nodeId\": \"Node-C\", \"ackStatus\": \"partial\", \"acked\": 1, \"total\": 3}, \"traceId\": \"tr-20260822-df290de6\"}"
+ },
+ {
+  "id": "API-DP-14",
+  "module": "DP",
+  "basis": "1001/1005 非目标节点回执",
+  "step": "Node-Z 回执",
+  "expect": "400/1001 或 404/1005",
+  "actual": "0",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"taskId\": \"dp-000028\", \"nodeId\": \"Node-Z\", \"ackStatus\": \"partial\", \"acked\": 2, \"total\": 3}, \"traceId\": \"tr-20260822-dfd21f8c\"}"
+ },
+ {
+  "id": "API-DP-15",
+  "module": "DP",
+  "basis": "契约 2.10 GET /dispatch/tasks/{id}",
+  "step": "任务详情",
+  "expect": "status=issued 或含 strategy",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"id\": \"dp-000028\", \"status\": \"success\", \"ackStatus\": \"partial\"}"
+ },
+ {
+  "id": "API-DP-16",
+  "module": "DP",
+  "basis": "契约 2.10 GET /dispatch/tasks",
+  "step": "列表",
+  "expect": "分页",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 28}"
+ },
+ {
+  "id": "API-DP-17",
+  "module": "DP",
+  "basis": "1005",
+  "step": "不存在任务",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"调度任务 dp-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-99f70f2d\"}"
+ },
+ {
+  "id": "API-DP-18",
+  "module": "DP",
+  "basis": "DB algo_dispatch_task 下发落库",
+  "step": "查 algo_dispatch_task",
+  "expect": "issued=1 command_id/signer_did/evidence_id 非空",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"task_id\": \"dp-000028\", \"status\": \"success\", \"issued\": \"1\", \"command_id\": \"cmd-000028\", \"signer_did\": \"did:vpp:user:0x34ba9ca061137b9\", \"signature\": \"None\", \"evidence_id\": \"ev-001015\"}"
+ },
+ {
+  "id": "API-DP-18b",
+  "module": "DP",
+  "basis": "文档(一) 调度指令携带签发者 DID 签名·签名可追溯",
+  "step": "查 algo_dispatch_task.signature",
+  "expect": "托管代签的签名也应落库（非 NULL），便于事后核验",
+  "actual": "signature 为 NULL",
+  "verdict": "失败",
+  "evidence": "{\"signature\": \"None\"}"
+ },
+ {
+  "id": "API-DP-19",
+  "module": "DP",
+  "basis": "矩阵 grid_dispatcher 有 dispatch:issue",
+  "step": "grid 创建→run→issue",
+  "expect": "issued=true 或 1004（grid 无托管密钥时）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"issued\": true, \"commandId\": \"cmd-000029\", \"signerDid\": \"did:vpp:user:0x2172d3cb56d265400c8c33afc963b727\", \"evidenceId\": \"ev-001024\", \"targets\": [\"Node-B\"]}, \"traceId\": \"tr-20260822-…"
+ },
+ {
+  "id": "API-AI-01",
+  "module": "AI",
+  "basis": "契约 2.11 analyze / 文档(三) DeepSeek 网关 审计+存证",
+  "step": "dispatch 场景问答",
+  "expect": "answer/reasoning[]/source∈live|cache|rule/latencyMs/evidenceId/traceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 34, \"answer\": \"节点C被选择放电，是因为在当前调度任务（dp-000028）中，其放电成本、容量约束或响应速度等指标\", \"reasoning\": [\"调度任务dp-000028的编号表明该决策是特定调度周期内的优化结果，节点选择通常基于成本最小化或安全约束满足。\", \"节点C放电可能因其当前荷电状态（SOC）处于安全放电区间，且其最大…"
+ },
+ {
+  "id": "API-AI-02",
+  "module": "AI",
+  "basis": "2.11 scene 枚举 / 1001",
+  "step": "scene=weather",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：scene String should match pattern '^(dispatch|risk|data|qa|audit)$'\", \"data\": null, \"traceId\": \"tr-20260822-16969ef5\"}"
+ },
+ {
+  "id": "API-AI-03",
+  "module": "AI",
+  "basis": "文档(三) DeepSeek 对所有角色只读 / XSS 负载",
+  "step": "subject qa 含 script 标签",
+  "expect": "200（只读允许）且不 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"source\": \"live\"}"
+ },
+ {
+  "id": "API-AI-04",
+  "module": "AI",
+  "basis": "契约 2.11 history",
+  "step": "分析历史",
+  "expect": "分页且含刚才记录",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 34}"
+ },
+ {
+  "id": "API-AI-05",
+  "module": "AI",
+  "basis": "DB algo_ai_analysis 入库 / 文档(三) 大模型调用全量审计",
+  "step": "查 algo_ai_analysis",
+  "expect": "≥2 条",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": 5}]"
+ },
+ {
+  "id": "API-RISK-01",
+  "module": "RISK",
+  "basis": "契约 2.12 assess",
+  "step": "Node-A 风险评估",
+  "expect": "nodeId/riskScore/level/factors[name,weight,score]/suggestion/evidenceId",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"nodeId\": \"Node-A\", \"riskScore\": 51.8, \"level\": \"medium\", \"factors\": [{\"name\": \"查询频率\", \"weight\": 0.35, \"score\": 60.0, \"desc\": \"5分钟内12次查询\"}, {\"name\": \"数据粒度\", \"weight\": 0.25, \"score\": …"
+ },
+ {
+  "id": "API-RISK-02",
+  "module": "RISK",
+  "basis": "1005",
+  "step": "不存在节点",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点 Node-Z 不存在\", \"data\": null, \"traceId\": \"tr-20260822-23fc661e\"}"
+ },
+ {
+  "id": "API-RISK-03",
+  "module": "RISK",
+  "basis": "契约 2.12 history",
+  "step": "历史评分",
+  "expect": "分页",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 19}"
+ },
+ {
+  "id": "API-RISK-04",
+  "module": "RISK",
+  "basis": "1002",
+  "step": "未登录",
+  "expect": "401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260822-47498dc2\"}"
+ },
+ {
+  "id": "API-SEC-01",
+  "module": "SEC",
+  "basis": "契约 1.1 404 也四段式",
+  "step": "GET /api/v1/no-such-endpoint",
+  "expect": "404/1005 统一包裹",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"接口或资源不存在\", \"data\": null, \"traceId\": \"tr-20260822-0931cf82\"}"
+ },
+ {
+  "id": "API-SEC-02",
+  "module": "SEC",
+  "basis": "契约 1.1 405 也统一包裹",
+  "step": "DELETE /auth/login",
+  "expect": "统一包裹，code≠0，不裸 FastAPI",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 405 {\"code\": 1001, \"message\": \"请求方法不被允许\", \"data\": null, \"traceId\": \"tr-20260822-48657eaf\"}"
+ },
+ {
+  "id": "API-SEC-03",
+  "module": "SEC",
+  "basis": "1001 非法 JSON",
+  "step": "body 非法 JSON",
+  "expect": "400/1001 统一包裹",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：1 JSON decode error\", \"data\": null, \"traceId\": \"tr-20260822-e723cbcf\"}"
+ },
+ {
+  "id": "API-SEC-04",
+  "module": "SEC",
+  "basis": "README A 段·全量无凭证扫描",
+  "step": "遍历 openapi 76 个接口不带 token",
+  "expect": "除 login 外全部 401/1002",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "全部 1002"
+ },
+ {
+  "id": "API-SEC-05",
+  "module": "SEC",
+  "basis": "README C 段·水平越权",
+  "step": "subject 查申请列表",
+  "expect": "只能看到自己的申请",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 32}"
+ },
+ {
+  "id": "API-SEC-06",
+  "module": "SEC",
+  "basis": "水平越权·用户资料（契约无 GET /users/{id}）",
+  "step": "subject GET /users/{id}",
+  "expect": "非 200 且统一包裹（实际 405→1001，契约无 405 码，记录）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 405 {\"code\": 1001, \"message\": \"请求方法不被允许\", \"data\": null, \"traceId\": \"tr-20260822-df46bd53\"}"
+ },
+ {
+  "id": "API-SEC-07",
+  "module": "SEC",
+  "basis": "README E 段·路径 SQL 注入",
+  "step": "GET /assets/1' OR '1'='1",
+  "expect": "400/1001 或 404/1005，不 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：asset_id Input should be a valid integer, unable to parse string as an integer\", \"data\": null, \"traceId\": \"tr-20260822-497834ca\"}"
+ },
+ {
+  "id": "API-SEC-08",
+  "module": "SEC",
+  "basis": "SQL 注入·keyword UNION",
+  "step": "GET /did?keyword=UNION…",
+  "expect": "200 无哈希泄露",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 0}"
+ },
+ {
+  "id": "API-SEC-09",
+  "module": "SEC",
+  "basis": "SQL 注入·时间参数",
+  "step": "from 注入",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"from 格式非法，应为 ISO 8601：2026-08-01' OR 1=1 --\", \"data\": null, \"traceId\": \"tr-20260822-11cb037e\"}"
+ },
+ {
+  "id": "API-SEC-10",
+  "module": "SEC",
+  "basis": "XSS 负载存储与回显",
+  "step": "subjectName 含 <img onerror>",
+  "expect": "接口 200；JSON 原样/转义返回（前端负责转义），content-type application/json",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"ct\": \"application/json\", \"hit\": 5}"
+ },
+ {
+  "id": "API-SEC-11",
+  "module": "SEC",
+  "basis": "README E 段·超长输入",
+  "step": "subjectName 100KB",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：subjectName String should have at most 128 characters\", \"data\": null, \"traceId\": \"tr-20260822-a48f457c\"}"
+ },
+ {
+  "id": "API-SEC-12",
+  "module": "SEC",
+  "basis": "分页越界",
+  "step": "page=-1&size=0",
+  "expect": "400/1001 或归一化为 page=1",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：page Input should be greater than or equal to 1\", \"data\": null, \"traceId\": \"tr-20260822-47a0a904\"}"
+ },
+ {
+  "id": "API-SEC-13",
+  "module": "SEC",
+  "basis": "README F 段·托管私钥不出接口",
+  "step": "GET /keys 托管 DID",
+  "expect": "响应无明文私钥/密文字段",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"keys\": [\"id\", \"did\", \"algorithm\", \"publicKey\", \"keyHash\", \"custody\", \"status\", \"version\", \"purpose\", \"boundAt\", \"expireAt\"]}"
+ },
+ {
+  "id": "API-SEC-14",
+  "module": "SEC",
+  "basis": "F 段·口令哈希不出接口",
+  "step": "GET /users/{id} + /auth/me",
+  "expect": "无 password/passwordHash 字段",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 405 {\"keys\": 1001}"
+ },
+ {
+  "id": "API-SEC-15",
+  "module": "SEC",
+  "basis": "F 段·堆栈不外泄",
+  "step": "password 传对象触发校验错",
+  "expect": "400/1001，message 不含 Traceback/File",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password Input should be a valid string\", \"data\": null, \"traceId\": \"tr-20260822-fd0d2f26\"}"
+ },
+ {
+  "id": "API-SEC-16",
+  "module": "SEC",
+  "basis": "README 撞库锁定 5 次/5 分钟 → 1007 / 文档(四)3",
+  "step": "测试账号连错 6 次后用正确密码登录",
+  "expect": "前 5 次 1002，第 6 次起 429/1007，正确密码也被锁",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 429 {\"codes\": [1002, 1002, 1002, 1002, 1002, 1007], \"correct_after_lock\": 1007}"
+ },
+ {
+  "id": "API-SEC-17",
+  "module": "SEC",
+  "basis": "CORS·后端不开放跨域",
+  "step": "OPTIONS/GET 带 Origin:evil",
+  "expect": "响应无 Access-Control-Allow-Origin:*（同源经 nginx 反代）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"date\": \"Sat, 22 Aug 2026 11:11:45 GMT\", \"server\": \"uvicorn\", \"content-length\": \"450\", \"content-type\": \"application/json\", \"x-trace-id\": \"tr-20260822-6ab34010\"}"
+ },
+ {
+  "id": "API-SEC-18",
+  "module": "SEC",
+  "basis": "deploy/nginx.conf 安全头审查",
+  "step": "静态审查 nginx.conf",
+  "expect": "含 X-Content-Type-Options nosniff / X-Frame-Options / Referrer-Policy；/ws 带 Upgrade；/api 透传 Authorization 与 X-Trace-Id；无 CSP/HSTS（记录）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"csp\": false, \"hsts\": false, \"server_tokens\": false}"
+ },
+ {
+  "id": "API-SEC-19",
+  "module": "SEC",
+  "basis": "后端响应头",
+  "step": "观察 uvicorn 响应头",
+  "expect": "含 X-Trace-Id；Server 头为 uvicorn（记录，生产由 nginx 前置）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"server\": \"uvicorn\", \"content-type\": \"application/json\", \"x-trace-id\": \"tr-20260822-6ab34010\"}"
+ },
+ {
+  "id": "API-SEC-20",
+  "module": "SEC",
+  "basis": "README G 段·绕过应用层直接改库被抓",
+  "step": "SQL 直接改 payload_snapshot 后 verify",
+  "expect": "intact=false",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001036\", \"intact\": false, \"localHash\": \"sm3:421f1cc1b1a5bcaec6305f279a21fcc80051f23dd266fbf4be4bbb4365f52669\", \"chainHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e90…"
+ },
+ {
+  "id": "API-SEC-21",
+  "module": "SEC",
+  "basis": "还原后该条完整",
+  "step": "恢复 payload_snapshot 后 verify",
+  "expect": "intact=true",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001036\", \"intact\": true, \"localHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e908b616229bee35429f670370b47063\", \"chainHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e908…"
+ },
+ {
+  "id": "API-SEC-22",
+  "module": "SEC",
+  "basis": "G 段·审计与存证无改删接口",
+  "step": "扫 openapi",
+  "expect": "audit/evidence 无 PUT/DELETE/PATCH",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[\"/api/v1/evidence\", \"/api/v1/evidence/verify\", \"/api/v1/evidence/chain/status\", \"/api/v1/evidence/trace/{trace_id}\", \"/api/v1/evidence/demo/tamper\", \"/api/v1/evidence/demo/restore\", \"/api/v1/evidence/{evidence_id}/certi…"
+ },
+ {
+  "id": "API-DB-01",
+  "module": "DB",
+  "basis": "DB-SCHEMA 表清单",
+  "step": "information_schema 查表",
+  "expect": "23 类表齐全 + audit_log_YYYYMM",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[\"algo_ai_analysis\", \"algo_dispatch_task\", \"algo_fl_round\", \"algo_fl_task\", \"algo_model_version\", \"algo_risk_assessment\", \"audit_alert\", \"audit_log_202607\", \"audit_log_202608\", \"audit_log_202609\", \"chain_evidence\", \"did_…"
+ },
+ {
+  "id": "API-DB-02",
+  "module": "DB",
+  "basis": "DB-SCHEMA 关键表 did_identity 字段逐字对照",
+  "step": "information_schema.columns did_identity",
+  "expect": "契约列全部存在",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"subject_type\": \"enum('user','device','org','edge')\", \"status\": \"enum('active','frozen','revoked')\"}"
+ },
+ {
+  "id": "API-DB-03",
+  "module": "DB",
+  "basis": "DB-SCHEMA 关键表 chain_evidence 字段逐字对照",
+  "step": "information_schema.columns chain_evidence",
+  "expect": "契约列全部存在",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"category\": \"enum('data','identity','permission','audit','algo')\"}"
+ },
+ {
+  "id": "API-DB-04",
+  "module": "DB",
+  "basis": "DB-SCHEMA 关键表 audit_log_202608 字段逐字对照",
+  "step": "information_schema.columns audit_log_202608",
+  "expect": "契约列全部存在",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"result\": \"enum('success','failed','denied')\", \"risk_level\": \"enum('low','medium','high','critical')\"}"
+ },
+ {
+  "id": "API-DB-05",
+  "module": "DB",
+  "basis": "DB-SCHEMA ENUM 值",
+  "step": "chain_evidence.category 枚举",
+  "expect": "enum('data','identity','permission','audit','algo')",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"ty\": \"enum('data','identity','permission','audit','algo')\"}]"
+ },
+ {
+  "id": "API-DB-06",
+  "module": "DB",
+  "basis": "DB-SCHEMA uk_height 唯一约束",
+  "step": "chain_evidence 唯一约束",
+  "expect": "含 uk_height 与 evidence_id 唯一",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": \"evidence_id\"}, {\"n\": \"uk_height\"}]"
+ },
+ {
+  "id": "API-DB-07",
+  "module": "DB",
+  "basis": "文档(二) 存证链 SM3 重算 / DB-SCHEMA block_hash=SM3(prev+payload_hash+ts)",
+  "step": "Python 逐条重算 1038 条：prev_hash 衔接 + block_hash 重算",
+  "expect": "断链 0；高度 0..N-1 连续",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"total\": 1038, \"broken\": [], \"last\": \"sm3:9661a8dd7f7fd41a24dc\"}"
+ },
+ {
+  "id": "API-DB-07b",
+  "module": "DB",
+  "basis": "文档(二)4 payload_snapshot 重算 SM3 与 payload_hash 比对",
+  "step": "Python 逐条 canonical_json+SM3 重算 1038 条",
+  "expect": "不一致 0（其他 Agent 未还原的 tamper 演示会在此出现，均带 pvOutput=999.9 标记）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"tampered\": []}"
+ },
+ {
+  "id": "API-DB-08",
+  "module": "DB",
+  "basis": "验证清单 1.3 SQL 断链检查",
+  "step": "JOIN 比对 prev_hash",
+  "expect": "断链数 0",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": 0}]"
+ },
+ {
+  "id": "API-DB-09",
+  "module": "DB",
+  "basis": "验证清单 1.1 种子数据数量",
+  "step": "按表计数（排除 test- 实体）",
+  "expect": "{'sys_user': 6, 'sys_role_permission': 35, 'energy_asset': 80, 'node_info': 4, 'node_metric': 2880, 'audit_log_202608_seed': 160, 'perm_application': 12, 'algo_fl_round_seed': 10}",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"sys_user\": 6, \"sys_role_permission\": 35, \"energy_asset\": 80, \"node_info\": 4, \"node_metric\": 2880, \"audit_log_202608_seed\": 160, \"perm_application\": 12, \"algo_fl_round_seed\": 10}"
+ },
+ {
+  "id": "API-DB-10",
+  "module": "DB",
+  "basis": "DB-SCHEMA 密码 bcrypt 存储（6 演示账号可验）",
+  "step": "bcrypt.checkpw 逐个校验",
+  "expect": "6 个均 $2b$ 且可验",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"admin\": \"$2b$10$\", \"edge\": \"$2b$10$\", \"grid\": \"$2b$10$\", \"regulator\": \"$2b$10$\", \"subject\": \"$2b$10$\", \"vpp\": \"$2b$10$\"}"
+ },
+ {
+  "id": "API-DB-11",
+  "module": "DB",
+  "basis": "私钥不明文落库（全表）",
+  "step": "did_key.private_key_enc 全表扫描",
+  "expect": "托管行为密文（非 64hex 裸私钥），非托管行为 NULL",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"n\": 93, \"nulls\": \"15\", \"cust\": \"78\", \"hex64_rows\": 0}"
+ },
+ {
+  "id": "API-DB-12",
+  "module": "DB",
+  "basis": "验证清单 1.2 utf8mb4 中文",
+  "step": "sys_user admin",
+  "expect": "系统管理员/平台运营方",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"username\": \"admin\", \"real_name\": \"系统管理员\", \"org_name\": \"平台运营方\"}]"
+ },
+ {
+  "id": "API-DB-13",
+  "module": "DB",
+  "basis": "验证清单 1.5 JSON 列可查",
+  "step": "JSON_EXTRACT did_document",
+  "expect": "SM2VerificationKey2023",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"did\": \"did:vpp:org:0xc383a2980017246306b257b8805675b0\", \"t\": \"\\\"SM2VerificationKey2023\\\"\"}]"
+ },
+ {
+  "id": "API-DB-14",
+  "module": "DB",
+  "basis": "DB-SCHEMA 按月分表，当月表存在",
+  "step": "列出 audit_log_* 表",
+  "expect": "含 audit_log_202608",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"t\": \"audit_log_202607\"}, {\"t\": \"audit_log_202608\"}, {\"t\": \"audit_log_202609\"}]"
+ },
+ {
+  "id": "API-DB-15",
+  "module": "DB",
+  "basis": "文档(一)5 设备身份绑定关系表",
+  "step": "did_device_binding 行数",
+  "expect": "≥4（四节点 edge DID 绑定）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": 4}]"
+ },
+ {
+  "id": "API-DB-16",
+  "module": "DB",
+  "basis": "文档(四)1 日志携带 TraceID",
+  "step": "audit_log trace_id 空值计数",
+  "expect": "0",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"n\": 0}]"
+ }
+]

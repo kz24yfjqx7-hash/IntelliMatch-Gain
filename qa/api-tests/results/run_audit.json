@@ -1,0 +1,242 @@
+[
+ {
+  "id": "API-AUD-01",
+  "module": "AUD",
+  "basis": "契约 2.7 / 文档(四)1 全链路埋点：所有被拒请求写审计 / 验证清单 4.22",
+  "step": "vpp GET /users（require_roles 拒绝 1003）后按 traceId 查日志",
+  "expect": "命中 1 条 result=denied riskLevel=high",
+  "actual": "未命中：require_roles 路径的 1003 未写审计日志（仅计入 R01）",
+  "verdict": "失败",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [], \"total\": 0, \"page\": 1, \"size\": 20}, \"traceId\": \"tr-20260822-f444a968\"}"
+ },
+ {
+  "id": "API-AUD-01b",
+  "module": "AUD",
+  "basis": "契约 2.7 logs?traceId 字段逐字对照 / 1.2 审计共用 traceId",
+  "step": "vpp POST /evidence（require_permission 拒绝）后按 traceId 查日志",
+  "expect": "命中 1 条；字段 id/traceId/actorDid/actorName/action/resourceType/resourceId/result=denied/riskLevel=high/module/detail/ip/at/evidenceId/hash；actorName 为中文姓名；高危已上链",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1640, \"traceId\": \"tr-20260822-97198121\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
+ },
+ {
+  "id": "API-AUD-02",
+  "module": "AUD",
+  "basis": "契约 2.7 logs 组合筛选",
+  "step": "riskLevel=high&result=denied",
+  "expect": "全部 high/denied",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1640, \"traceId\": \"tr-20260822-97198121\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
+ },
+ {
+  "id": "API-AUD-03",
+  "module": "AUD",
+  "basis": "1001 riskLevel 枚举",
+  "step": "riskLevel=ultra",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：riskLevel String should match pattern '^(low|medium|high|critical)$'\", \"data\": null, \"traceId\": \"tr-20260822-8eca5c44\"}"
+ },
+ {
+  "id": "API-AUD-04",
+  "module": "AUD",
+  "basis": "安全·SQL 注入（keyword）",
+  "step": "keyword=' OR 1=1 --",
+  "expect": "200 正常结果或 400，不 500",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [], \"total\": 0, \"page\": 1, \"size\": 5}, \"traceId\": \"tr-20260822-4c56d65e\"}"
+ },
+ {
+  "id": "API-AUD-05",
+  "module": "AUD",
+  "basis": "DB-SCHEMA 按月分表 + 跨月 UNION ALL 查询",
+  "step": "from=2026-07-01 to=2026-08-31 查询",
+  "expect": "total ≥ audit_log_202607 行数，并 ≤ 07+08 两表之和",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 1641, \"db\": {\"a\": 0, \"b\": 1641}}"
+ },
+ {
+  "id": "API-AUD-06",
+  "module": "AUD",
+  "basis": "契约 2.7 trace/{traceId} 任务级追踪 / 验收 10",
+  "step": "按 traceId 查链路",
+  "expect": "traceId/summary{startAt,endAt,durationMs,actorDid,result,riskLevel}/steps[seq,module,action,at,result]",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-97198121\", \"summary\": {\"startAt\": \"2026-08-22T19:13:18+08:00\", \"endAt\": \"2026-08-22T19:13:18+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x09019061e23e…"
+ },
+ {
+  "id": "API-AUD-07",
+  "module": "AUD",
+  "basis": "1005",
+  "step": "不存在 traceId",
+  "expect": "404/1005（或空 steps）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"未找到 traceId tr-00000000-00000000 的记录\", \"data\": null, \"traceId\": \"tr-20260822-b1734ccc\"}"
+ },
+ {
+  "id": "API-AUD-08",
+  "module": "AUD",
+  "basis": "契约 2.7 R01_UNAUTHORIZED ≥3 次/5 分钟 / 文档(四)3",
+  "step": "vpp 连续越权 ≥3 次后查 alerts?status=open",
+  "expect": "出现 R01_UNAUTHORIZED riskLevel=high 含 evidenceId；字段 id/ruleCode/riskLevel/message/actorDid/status",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [{\"id\": 37, \"alertId\": \"al-000037\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：POST /api/v1/fl/tasks（角色 vpp_operator 无 algo:execute 权限）\", \"actorDid\": \"did:vpp:user:0x0901…"
+ },
+ {
+  "id": "API-AUD-09",
+  "module": "AUD",
+  "basis": "1001 status 枚举",
+  "step": "status=weird",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：status String should match pattern '^(open|acked)$'\", \"data\": null, \"traceId\": \"tr-20260822-5759b83a\"}"
+ },
+ {
+  "id": "API-AUD-10",
+  "module": "AUD",
+  "basis": "契约 2.7 ack",
+  "step": "确认告警；再确认一次",
+  "expect": "首次 status=acked；重复 409/1006",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该告警已确认\", \"data\": null, \"traceId\": \"tr-20260822-58268e16\"}"
+ },
+ {
+  "id": "API-AUD-11",
+  "module": "AUD",
+  "basis": "1005",
+  "step": "确认不存在告警",
+  "expect": "404/1005",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"告警 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-63fd5ad0\"}"
+ },
+ {
+  "id": "API-AUD-12",
+  "module": "AUD",
+  "basis": "1003",
+  "step": "vpp 确认告警",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-391a761c\"}"
+ },
+ {
+  "id": "API-AUD-13",
+  "module": "AUD",
+  "basis": "契约 2.7 report / 文档(四)4 审计报告+DeepSeek",
+  "step": "日报",
+  "expect": "period/date/identityOps{register,freeze,revoke,rotate}/permissionOps{applied,approved,rejected,revoked}/evidence/riskEvents/narrative/narrativeSource∈live|cache|rule",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"period\": \"day\", \"date\": \"2026-08-22\", \"range\": {\"from\": \"2026-08-21T00:00:00+08:00\", \"to\": \"2026-08-22T23:59:59+08:00\"}, \"totalLogs\": 1645, \"identityOps\": {\"register\": 54, \"freeze\":…"
+ },
+ {
+  "id": "API-AUD-14",
+  "module": "AUD",
+  "basis": "1001 period 枚举",
+  "step": "period=year",
+  "expect": "400/1001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：period String should match pattern '^(day|week|month)$'\", \"data\": null, \"traceId\": \"tr-20260822-4ea77f77\"}"
+ },
+ {
+  "id": "API-AUD-15",
+  "module": "AUD",
+  "basis": "契约 2.7 stats",
+  "step": "看板统计",
+  "expect": "todayLogs/highRiskLogs/openAlerts/onChainLogs/byModule/byRisk/trend(7 天)",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"todayLogs\": 1560, \"highRiskLogs\": 411, \"openAlerts\": 26, \"onChainLogs\": 405, \"byModule\": \"[9]\", \"byRisk\": \"[4]\", \"trend\": \"[7]\"}, \"traceId\": \"tr-20260822-9de25141\"}"
+ },
+ {
+  "id": "API-AUD-16",
+  "module": "AUD",
+  "basis": "文档(四)3 五类风险规则",
+  "step": "GET /audit/rules（契约外）",
+  "expect": "R01~R05 五条",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [\"R01_UNAUTHORIZED\", \"R02_ABNORMAL_DID\", \"R03_PERM_CHURN\", \"R04_BULK_EXPORT\", \"R05_SUSPICIOUS_GRAD\"]"
+ },
+ {
+  "id": "API-AUD-17",
+  "module": "AUD",
+  "basis": "契约 2.7 export CSV 文件流非 JSON 包装 / 文档(四)2 导出",
+  "step": "导出 high 日志",
+  "expect": "content-type text/csv；X-Total-Rows；UTF-8 BOM 中文表头",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 ﻿日志ID,追踪ID,操作主体DID,主体名称,模块,操作,资源类型,资源ID,结果,风险等级,详情,IP,存证ID,摘要,时间\r\n1640,tr-20260822-97198121,did:vpp:user:0x09019061e23e7"
+ },
+ {
+  "id": "API-AUD-18",
+  "module": "AUD",
+  "basis": "1003 导出需审计角色",
+  "step": "vpp 导出",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260822-f1b7e96d\"}"
+ },
+ {
+  "id": "API-AUD-19",
+  "module": "AUD",
+  "basis": "1003 审计仅 sys_admin/regulator",
+  "step": "subject 查审计日志",
+  "expect": "403/1003",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260822-205231e3\"}"
+ },
+ {
+  "id": "API-AUD-20",
+  "module": "AUD",
+  "basis": "regulator 可查审计",
+  "step": "regulator 查审计日志",
+  "expect": "200",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"total\": 1652}"
+ },
+ {
+  "id": "API-AUD-21",
+  "module": "AUD",
+  "basis": "文档(四)5 日志防篡改·高危日志摘要上链",
+  "step": "查 audit_log_202608 高危日志",
+  "expect": "hash 非空且 evidence_id 非空",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "[{\"id\": 1640, \"hash\": \"sm3:73c350886dcb547433d8cf2849974356824df93fa8169bce49c52fea51578589\", \"evidence_id\": \"ev-001048\", \"risk_level\": \"high\"}, {\"id\": 1637, \"hash\": \"sm3:e6763cefd20e9ba3ee4ed1ba4e6e36d508b2e0cc747e50442…"
+ },
+ {
+  "id": "API-AUD-22",
+  "module": "AUD",
+  "basis": "契约 2.7 R04_BULK_EXPORT",
+  "step": "10 分钟内导出 ≥3 次",
+  "expect": "出现 R04_BULK_EXPORT 告警",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [{\"id\": 32, \"alertId\": \"al-000032\", \"ruleCode\": \"R04_BULK_EXPORT\", \"ruleName\": \"批量数据导出\", \"riskLevel\": \"medium\", \"message\": \"10 分钟内多次导出数据，最近一次 286 条\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorN…"
+ },
+ {
+  "id": "API-AUD-23",
+  "module": "AUD",
+  "basis": "契约 2.7 R03_PERM_CHURN",
+  "step": "同一主体 5 次权限变更",
+  "expect": "出现 R03_PERM_CHURN 告警",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 [{\"id\": 39, \"alertId\": \"al-000039\", \"ruleCode\": \"R03_PERM_CHURN\", \"ruleName\": \"高频权限变更\", \"riskLevel\": \"medium\", \"message\": \"主体 did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852 权限变更频繁，最近一次为 apply\", \"actorDid\": \"did:vpp:user…"
+ }
+]

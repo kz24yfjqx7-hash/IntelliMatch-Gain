@@ -1,0 +1,112 @@
+[
+ {
+  "id": "API-DEG-01",
+  "module": "DEG",
+  "basis": "契约 3.1 health deepseek 状态",
+  "step": "起 5301 副本（DEEPSEEK_BASE_URL 不可达）查 health",
+  "expect": "status=ok models.deepseek=cache（非 live）",
+  "actual": "{'status': 'ok', 'version': '1.0.0', 'models': {'dqn': 'loaded', 'deepseek': 'live'}}",
+  "verdict": "失败",
+  "evidence": "{\"status\": \"ok\", \"version\": \"1.0.0\", \"models\": {\"dqn\": \"loaded\", \"deepseek\": \"live\"}}"
+ },
+ {
+  "id": "API-DEG-02",
+  "module": "DEG",
+  "basis": "契约 3.4 三级降级 live→cache→rule，永远 200 / 验收 12 断网 source=cache",
+  "step": "副本 deepseek/analyze",
+  "expect": "HTTP 200；source∈cache|rule；answer 非空；耗时 < 8s+",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"answer\": \"选择节点C放电是因为其负荷最高（150kW）、SOC充足（85%），且处于峰时电价（1.05元/kWh），放电可有效缓解\", \"reasoning\": [\"节点C的负荷为150kW，是所有节点中最高的，放电可优先满足高峰用电需求，降低电网压力。\", \"节点C的SOC为85%，远高于放电安全阈值，具备充足的电量储备，放电操作风险低。\", \"节点C处于峰时电价（1.05元/kWh），放电能通过峰谷价差获得更高经济回报…"
+ },
+ {
+  "id": "API-DEG-03",
+  "module": "DEG",
+  "basis": "契约 3.4 缓存未命中 → rule 模板",
+  "step": "副本 deepseek/analyze 新问题",
+  "expect": "200 source=rule 或 cache(场景级兜底)",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"answer\": \"DQN（深度Q网络）通过将虚拟电厂的运行状态（如负荷、电价、可再生能源出力）作为输入，利用神经网络近似Q值函数，评估每个\", \"reasoning\": [\"DQN的核心是Q-learning与深度神经网络的结合，能处理高维状态空间，适合虚拟电厂中多源、多时段的复杂调度决策。\", \"调度决策依赖奖励函数设计，需综合考虑经济性、供需平衡和约束条件，DQN通过反复试错迭代优化策略，适应动态环境变化。\", \"平台采用 D…"
+ },
+ {
+  "id": "API-DEG-04",
+  "module": "DEG",
+  "basis": "正式 algo-service health",
+  "step": "GET 8100 health",
+  "expect": "models.dqn=loaded；deepseek∈live|cache",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"status\": \"ok\", \"version\": \"1.0.0\", \"models\": {\"dqn\": \"loaded\", \"deepseek\": \"live\"}}"
+ },
+ {
+  "id": "API-DEG-05",
+  "module": "DEG",
+  "basis": "算法不可达时分类分级本地兜底（backend raise_on_error=False）",
+  "step": "副本 backend(算法地址不可达) POST /assets/classify",
+  "expect": "不 500：200 本地规则分级（cluster=null）或 502/2001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"results\": [{\"index\": 0, \"level\": \"L1\", \"score\": 0.32, \"reason\": \"采集粒度为分钟级，可反推用能行为，判定为公开级\", \"cluster\": null, \"factors\": {\"sensitivity\": 0, \"granularity\": 0.8, \"volume\": 0.2}}], \"clus…"
+ },
+ {
+  "id": "API-DEG-06",
+  "module": "DEG",
+  "basis": "2001·FL 启动",
+  "step": "副本 backend POST /fl/tasks/{id}/start",
+  "expect": "502/2001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 502 {\"code\": 2001, \"message\": \"算法服务不可用：[Errno 111] Connection refused\", \"data\": null, \"traceId\": \"tr-20260822-64add4e8\"}"
+ },
+ {
+  "id": "API-DEG-07",
+  "module": "DEG",
+  "basis": "2001·DQN 调度",
+  "step": "副本 backend POST /dispatch/tasks/{id}/run",
+  "expect": "502/2001",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 502 {\"code\": 2001, \"message\": \"算法服务不可用：[Errno 111] Connection refused\", \"data\": null, \"traceId\": \"tr-20260822-6206393c\"}"
+ },
+ {
+  "id": "API-DEG-08",
+  "module": "DEG",
+  "basis": "契约 2.11 离线兜底硬性要求：绝不返回错误",
+  "step": "副本 backend（算法不可达）POST /ai/analyze",
+  "expect": "200 source=cache|rule（后端自身兜底）或 502/2001（记录）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 33, \"answer\": \"可信数据空间是在数据不出域的前提下，通过可信身份、可信存证与细粒度授权实现数据要素安全流通的基础设施\", \"reasoning\": [\"身份可信\", \"过程可溯\", \"权限可控\"], \"source\": \"rule\", \"latencyMs\": 81, \"evidenceId\": \"ev-000906\", \"traceI…"
+ },
+ {
+  "id": "API-DEG-09",
+  "module": "DEG",
+  "basis": "契约 2.7 report narrativeSource 降级 rule",
+  "step": "副本 backend GET /audit/report",
+  "expect": "200 narrativeSource=rule",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"narrativeSource\": \"rule\"}"
+ },
+ {
+  "id": "API-DEG-10",
+  "module": "DEG",
+  "basis": "2001·风险评估",
+  "step": "副本 backend POST /risk/assess",
+  "expect": "502/2001 或 200 本地兜底",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"nodeId\": \"Node-A\", \"riskScore\": 17.45, \"level\": \"low\", \"factors\": [{\"name\": \"查询频率\", \"weight\": 0.35, \"score\": 7.0, \"desc\": \"5 分钟内 1 次查询\"}, {\"name\": \"数据粒度\", \"weight\": 0.3, \"score\": 50…"
+ },
+ {
+  "id": "API-DEG-11",
+  "module": "DEG",
+  "basis": "health 依赖探测",
+  "step": "副本 backend GET /health",
+  "expect": "status 反映 algo 不可达（degraded 或 deps.algo=false）或仅报 mysql/redis（记录）",
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "HTTP 200 {\"status\": \"ok\", \"service\": \"backend\", \"version\": \"1.0.0\", \"time\": \"2026-08-22T19:07:45+08:00\", \"deps\": {\"mysql\": true, \"redis\": true}}"
+ }
+]

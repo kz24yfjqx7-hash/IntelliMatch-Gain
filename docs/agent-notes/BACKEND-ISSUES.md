@@ -18,3 +18,17 @@
 ## B-002 备注（非缺陷）后端探活端点为根路径 `GET /health`
 
 - `backend/main.py:171`，不走 `/api/v1` 包装；`/api/v1/health` 返回 404 的 `code 1005`。乙方 compose / install.sh / nginx 已按 `/health` 适配，手册已写明。
+
+## B-010 ｜中 ｜ 并发写存证时死锁/锁等待，失败后存证被静默丢弃，高危日志缺 evidence_id
+- 复现：多个 Agent 并发调用（FL 轮次上链 + 审计上链 + 业务上链）时，`scratchpad/backend.log` 出现 `存证上链失败 …(1213, 'Deadlock found')` 132 次、`(1205, 'Lock wait timeout')` 2 次；`audit_log_202608` 中 `id>160` 的 406 条 high 日志有 6 条 `evidence_id IS NULL`（如 id 1609/1610 login failed）。
+- 期望：文档(四)5「审计日志摘要自动推送至存证模块上链，避免删除篡改」为硬要求；`chain.write` 的 `SELECT … FOR UPDATE` 尾块行锁与 `uk_height` 在并发下应重试（死锁/锁超时重试 2~3 次）或串行化写链队列，失败应告警而非仅打日志。
+- 用例：API-AUD-01b / API-AUD-21 在并发高峰期间间歇失败（单独运行通过）。
+
+## B-011 ｜中 ｜ `algo_fl_round.loss` 为 `DECIMAL(10,6)`，算法返回 loss ≥ 10000 时整轮落库与上链失败
+- 复现：日志 `落库联邦学习进度失败 fl-000011：(1264, "Out of range value for column 'loss'")` 562 次，同一任务每轮重复报错；对应 `存证上链失败 category=algo`。乙方 algo-service 的负荷预测 loss 为 kW² 量级的 MSE，可能超过 9999.999999。
+- 期望：列改为 `DOUBLE` 或 `DECIMAL(18,6)`，且单轮落库失败不应阻断后续轮次；建议同时要求乙方对 loss 做归一化（已在 MSG-test-api-to-integration-001 提醒）。
+- 影响：前端收敛曲线缺轮、`rounds[].evidenceId` 缺失，违反「每轮梯度哈希上链」。
+
+## B-012 ｜低 ｜ 并发审批/驳回同一申请时 500（StaleDataError）
+- 复现：日志 6 次 `sqlalchemy.orm.exc.StaleDataError: UPDATE statement on table 'perm_application' expected to update 1 row(s); 0 were matched.`，由两个客户端几乎同时 approve/reject 同一 pending 申请触发，响应为 500/5000。
+- 期望：加行锁或 `WHERE status='pending'` 的条件更新，后到者返回 409/1006。
