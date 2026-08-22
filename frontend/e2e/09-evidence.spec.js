@@ -49,4 +49,17 @@ test('存证中心：篡改演示 → verify intact:false 标红 → 链状态 b
     await page.keyboard.press('Escape')
   }
   g.assertClean()
+
+  // 收尾：把本用例的篡改演示还原，避免把链留在 broken 状态污染后续用例与演示环境
+  // （mock 模式下该接口不存在，忽略失败即可）
+  await page.evaluate(async () => {
+    try {
+      const token = localStorage.getItem('energy-tds-token')
+      await fetch('/api/v1/evidence/demo/restore-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: '{}'
+      })
+    } catch { /* 忽略 */ }
+  })
 })

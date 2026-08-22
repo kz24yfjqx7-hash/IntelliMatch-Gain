@@ -5,9 +5,9 @@
   "basis": "契约 3.1 health deepseek 状态",
   "step": "起 5301 副本（DEEPSEEK_BASE_URL 不可达）查 health",
   "expect": "status=ok models.deepseek=cache（非 live）",
-  "actual": "{'status': 'ok', 'version': '1.0.0', 'models': {'dqn': 'loaded', 'deepseek': 'live'}}",
-  "verdict": "失败",
-  "evidence": "{\"status\": \"ok\", \"version\": \"1.0.0\", \"models\": {\"dqn\": \"loaded\", \"deepseek\": \"live\"}}"
+  "actual": "与预期一致",
+  "verdict": "通过",
+  "evidence": "{\"status\": \"ok\", \"version\": \"1.0.0\", \"models\": {\"dqn\": \"loaded\", \"deepseek\": \"cache\"}}"
  },
  {
   "id": "API-DEG-02",
@@ -57,7 +57,7 @@
   "expect": "502/2001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 502 {\"code\": 2001, \"message\": \"算法服务不可用：[Errno 111] Connection refused\", \"data\": null, \"traceId\": \"tr-20260822-64add4e8\"}"
+  "evidence": "HTTP 502 {\"code\": 2001, \"message\": \"算法服务不可用：[Errno 111] Connection refused\", \"data\": null, \"traceId\": \"tr-20260823-8da8c9fa\"}"
  },
  {
   "id": "API-DEG-07",
@@ -67,7 +67,7 @@
   "expect": "502/2001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 502 {\"code\": 2001, \"message\": \"算法服务不可用：[Errno 111] Connection refused\", \"data\": null, \"traceId\": \"tr-20260822-6206393c\"}"
+  "evidence": "HTTP 502 {\"code\": 2001, \"message\": \"算法服务不可用：[Errno 111] Connection refused\", \"data\": null, \"traceId\": \"tr-20260823-cad450fe\"}"
  },
  {
   "id": "API-DEG-08",
@@ -77,7 +77,7 @@
   "expect": "200 source=cache|rule（后端自身兜底）或 502/2001（记录）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 33, \"answer\": \"可信数据空间是在数据不出域的前提下，通过可信身份、可信存证与细粒度授权实现数据要素安全流通的基础设施\", \"reasoning\": [\"身份可信\", \"过程可溯\", \"权限可控\"], \"source\": \"rule\", \"latencyMs\": 81, \"evidenceId\": \"ev-000906\", \"traceI…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 22, \"answer\": \"可信数据空间是在数据不出域的前提下，通过可信身份、可信存证与细粒度授权实现数据要素安全流通的基础设施\", \"reasoning\": [\"身份可信\", \"过程可溯\", \"权限可控\"], \"source\": \"rule\", \"latencyMs\": 84, \"evidenceId\": \"ev-000854\", \"traceI…"
  },
  {
   "id": "API-DEG-09",
@@ -107,6 +107,6 @@
   "expect": "status 反映 algo 不可达（degraded 或 deps.algo=false）或仅报 mysql/redis（记录）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"status\": \"ok\", \"service\": \"backend\", \"version\": \"1.0.0\", \"time\": \"2026-08-22T19:07:45+08:00\", \"deps\": {\"mysql\": true, \"redis\": true}}"
+  "evidence": "HTTP 200 {\"status\": \"ok\", \"service\": \"backend\", \"version\": \"1.0.0\", \"time\": \"2026-08-23T01:01:58+08:00\", \"deps\": {\"mysql\": true, \"redis\": true}}"
  }
 ]

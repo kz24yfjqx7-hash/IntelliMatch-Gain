@@ -375,7 +375,7 @@ async function execute() {
 
   const completedAt = new Date().toISOString()
   try {
-    const res = await ackDispatchTask(task.value.id, { nodeId: node.value.id, actualPowerKw: target, status: 'success', startedAt, completedAt, responseDelaySec: delaySec })
+    const res = await ackDispatchTask(task.value.id, { nodeId: node.value.id, actualPowerKw: target, status: 'success', startedAt, completedAt, responseDelaySec: delaySec }, task.value.traceId)
     receipt.value = { nodeId: node.value.id, actualPowerKw: target, status: 'success', startedAt, completedAt, responseDelaySec: delaySec, evidenceId: res?.evidenceId }
     logStore.addLog(`[${node.value.id}] 执行完毕并回执（存证 ${res?.evidenceId || '--'}），进入下一轮待机`, 'INFO', 'EDGE', { traceId: task.value.traceId })
     // 同步本地 store（若该任务由本会话的云端页面创建）

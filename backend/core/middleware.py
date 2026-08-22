@@ -90,7 +90,15 @@ def adopt_trace(trace_id: str | None) -> str:
 
     调用点必须在被 @audited 包裹的函数体内（同一个 contextvar 上下文），
     这样装饰器收尾写审计日志时取到的才是任务的 traceId。
+
+    **但客户端显式带了 `X-Trace-Id` 时不继承**：契约 1.2 规定「客户端可通过请求头
+    X-Trace-Id 指定，backend 沿用」，覆盖它会让调用方拿不回自己指定的 traceId，
+    也查不到本次请求的日志。此时链路由调用方负责——前端在同一条业务流程
+    （创建 → run → issue → ack）里复用任务的 traceId 即可串成完整链。
     """
+    request = current_request.get()
+    if request is not None and getattr(request.state, "trace_from_client", False):
+        return current_trace_id.get()
     if trace_id:
         current_trace_id.set(trace_id)
         # 同步写回 request.state：同步接口跑在线程池里，contextvar 改动传不回事件循环，
@@ -173,7 +181,8 @@ class TraceMiddleware(BaseHTTPMiddleware):
     """第一环：生成 / 沿用 traceId，并把它写进响应头，方便前端和日志排查。"""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        trace_id = request.headers.get("x-trace-id") or new_trace_id()
+        client_trace = request.headers.get("x-trace-id")
+        trace_id = client_trace or new_trace_id()
         token_trace = current_trace_id.set(trace_id)
         token_req = current_request.set(request)
         # B-014：未捕获异常会一路冒泡到 Starlette 最外层的 ServerErrorMiddleware，
@@ -181,6 +190,8 @@ class TraceMiddleware(BaseHTTPMiddleware):
         # 于是 500 响应的 traceId 退化成 tr-00000000-00000000，全流程追踪彻底断掉。
         # 把 traceId 同时挂到 request.state 上，异常分支再不 reset，兜住这条路径。
         request.state.trace_id = trace_id
+        # 客户端显式指定的 traceId 必须原样沿用并回显（契约 1.2），adopt_trace() 不得覆盖它
+        request.state.trace_from_client = bool(client_trace)
         started = time.perf_counter()
         try:
             response = await call_next(request)

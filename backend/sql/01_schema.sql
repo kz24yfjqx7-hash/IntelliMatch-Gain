@@ -362,7 +362,7 @@ CREATE TABLE IF NOT EXISTS algo_fl_round (
   id                 BIGINT PRIMARY KEY AUTO_INCREMENT,
   task_id            VARCHAR(32) NOT NULL,
   round              INT NOT NULL,
-  loss               DECIMAL(10,6),
+  loss               DOUBLE COMMENT 'B-011：原 DECIMAL(10,6)，kW² 量级 MSE 会溢出导致整轮不落库不上链',
   acc                DECIMAL(6,4),
   compression_ratio  DECIMAL(6,2),
   epsilon_spent      DECIMAL(8,4),

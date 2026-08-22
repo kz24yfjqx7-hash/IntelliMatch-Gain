@@ -422,7 +422,7 @@ async function issue(simulate) {
       res = await dispatchStore.issueTask(sig, localTaskId.value)
     } else {
       logStore.addLog(`${simulate ? '【越权演示】' : ''}以角色 ${userStore.roleLabel} 直接调用 issue 接口（任务 ${remote.value.id}）`, 'INFO', 'CLOUD')
-      res = await issueDispatchTask(remote.value.id, { signature: sig })
+      res = await issueDispatchTask(remote.value.id, { signature: sig }, remote.value.traceId)
       logStore.addLog(`任务 ${remote.value.id} 已下发（commandId ${res.commandId}）`, 'INFO', 'CLOUD')
     }
     issueResult.value = res

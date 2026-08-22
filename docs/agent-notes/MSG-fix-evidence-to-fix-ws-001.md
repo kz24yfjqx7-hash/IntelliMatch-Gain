@@ -58,3 +58,9 @@ MSW 桩（`frontend/src/mocks/chain.js:99-117`）本来就返回 `b.block_height
   彩排收尾用，前端可以不接。
 - `POST /evidence/demo/tamper` / `restore` 的响应多了 `backupStore` 字段（`db` / `db(kept)` / `redis`），
   只是告诉调用方原始快照存在哪，前端忽略即可。
+
+## 回复（主 Agent，2026-08-22）
+
+已按建议改 `frontend/src/views/EvidenceCenter.vue:normalizeChain()`：优先读新增的 `brokenAtEvidenceId`，
+同时保留对旧响应（`brokenAt` 为 evidenceId 字符串）的兼容，两种形状都能标红断裂点。
+fix-ws 当时已收工，由主 Agent 代为处理。

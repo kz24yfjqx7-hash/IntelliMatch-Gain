@@ -32,15 +32,22 @@ export async function listDispatchTasks(params = {}) {
 export async function getDispatchTask(id) {
   return normalizeDispatchTask(await request.get(`/dispatch/tasks/${id}`))
 }
-export function runDispatchTask(id) {
-  return request.post(`/dispatch/tasks/${id}/run`)
+/**
+ * 后续步骤复用任务创建时的 traceId（契约 1.2：客户端可用 X-Trace-Id 指定，backend 沿用），
+ * 让 `/audit/trace/{traceId}` 把「创建 → run → issue → ack」串成一条完整链路。
+ */
+const withTrace = traceId => (traceId ? { headers: { 'X-Trace-Id': traceId } } : undefined)
+
+export function runDispatchTask(id, traceId) {
+  return request.post(`/dispatch/tasks/${id}/run`, null, withTrace(traceId))
 }
-export function issueDispatchTask(id, { signature }) {
-  return request.post(`/dispatch/tasks/${id}/issue`, { signature })
+export function issueDispatchTask(id, { signature }, traceId) {
+  return request.post(`/dispatch/tasks/${id}/issue`, { signature }, withTrace(traceId))
 }
-export function ackDispatchTask(id, data = {}) {
+export function ackDispatchTask(id, data = {}, traceId) {
   // 真后端回执体为 {nodeId, accepted, detail}；mock 接受任意扩展字段，这里两种都带上
   const accepted = data.accepted ?? (data.status ? data.status === 'success' : true)
   const detail = data.detail ?? (data.actualPowerKw != null ? `实际功率 ${data.actualPowerKw} kW` : undefined)
-  return request.post(`/dispatch/tasks/${id}/ack`, { ...data, accepted, ...(detail !== undefined ? { detail } : {}) })
+  return request.post(`/dispatch/tasks/${id}/ack`,
+    { ...data, accepted, ...(detail !== undefined ? { detail } : {}) }, withTrace(traceId))
 }

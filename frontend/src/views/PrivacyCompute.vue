@@ -268,7 +268,8 @@ async function createAndStart() {
     if (form.simulatePoison) payload.simulatePoison = form.simulatePoison
     const created = await createFlTask(payload)
     logStore.addLog(`创建联邦任务 ${created.id}：${payload.nodeIds.length} 节点 / ${payload.rounds} 轮 / ε=${payload.dp.epsilon} / Top-k ${payload.topk.ratio}`, 'INFO', 'EDGE', { traceId: created.traceId })
-    await startFlTask(created.id)
+    // 复用创建时的 traceId，使「创建 → 启动 → 每轮上链 → 完成」在审计追踪里是一条链
+    await startFlTask(created.id, created.traceId)
     logStore.addLog(`联邦任务 ${created.id} 已启动，等待 fl_progress 推送`, 'INFO', 'EDGE', { traceId: created.traceId })
     task.value = await getFlTask(created.id)
     await loadTasks()
@@ -285,7 +286,7 @@ async function cancelCurrent() {
   if (!task.value) return
   cancelling.value = true
   try {
-    await cancelFlTask(task.value.id)
+    await cancelFlTask(task.value.id, task.value.traceId)
     logStore.addLog(`联邦任务 ${task.value.id} 已取消（完成 ${task.value.currentRound} 轮）`, 'WARN', 'EDGE')
     task.value = await getFlTask(task.value.id)
     await loadTasks()

@@ -216,9 +216,11 @@ const localTamperedIds = ref([])
 async function normalizeChain(c) {
   if (!c) return c
   const out = { ...c }
-  let brokenAtId = null
+  // 后端修复 B-017 后：brokenAt 是区块高度（int|null），断裂点的 evidenceId 走 brokenAtEvidenceId。
+  // 仍兼容旧行为（brokenAt 直接给 evidenceId 字符串），两种响应都能标红。
+  let brokenAtId = c.brokenAtEvidenceId || null
   if (typeof c.brokenAt === 'string' && c.brokenAt) {
-    brokenAtId = c.brokenAt
+    brokenAtId = brokenAtId || c.brokenAt
     out.brokenAt = null
     try { out.brokenAt = (await getEvidence(brokenAtId))?.blockHeight ?? null } catch { /* 忽略 */ }
   }

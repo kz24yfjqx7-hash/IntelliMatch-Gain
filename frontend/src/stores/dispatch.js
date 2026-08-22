@@ -183,7 +183,8 @@ export const useDispatchStore = defineStore('dispatch', () => {
         remoteId: created.id,
         traceId: created.traceId || null
       })
-      const run = await dispatchApi.runDispatchTask(created.id)
+      // 复用创建时的 traceId，让 /audit/trace 能串起「创建 → run → issue → ack」整条链
+      const run = await dispatchApi.runDispatchTask(created.id, created.traceId)
       const taskNow = getTaskById(generatingTask.id)
       const aiResult = strategyToAiResult(run, taskNow)
       if (!aiResult) {
@@ -238,7 +239,7 @@ export const useDispatchStore = defineStore('dispatch', () => {
     const task = getTaskById(taskId)
     if (!task?.remoteId) throw Object.assign(new Error('任务尚未在后端创建，无法下发'), { code: 1001 })
     try {
-      const res = await dispatchApi.issueDispatchTask(task.remoteId, { signature: signature ?? buildDemoSignature(taskId) })
+      const res = await dispatchApi.issueDispatchTask(task.remoteId, { signature: signature ?? buildDemoSignature(taskId) }, task.traceId)
       const dispatchedAt = new Date().toISOString()
       const next = updateTaskStatus(task.id, DISPATCH_TASK_STATUS.DISPATCHED, `调度指令已签名下发至 ${task.command?.targetNodeName || res.targets?.join(',')}`, {
         command: task.command ? { ...task.command, issuedAt: dispatchedAt, commandId: res.commandId, signerDid: res.signerDid } : task.command,
@@ -301,7 +302,7 @@ export const useDispatchStore = defineStore('dispatch', () => {
       status: 'success',
       actualPowerKw: task.executionReceipt?.actualPowerKw,
       ...data
-    })
+    }, task.traceId)
     updateTaskStatus(task.id, task.status, '后端已记录执行回执', { ackEvidenceId: res?.evidenceId || null })
     return res
   }

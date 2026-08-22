@@ -133,7 +133,7 @@ export function createWsClient() {
         if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
         backoff = BACKOFF_MIN
         status.value = WS_STATUS.CLOSED
-        console.warn('[ws] 鉴权失败（4001），清理会话并跳转登录')
+        // 不用 console：api/ 与 stores/ 禁止打印（contract-audit B2 会检查，防止 token 出现在控制台）
         forceLogout()
         return
       }

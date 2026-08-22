@@ -439,19 +439,25 @@ def sec_perm():
 
 # ============================================================ 2.6 evidence
 def sec_evidence():
-    # 环境整备：其他 Agent 的 tamper 演示可能没有还原，先把断裂点逐个 restore（只调演示接口，不改库）
+    # 环境整备：其他用例/E2E 的 tamper 演示可能没有还原，先一键还原
+    # （B-017 修复后 chain/status.brokenAt 是区块高度 int，不能再拿它当 evidenceId 去 restore）
     fixed = []
-    for _ in range(10):
-        rr, bb = req("GET", "/evidence/chain/status", "admin")
-        if (bb.get("data") or {}).get("intact"):
-            break
-        broken_at = bb["data"].get("brokenAt")
-        rr2, bb2 = req("POST", "/evidence/demo/restore", "admin", {"evidenceId": broken_at})
-        fixed.append((broken_at, bb2.get("code")))
-        if bb2.get("code") != 0:
-            break
+    rr, bb = req("GET", "/evidence/chain/status", "admin")
+    if not (bb.get("data") or {}).get("intact"):
+        rr2, bb2 = req("POST", "/evidence/demo/restore-all", "admin", {})
+        fixed = ((bb2.get("data") or {}).get("restored") or [])
+        if not fixed:  # 老后端没有 restore-all 时退回逐条还原
+            for _ in range(10):
+                rr, bb = req("GET", "/evidence/chain/status", "admin")
+                if (bb.get("data") or {}).get("intact"):
+                    break
+                eid = bb["data"].get("brokenAtEvidenceId") or bb["data"].get("brokenAt")
+                rr3, bb3 = req("POST", "/evidence/demo/restore", "admin", {"evidenceId": eid})
+                fixed.append((eid, bb3.get("code")))
+                if bb3.get("code") != 0:
+                    break
     if fixed:
-        print("  [env] 还原他人遗留的篡改存证：", fixed)
+        print("  [env] 还原遗留的篡改存证：", fixed)
     CTX["env_restored"] = fixed
     r, b = req("POST", "/evidence", "admin", {"category": "data", "refId": "test-ref-1", "payload": {"k": "v", "n": 1, "中文": "值"}, "actorDid": CTX["admin_did"]})
     d = (b.get("data") or {})
@@ -496,8 +502,11 @@ def sec_evidence():
     d = (b.get("data") or {})
     r2, b2 = req("POST", "/evidence/verify", "admin", {"evidenceId": ev})
     r3, b3 = req("GET", "/evidence/chain/status", "admin")
-    C("API-EV-12", "契约 2.6 tamper→verify→chain/status 断裂点 / 验收 9", "admin 篡改→校验→链状态", "tampered=true；verify intact=false；chain intact=false brokenAt==evidenceId",
-      ok(r, b) + [(d.get("tampered") is True, "tampered"), (b2["data"].get("intact") is False, "verify 仍 intact"), (b3["data"].get("intact") is False and b3["data"].get("brokenAt") == ev, f"brokenAt={b3['data'].get('brokenAt')}")], b3, r3.status_code)
+    C("API-EV-12", "契约 2.6 tamper→verify→chain/status 断裂点 / 验收 9", "admin 篡改→校验→链状态", "tampered=true；verify intact=false；chain intact=false 且 brokenAtEvidenceId==evidenceId（B-017 后 brokenAt 是区块高度 int）",
+      ok(r, b) + [(d.get("tampered") is True, "tampered"), (b2["data"].get("intact") is False, "verify 仍 intact"),
+                  (b3["data"].get("intact") is False, "chain 应为 intact=false"),
+                  ((b3["data"].get("brokenAtEvidenceId") or b3["data"].get("brokenAt")) == ev, f"brokenAtEvidenceId={b3['data'].get('brokenAtEvidenceId')} brokenAt={b3['data'].get('brokenAt')}"),
+                  (isinstance(b3["data"].get("brokenAt"), int) or b3["data"].get("brokenAt") is None, "brokenAt 应为区块高度 int")], b3, r3.status_code)
     r, b = req("POST", "/evidence/demo/restore", "admin", {"evidenceId": ev})
     r3, b3 = req("GET", "/evidence/chain/status", "admin")
     C("API-EV-13", "演示还原 restore（契约外，验证清单 4.19）", "restore 后链状态", "restored=true；链 intact=true", ok(r, b) + [(b["data"].get("restored") is True, "restored"), (b3["data"].get("intact") is True, "链未恢复")], b3, r3.status_code)
@@ -644,10 +653,12 @@ def sec_nodes():
     d = (b.get("data") or {})
     na = next((n for n in d.get("items", []) if n.get("id") == "Node-A"), {})
     nc = next((n for n in d.get("items", []) if n.get("id") == "Node-C"), {})
-    C("API-NODE-01", "契约 2.8 GET /nodes / DB-SCHEMA 种子节点", "节点列表", "4 节点；字段 id/name/status/model/did/didStatus/metrics{pvOutput,storageOutput,load,soc}/lastSeenAt；Node-A 45.3/-12.0/120/65；Node-C warning",
+    C("API-NODE-01", "契约 2.8 GET /nodes / DB-SCHEMA 种子节点", "节点列表", "4 节点；字段 id/name/status/model/did/didStatus/metrics{pvOutput,storageOutput,load,soc}/lastSeenAt；指标为合理数值（B-021 修复后 node_status 每 5 秒真实更新，不再是种子固定值）；Node-C warning",
       ok(r, b) + [(d.get("total") == 4, f"total={d.get('total')}"), has_keys(na, ["id", "name", "status", "model", "did", "didStatus", "metrics", "lastSeenAt"]),
                   (set(na.get("metrics", {}).keys()) == {"pvOutput", "storageOutput", "load", "soc"}, f"metrics keys={list(na.get('metrics', {}).keys())}"),
-                  (na.get("metrics") == {"pvOutput": 45.3, "storageOutput": -12.0, "load": 120, "soc": 65}, f"Node-A metrics={na.get('metrics')}"), (nc.get("status") == "warning", "Node-C 状态"), iso_ok(na.get("lastSeenAt"))], na, r.status_code)
+                  (all(isinstance(na.get("metrics", {}).get(k), (int, float)) for k in ("pvOutput", "storageOutput", "load", "soc"))
+                   and 0 <= na["metrics"]["soc"] <= 100 and na["metrics"]["pvOutput"] >= 0,
+                   f"Node-A metrics={na.get('metrics')}"), (nc.get("status") == "warning", "Node-C 状态"), iso_ok(na.get("lastSeenAt"))], na, r.status_code)
     r, b = req("GET", "/nodes/Node-A", "admin")
     C("API-NODE-02", "契约 2.8 GET /nodes/{id}", "节点详情", "200 id=Node-A", ok(r, b) + [(b["data"].get("id") == "Node-A", "id")], b, r.status_code)
     r, b = req("GET", "/nodes/Node-Z", "admin")

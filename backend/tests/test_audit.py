@@ -247,8 +247,12 @@ def test_看板统计结构(client, login):
     assert all({"date", "total", "high"} == set(d) for d in data["trend"])
 
 
-def test_审计报告在算法服务不可用时降级(client, login):
-    """离线环境下 narrative 不能是空的，必须给规则化中文结论。"""
+def test_审计报告在算法服务不可用时降级(client, login, algo_down):
+    """离线环境下 narrative 不能是空的，必须给规则化中文结论。
+
+    必须显式用 algo_down 把算法服务打成不可达：原来靠"本机 8100 没起"来隐式成立，
+    联调机上算法服务一开着这条用例就红，掩盖真实回归。
+    """
     data = client.get("/api/v1/audit/report?period=day", headers=login("admin")).json()["data"]
     assert data["period"] == "day"
     assert data["narrativeSource"] == "rule"        # 算法服务没起，退回规则模板
