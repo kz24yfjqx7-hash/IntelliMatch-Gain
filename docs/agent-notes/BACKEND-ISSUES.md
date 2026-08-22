@@ -141,3 +141,11 @@
 - 影响：答辩现场若连续演示两次篡改，链会永久停在 broken 状态，`/evidence/chain/status` 一直显示不完整，只能重置数据库恢复。
 - 建议：把原始快照写进 MySQL（例如 `chain_evidence.payload_snapshot` 之外单独一列或一张 `chain_evidence_backup` 表），restore 后删除备份；或提供 `POST /evidence/demo/restore-all`。
 - 乙方临时对策：演示前用 `DROP DATABASE energy_tds` + 重导 `backend/sql/01_schema.sql`、`02_seed.sql`（约 1 秒）恢复干净且 intact 的链。
+
+## B-026 ｜低 ｜ `POST /dispatch/tasks/{id}/ack` 不写存证、不返回 evidenceId
+- 提出：test-func，2026-08-22，用例 TC-UI-07 / TC-39-07
+- 涉及：`backend/modules/algo/service.py:646-672`（`ack_dispatch` 只更新 `ack_detail`/`ack_status` 并推 WS，没有 `write_evidence`），`router.py:155` 的 `@audited(risk="low")` 也不会触发上链。
+- 复现：`/cloud/aggregate` 签名下发 → `/edge/response`「确认执行并回执」→ 回执面板「回执存证」显示 `--`；接口返回 `{"taskId","nodeId","ackStatus","acked","total"}`，无 `evidenceId`。
+- 期望：需求 3.6「实现数据接入、授权、联邦任务、模型版本、**调度结果**存证」。下发（issue）已回 `evidenceId`，回执作为调度闭环的最后一环也应上链，前端「回执存证」才有内容；契约 2.10 未定义 ack 响应体，建议补 `evidenceId`。
+- 影响：终端响应页的「回执存证」永远为空；调度链路在存证中心查不到 ack 环节。
+- 严重度低：不影响下发与执行本身，仅影响存证完整性与演示效果。

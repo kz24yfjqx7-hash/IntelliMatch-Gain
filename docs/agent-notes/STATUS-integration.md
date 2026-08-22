@@ -34,3 +34,45 @@
 - 身份中心「模拟签名」未实现浏览器端真 SM2；真后端下按 DID 文档状态判定并已在界面写明。
 - 真后端不暴露 `simulatePoison`，投毒检测演示需 mock 模式或直连算法服务。
 - 仍需外部条件：Docker 权限（实打镜像/安装包）、树莓派真机、干净 x86 机整包验收。
+
+---
+
+## 第二轮复核（integration，2026-08-22 晚，模型切换后继续）
+
+上一轮的修复已在 `2eea39c` / `8586249` 提交。本轮做的是**独立复核 + 补漏**，未回退任何已有修改。
+
+### 1. 新增/修复
+| 文件:行 | 改动 | 原因 |
+|---|---|---|
+| `qa/check_backend_live.sh:95-115` | `check_raw` 改用临时文件把响应体传给 python | 审计 CSV 导出 634KB，走 argv 触发 `Argument list too long`，把一条本应 PASS 的用例误报为 FAIL |
+| `frontend/src/stores/perspective.js:122-180` | 新增 `startNodePolling()/stopNodePolling()`：15 秒兜底轮询 `GET /nodes`，且只在这 15 秒内没收到 `node_status` 时才发请求 | 真后端从不周期推 `node_status`（B-021），拓扑/节点卡片指标不刷新；mock 模式因推送正常，不产生任何多余请求 |
+| `frontend/src/layouts/AppLayout.vue:53` | 卸载布局时停轮询 | 防止退出登录后继续打请求 |
+| `frontend/src/views/AssetsCenter.vue:42,229,242,292` | 资产表空态按角色给出说明「当前角色仅可见本人登记的数据资产」 | `energy_subject`/`edge_node` 的 scope=own（B-019），种子数据下列表为空，原来只显示"暂无数据"易被误判为故障 |
+| `frontend/e2e/08-dispatch.spec.js:33,41-42` | 边端指令状态断言放宽为 `已下发\|issued\|已回执\|acked`，执行按钮存在才点 | 真后端数据持久，并发跑测时页面可能落在一条已回执的指令上（全量跑偶发 flake，单跑必过） |
+
+### 2. 新增后端缺陷单
+`BACKEND-ISSUES.md` 追加 **B-013 ~ B-019、B-024**（B-020/B-021 编号与 test-func 撞车，已把我这条 `node_status` 的内容并入其 B-021，WS 4001 那条改为 B-024）：
+- **P1**：B-014 `POST /assets`、`POST /risk/assess` 并发下 500，且异常响应的 traceId 退化成 `tr-00000000-00000000`（无法追踪，违背契约 1.2）
+- **P2**：B-013 `rotate-key` 强制要 body（前端已发 `{}` 兼容）、B-015 `/audit/trace` 对 FL/调度链路只回 1 步（契约 2.7 要求完整链）
+- **P3/说明**：B-016 调度状态与签名字节、B-017 `brokenAt` 返回 evidenceId 字符串（前端已回查高度兼容）、B-018 `/audit/*` 角色门控与 R01 污染、B-019 资产 scope=own、B-024 WS 鉴权失败 403 而非 close 4001
+
+### 3. 环境订正
+`algo-service`(8100) 此前跑的是 `constraintEvents` 回退前的旧代码，与仓库源码不一致，已按 `INTEGRATION-ENV.md` 的命令重启；重启后 `contract_audit --algo-port 8100` 阻断级不一致 0。
+
+### 4. 本轮回归（全部在真后端 + 真 algo 上跑）
+| 套件 | 结果 |
+|---|---|
+| `qa/check_backend_live.sh`（新脚本，123 条断言） | **120 PASS / 3 FAIL**，3 条均为已备案的后端偏差：WS 无 token/错 token 握手 403（B-024）、8s 内无 `node_status`（B-021） |
+| Playwright E2E 真后端 5199 | **28/28**（前两轮分别 27/28，失败项为并发 flake，已在断言层修好） |
+| Playwright E2E mock 5300 | **28/28**（临时起的 5300 已按约定杀掉，只杀自己的 pid） |
+| frontend vitest | 137/137 |
+| algo pytest | 315/315 |
+| `qa/contract_audit.py --algo-port 8100` | 阻断 0 / 警告 0 |
+| `frontend/src/mocks/selfcheck.mjs` | 12/12 |
+| `qa/deploy-sandbox/run.sh` | 39/39 |
+| `qa/check_deploy.sh` | ALL PASS |
+
+### 5. 真后端下各页面可用性结论
+- **完整可用**：`/login`（6 账号 + 错误密码）、`/cloud/topology`（拓扑 + 流程横幅六项计数，指标靠轮询兜底刷新）、`/cloud/aggregate`（DQN 生成 → AI 解释 → 托管代签下发 → 越权 1003 演示）、`/edge/classification`、`/edge/privacy`（FL 创建/启动/收敛曲线/预算环）、`/edge/response`（验签步骤 + 回执）、`/identity`（注册/文档/冻结解冻/轮换/密钥/用户管理）、`/assets`（登记/分级/详情/溯源/统计）、`/permission`（申请→审批→授权→矩阵→校验器）、`/evidence`（检索/校验/篡改演示/断裂点/凭证/追踪）、`/audit`（统计图/检索/CSV/追踪/告警 ack/日报）。
+- **受后端问题影响但不阻塞演示**：拓扑实时性（B-021，已轮询兜底）；`/audit` 全流程追踪对 FL 链路只有 1 步（B-015）；边端「验签」在真后端只能按 DID 文档状态判定（B-016，界面已如实标注）；并发高峰下资产登记/风险评估偶发 500（B-014）。
+- **仅 mock 模式可演示**：梯度投毒检测（后端未透传 `simulatePoison`）。
