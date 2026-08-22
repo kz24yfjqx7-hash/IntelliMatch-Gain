@@ -319,12 +319,45 @@ function getResponsiveFontSize(baseSize) {
   return Math.round(Math.max(8, Math.min(baseSize, baseSize * vw / 14)))
 }
 
+/**
+ * 根据节点卡片的真实 DOM 位置计算连线终点：
+ * 终点落在卡片朝向中心的边框上（而不是卡片内部），保证箭头不被卡片遮挡，
+ * 且在任意分辨率/布局下都与卡片位置一致。
+ */
+function measureNodeAnchors() {
+  const wrapper = chartRef.value?.parentElement
+  if (!wrapper) return null
+  const wr = wrapper.getBoundingClientRect()
+  if (!wr.width || !wr.height) return null
+  const center = { x: wr.width / 2, y: wr.height / 2 }
+  const cards = Array.from(wrapper.querySelectorAll('.node-card'))
+  const anchors = cards.map(el => {
+    const r = el.getBoundingClientRect()
+    const cx = r.left - wr.left + r.width / 2
+    const cy = r.top - wr.top + r.height / 2
+    // 从中心指向卡片中心的射线与卡片矩形边框的交点
+    const dx = cx - center.x, dy = cy - center.y
+    const hw = r.width / 2, hh = r.height / 2
+    const t = Math.min(hw / Math.max(Math.abs(dx), 1e-6), hh / Math.max(Math.abs(dy), 1e-6))
+    // 再留出 10px 间距（箭头符号以终点为中心绘制，需预留半个箭头长度），让箭头尖端贴边而不被卡片遮挡
+    const gap = 10 / Math.max(Math.hypot(dx, dy), 1e-6)
+    return { x: cx - dx * (t + gap), y: cy - dy * (t + gap) }
+  })
+  return { center, anchors }
+}
+
 function initMainChart() {
   if (!chartRef.value) return
   chartInstance = chartInstance || echarts.init(chartRef.value)
-  const centerPoint = { name: '云端调度中心', x: 300, y: 200, symbolSize: 0, itemStyle: { color: 'transparent' }, label: { show: false } }
-  const coords = [{ x: 100, y: 80 }, { x: 430, y: 80 }, { x: 165, y: 320 }, { x: 490, y: 320 }]
-  const nodePoints = nodes.value.map((n, i) => ({ name: n.id, ...coords[i % coords.length], symbolSize: 0, itemStyle: { color: 'transparent' }, label: { show: false } }))
+  const measured = measureNodeAnchors()
+  const rect = chartRef.value.getBoundingClientRect()
+  const W = Math.max(rect.width, 1), H = Math.max(rect.height, 1)
+  // 测量失败（如容器尚未布局）时按比例退回到设计稿位置
+  const fallback = [{ x: W * 0.17, y: H * 0.2 }, { x: W * 0.72, y: H * 0.2 }, { x: W * 0.28, y: H * 0.8 }, { x: W * 0.82, y: H * 0.8 }]
+  const center = measured?.center || { x: W / 2, y: H / 2 }
+  const mk = (name, c) => ({ name, value: [c.x, c.y], symbolSize: 0, itemStyle: { color: 'transparent' }, label: { show: false } })
+  const centerPoint = mk('云端调度中心', center)
+  const nodePoints = nodes.value.map((n, i) => mk(n.id, measured?.anchors?.[i] || fallback[i % fallback.length]))
   const links = nodePoints.map(node => ({
     source: '云端调度中心',
     target: node.name,
@@ -332,8 +365,13 @@ function initMainChart() {
   }))
   chartInstance.setOption({
     backgroundColor: 'transparent',
-    series: [{ type: 'graph', layout: 'none', roam: false, data: [centerPoint, ...nodePoints], links, edgeSymbol: ['none', 'arrow'], edgeSymbolSize: [0, 8], animationDuration: 1500 }]
-  })
+    // 使用隐藏的直角坐标系，使 value=[x,y] 严格等于容器像素坐标。
+    // （graph 的 layout:'none' 会把节点包围盒自动缩放铺满画布，终点会被拉到卡片内部，导致箭头被遮挡）
+    grid: { left: 0, top: 0, right: 0, bottom: 0 },
+    xAxis: { type: 'value', min: 0, max: W, show: false },
+    yAxis: { type: 'value', min: 0, max: H, inverse: true, show: false },
+    series: [{ type: 'graph', coordinateSystem: 'cartesian2d', roam: false, data: [centerPoint, ...nodePoints], links, edgeSymbol: ['none', 'arrow'], edgeSymbolSize: [0, 8], animationDuration: 1500 }]
+  }, true)
 }
 
 function loadChartOption() {
@@ -470,8 +508,12 @@ onMounted(async () => {
     refreshCharts()
   })
 
+  // 卡片布局完成后再按真实位置画一次连线
+  nextTick(() => initMainChart())
+
   resizeHandler = () => {
     chartInstance?.resize()
+    initMainChart() // 尺寸变化后卡片位置变了，重新测量连线终点
     loadChartInstance?.resize()
     storageChartInstance?.resize()
     detailChartInstance?.resize()
