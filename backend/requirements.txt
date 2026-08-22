@@ -1,0 +1,28 @@
+# 能源可信数据空间平台 · 后端安全内核
+# 约束：每个包必须在 PyPI 上提供 aarch64 预编译 wheel，
+#       禁止引入需要在容器内源码编译的依赖（ARM 交叉构建会卡死）。
+
+fastapi==0.110.0
+# 不用 uvicorn[standard]：它会拉入 uvloop / httptools / watchfiles，
+# 在 QEMU 模拟的 arm64 构建里风险大且吃内存。websockets 单独装即可支持 WS。
+uvicorn==0.27.1
+websockets==12.0
+
+sqlalchemy==2.0.27
+pymysql==1.1.0
+
+redis==5.0.1
+
+pydantic==2.6.1
+pydantic-settings==2.2.1
+
+pyjwt==2.8.0
+passlib==1.7.4
+bcrypt==4.0.1
+# 国密 SM2/SM3 由 core/gm_crypto.py 纯 Python 实现，不依赖 gmssl / cryptography，
+# 这样 arm64 构建不会触发任何源码编译。
+
+httpx==0.26.0
+python-multipart==0.0.9
+
+pytest==8.0.0
