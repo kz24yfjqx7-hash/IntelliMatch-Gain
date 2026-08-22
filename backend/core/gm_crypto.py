@@ -14,6 +14,7 @@ SM3 按 GB/T 32905-2016 实现，SM2 签名验签按 GB/T 32918.2-2016 实现，
 import hashlib
 import os
 import secrets
+from typing import NamedTuple
 
 # ---------------------------------------------------------------- SM3
 
@@ -114,45 +115,89 @@ _DEFAULT_ID = b"1234567812345678"
 Point = tuple[int, int] | None
 
 
+class _Curve(NamedTuple):
+    """短 Weierstrass 曲线 y² = x³ + ax + b (mod p)，阶 n，基点 (gx, gy)。"""
+
+    p: int
+    a: int
+    b: int
+    n: int
+    gx: int
+    gy: int
+
+    @property
+    def g(self) -> Point:
+        return (self.gx, self.gy)
+
+
+SM2_CURVE = _Curve(_P, _A, _B, _N, _GX, _GY)
+
+# secp256r1 / NIST P-256：契约 2.3 的 algorithm='ECC' 用它做 ECDSA。
+# 选它的原因：同为 256 位短 Weierstrass 曲线，可以复用下面同一套点运算，
+# 不引入任何 C 扩展依赖（交付要打 arm64 离线包，见文件头注释）。
+ECC_CURVE = _Curve(
+    p=0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF,
+    a=0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC,
+    b=0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B,
+    n=0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551,
+    gx=0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296,
+    gy=0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5,
+)
+
+
 def _inv(x: int, m: int) -> int:
     return pow(x, m - 2, m)
 
 
-def _point_add(p1: Point, p2: Point) -> Point:
+def _ec_add(curve: _Curve, p1: Point, p2: Point) -> Point:
     if p1 is None:
         return p2
     if p2 is None:
         return p1
+    mod = curve.p
     x1, y1 = p1
     x2, y2 = p2
-    if x1 == x2 and (y1 + y2) % _P == 0:
+    if x1 == x2 and (y1 + y2) % mod == 0:
         return None
     if p1 == p2:
-        lam = (3 * x1 * x1 + _A) * _inv(2 * y1 % _P, _P) % _P
+        lam = (3 * x1 * x1 + curve.a) * _inv(2 * y1 % mod, mod) % mod
     else:
-        lam = (y2 - y1) * _inv((x2 - x1) % _P, _P) % _P
-    x3 = (lam * lam - x1 - x2) % _P
-    y3 = (lam * (x1 - x3) - y1) % _P
+        lam = (y2 - y1) * _inv((x2 - x1) % mod, mod) % mod
+    x3 = (lam * lam - x1 - x2) % mod
+    y3 = (lam * (x1 - x3) - y1) % mod
     return (x3, y3)
 
 
-def _point_mul(k: int, p: Point) -> Point:
+def _ec_mul(curve: _Curve, k: int, p: Point) -> Point:
     """二进制展开的标量乘。演示级性能足够（单次约 1ms 量级）。"""
     result: Point = None
     addend = p
     while k:
         if k & 1:
-            result = _point_add(result, addend)
-        addend = _point_add(addend, addend)
+            result = _ec_add(curve, result, addend)
+        addend = _ec_add(curve, addend, addend)
         k >>= 1
     return result
 
 
-def _on_curve(p: Point) -> bool:
+def _ec_on_curve(curve: _Curve, p: Point) -> bool:
     if p is None:
         return False
     x, y = p
-    return (y * y - (x * x * x + _A * x + _B)) % _P == 0
+    return (y * y - (x * x * x + curve.a * x + curve.b)) % curve.p == 0
+
+
+# SM2 曲线上的简写，保持原有调用点不变
+def _point_add(p1: Point, p2: Point) -> Point:
+    return _ec_add(SM2_CURVE, p1, p2)
+
+
+def _point_mul(k: int, p: Point) -> Point:
+    return _ec_mul(SM2_CURVE, k, p)
+
+
+def _on_curve(p: Point) -> bool:
+    return _ec_on_curve(SM2_CURVE, p)
 
 
 # ---------------------------------------------------------------- SM2 对外接口
@@ -251,18 +296,251 @@ def verify(message: bytes | str, signature: str, public_key: str) -> bool:
         return False
 
 
-# ---------------------------------------------------------------- 其它算法（密钥表 algorithm 字段用）
+# ---------------------------------------------------------------- ECC（secp256r1 上的 ECDSA）
+
+def ecdsa_generate_keypair() -> tuple[str, str]:
+    """生成 secp256r1 密钥对，格式与 SM2 一致（公钥 04+X+Y，私钥 64 hex）。"""
+    curve = ECC_CURVE
+    while True:
+        d = secrets.randbelow(curve.n - 1) + 1
+        pub = _ec_mul(curve, d, curve.g)
+        if pub is not None:
+            break
+    x, y = pub
+    return "04" + f"{x:064x}" + f"{y:064x}", f"{d:064x}"
+
+
+def _ecdsa_digest(message: bytes | str) -> int:
+    """ECDSA 用 SHA-256（RFC 6979 / FIPS 186-4）。曲线阶为 256 位，摘要无需截断。"""
+    if isinstance(message, str):
+        message = message.encode("utf-8")
+    return int.from_bytes(hashlib.sha256(message).digest(), "big")
+
+
+def ecdsa_sign(message: bytes | str, private_key: str) -> str:
+    """ECDSA 签名，返回 128 位十六进制（r || s），与 SM2 签名长度一致。"""
+    curve = ECC_CURVE
+    d = int(private_key.lower().removeprefix("0x"), 16)
+    e = _ecdsa_digest(message)
+    while True:
+        k = secrets.randbelow(curve.n - 1) + 1
+        point = _ec_mul(curve, k, curve.g)
+        if point is None:
+            continue
+        r = point[0] % curve.n
+        if r == 0:
+            continue
+        s = pow(k, -1, curve.n) * (e + r * d) % curve.n
+        if s == 0:
+            continue
+        return f"{r:064x}{s:064x}"
+
+
+def ecdsa_verify(message: bytes | str, signature: str, public_key: str) -> bool:
+    """ECDSA 验签。任何格式异常一律返回 False，不抛异常。"""
+    try:
+        curve = ECC_CURVE
+        sig = signature.lower().removeprefix("0x")
+        if len(sig) != 128:
+            return False
+        r = int(sig[:64], 16)
+        s = int(sig[64:], 16)
+        if not (1 <= r < curve.n and 1 <= s < curve.n):
+            return False
+
+        pub = _parse_public_key(public_key)
+        if not _ec_on_curve(curve, pub):
+            return False
+
+        e = _ecdsa_digest(message)
+        w = pow(s, -1, curve.n)
+        point = _ec_add(
+            curve,
+            _ec_mul(curve, e * w % curve.n, curve.g),
+            _ec_mul(curve, r * w % curve.n, pub),
+        )
+        if point is None:
+            return False
+        return point[0] % curve.n == r
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------- RSA（PKCS#1 v1.5 签名）
+
+# 演示用 1024 位：纯 Python `pow()` 足够快（生成约 0.2s、签名约 3ms），
+# 且签名 hex 恰好 256 字符、公钥 hex 恰好 256 字符，落在既有列宽
+# （did_key.public_key VARCHAR(512)、algo_dispatch_task.signature VARCHAR(256)）之内，
+# 不需要改表。要提到 2048 位只需改这个常量并同步放宽这两处列宽。
+_RSA_BITS = 1024
+_RSA_E = 65537
+# DigestInfo(SHA-256) 的 DER 前缀，见 RFC 8017 9.2
+_SHA256_DIGEST_INFO = bytes.fromhex("3031300d060960864801650304020105000420")
+
+_SMALL_PRIMES = [
+    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+    73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,
+    157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233,
+    239, 241, 251,
+]
+
+
+def _is_probable_prime(n: int, rounds: int = 24) -> bool:
+    """Miller-Rabin 素性检验（先做小素数试除，绝大多数候选一步就被筛掉）。"""
+    if n < 2:
+        return False
+    for p in _SMALL_PRIMES:
+        if n % p == 0:
+            return n == p
+    d, r = n - 1, 0
+    while d % 2 == 0:
+        d //= 2
+        r += 1
+    for _ in range(rounds):
+        a = secrets.randbelow(n - 3) + 2
+        x = pow(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+        for _ in range(r - 1):
+            x = x * x % n
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
+
+
+def _random_prime(bits: int) -> int:
+    """生成 bits 位素数。最高两位置 1，保证 p*q 恰好是 2*bits 位。"""
+    while True:
+        cand = secrets.randbits(bits) | (1 << (bits - 1)) | (1 << (bits - 2)) | 1
+        if (cand - 1) % _RSA_E and _is_probable_prime(cand):
+            return cand
+
+
+def rsa_generate_keypair() -> tuple[str, str]:
+    """生成 RSA 密钥对，公钥指数固定 65537。
+
+    返回 (public_key_hex, private_key_hex)：
+      - 公钥为模数 n 的十六进制（_RSA_BITS/4 个字符），指数固定不入库
+      - 私钥为 p||q 的十六进制（各 _RSA_BITS/8 个字符），自包含：
+        n = p*q、d = e⁻¹ mod lcm(p-1, q-1) 都能由它算出来。
+        存 p||q 而不是 d||n，是为了让 SM4 托管密文塞得进 did_key.private_key_enc(1024)。
+    """
+    half = _RSA_BITS // 2
+    while True:
+        p = _random_prime(half)
+        q = _random_prime(half)
+        if p == q:
+            continue
+        n = p * q
+        if n.bit_length() != _RSA_BITS:
+            continue
+        lam = (p - 1) * (q - 1) // _gcd(p - 1, q - 1)
+        if _gcd(_RSA_E, lam) != 1:
+            continue
+        return f"{n:0{_RSA_BITS // 4}x}", f"{p:0{half // 4}x}{q:0{half // 4}x}"
+
+
+def _gcd(a: int, b: int) -> int:
+    while b:
+        a, b = b, a % b
+    return a
+
+
+def _rsa_parse_private(private_key: str) -> tuple[int, int]:
+    """私钥 hex（p||q）-> (n, d)。"""
+    pk = private_key.lower().removeprefix("0x")
+    if len(pk) % 2 or len(pk) < 32:
+        raise ValueError("RSA 私钥格式非法")
+    half = len(pk) // 2
+    p = int(pk[:half], 16)
+    q = int(pk[half:], 16)
+    n = p * q
+    lam = (p - 1) * (q - 1) // _gcd(p - 1, q - 1)
+    return n, pow(_RSA_E, -1, lam)
+
+
+def _rsa_pkcs1_v15_encode(message: bytes | str, key_len: int) -> bytes:
+    """EMSA-PKCS1-v1_5：0x00 || 0x01 || 0xFF... || 0x00 || DigestInfo(SHA-256)。"""
+    if isinstance(message, str):
+        message = message.encode("utf-8")
+    digest_info = _SHA256_DIGEST_INFO + hashlib.sha256(message).digest()
+    if key_len < len(digest_info) + 11:
+        raise ValueError("RSA 密钥长度不足以承载 SHA-256 签名")
+    padding = b"\xff" * (key_len - len(digest_info) - 3)
+    return b"\x00\x01" + padding + b"\x00" + digest_info
+
+
+def rsa_sign(message: bytes | str, private_key: str) -> str:
+    """RSA PKCS#1 v1.5 + SHA-256 签名，返回 key_len*2 位十六进制。"""
+    n, d = _rsa_parse_private(private_key)
+    key_len = (n.bit_length() + 7) // 8
+    em = _rsa_pkcs1_v15_encode(message, key_len)
+    sig = pow(int.from_bytes(em, "big"), d, n)
+    return f"{sig:0{key_len * 2}x}"
+
+
+def rsa_verify(message: bytes | str, signature: str, public_key: str) -> bool:
+    """RSA 验签。任何格式异常一律返回 False，不抛异常。"""
+    try:
+        n = int(public_key.lower().removeprefix("0x"), 16)
+        key_len = (n.bit_length() + 7) // 8
+        sig = signature.lower().removeprefix("0x")
+        if len(sig) != key_len * 2:
+            return False
+        s = int(sig, 16)
+        if not (0 <= s < n):
+            return False
+        em = pow(s, _RSA_E, n).to_bytes(key_len, "big")
+        return secrets.compare_digest(em, _rsa_pkcs1_v15_encode(message, key_len))
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------- 多算法统一入口（密钥表 algorithm 字段用）
+
+# 契约 2.3：algorithm 取值 SM2（默认）| ECC | RSA。三种都能签能验，
+# 不允许出现「能生成但验不了」的算法——那会让绑了该密钥的身份无法可信接入。
+SIGNATURE_ALGORITHMS = ("SM2", "ECC", "RSA")
+
 
 def generate_keypair_by_algorithm(algorithm: str = "SM2") -> tuple[str, str]:
-    """契约 2.3：algorithm 取值 SM2（默认）| ECC | RSA。
-
-    ECC / RSA 仅用于演示「多算法密钥并存」，实际签名验签只支持 SM2；
-    非 SM2 密钥用随机串占位，避免引入额外依赖。
-    """
-    if algorithm.upper() == "SM2":
+    """按算法生成密钥对，返回 (public_key_hex, private_key_hex)。"""
+    alg = (algorithm or "SM2").upper()
+    if alg == "SM2":
         return generate_keypair()
-    pub = "04" + os.urandom(64).hex()
-    return pub, os.urandom(32).hex()
+    if alg == "ECC":
+        return ecdsa_generate_keypair()
+    if alg == "RSA":
+        return rsa_generate_keypair()
+    raise ValueError(f"不支持的密钥算法 {algorithm}，可选 {' / '.join(SIGNATURE_ALGORITHMS)}")
+
+
+def sign_by_algorithm(message: bytes | str, private_key: str, algorithm: str = "SM2",
+                      public_key: str | None = None) -> str:
+    """按算法签名。algorithm 非法时抛 ValueError（调用方是平台自己，属编程错误）。"""
+    alg = (algorithm or "SM2").upper()
+    if alg == "SM2":
+        return sign(message, private_key, public_key)
+    if alg == "ECC":
+        return ecdsa_sign(message, private_key)
+    if alg == "RSA":
+        return rsa_sign(message, private_key)
+    raise ValueError(f"不支持的签名算法 {algorithm}，可选 {' / '.join(SIGNATURE_ALGORITHMS)}")
+
+
+def verify_by_algorithm(message: bytes | str, signature: str, public_key: str,
+                        algorithm: str = "SM2") -> bool:
+    """按算法验签。算法未知或任何格式异常一律返回 False，绝不抛异常。"""
+    alg = (algorithm or "SM2").upper()
+    if alg == "SM2":
+        return verify(message, signature, public_key)
+    if alg == "ECC":
+        return ecdsa_verify(message, signature, public_key)
+    if alg == "RSA":
+        return rsa_verify(message, signature, public_key)
+    return False
 
 
 def sha256_hex(data: bytes | str) -> str:

@@ -5,6 +5,7 @@ from sqlalchemy import BigInteger, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base, BigIntPK
+from core.response import now_naive  # 时间列统一走应用侧东八区时钟，见 B-023
 
 
 class SysRolePermission(Base):
@@ -17,7 +18,8 @@ class SysRolePermission(Base):
     resource_type: Mapped[str] = mapped_column(String(16))
     action: Mapped[str] = mapped_column(String(16))
     scope: Mapped[str] = mapped_column(String(8), default="all")  # all | own
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
 
 
 class PermApplication(Base):
@@ -38,8 +40,10 @@ class PermApplication(Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class PermGrant(Base):
@@ -53,13 +57,15 @@ class PermGrant(Base):
     resource_id: Mapped[str] = mapped_column(String(64))
     action: Mapped[str] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(String(16), default="active")
-    granted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    granted_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
     expire_at: Mapped[datetime | None] = mapped_column(DateTime)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime)
     revoke_reason: Mapped[str | None] = mapped_column(String(255))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
 
 
 class PermChangeLog(Base):
@@ -77,4 +83,5 @@ class PermChangeLog(Base):
     detail: Mapped[str | None] = mapped_column(String(512))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())

@@ -9,6 +9,7 @@ from sqlalchemy import DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base, BigIntPK
+from core.response import now_naive  # 时间列统一走应用侧东八区时钟，见 B-023
 
 
 class AuditAlert(Base):
@@ -28,4 +29,5 @@ class AuditAlert(Base):
     acked_by: Mapped[str | None] = mapped_column(String(128))
     acked_at: Mapped[datetime | None] = mapped_column(DateTime)
     evidence_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())

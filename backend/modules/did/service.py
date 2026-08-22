@@ -16,12 +16,12 @@ from core.exceptions import ConflictError, NotFoundError, ParamError
 from core.gm_crypto import (
     derive_key,
     generate_keypair_by_algorithm,
-    sign as sm2_sign,
+    sign_by_algorithm,
     sm3_hex,
     sm3_tag,
     sm4_cbc_decrypt,
     sm4_cbc_encrypt,
-    verify as sm2_verify,
+    verify_by_algorithm,
 )
 from core.middleware import current_principal
 from core.response import iso, now_cst
@@ -296,8 +296,28 @@ def rotate_key(db: Session, did: str, reason: str | None, custody: bool = True) 
 
 # ---------------------------------------------------------------- 验签
 
+def _active_keys(db: Session, did: str) -> list[DidKey]:
+    """该 DID 名下全部活跃密钥，版本从新到旧。
+
+    一个身份可以同时持有多把活跃密钥（SM2 + ECC + RSA、或多个用途），
+    验签必须逐把尝试——只取版本最大的那把，会让「新绑一把密钥」把旧密钥的签名全废掉。
+    """
+    return list(db.execute(
+        select(DidKey).where(DidKey.did == did, DidKey.status == "active")
+        .order_by(DidKey.version.desc())
+    ).scalars().all())
+
+
+def _match_key(keys: list[DidKey], message: str, signature: str) -> DidKey | None:
+    """在候选密钥里找出能验过这条签名的那一把，找不到返回 None。"""
+    for key in keys:
+        if verify_by_algorithm(message, signature, key.public_key, key.algorithm):
+            return key
+    return None
+
+
 def verify_signature(did: str | None, message: str, signature: str) -> bool:
-    """用 DID 名下的活跃公钥验签。身份或密钥被冻结/注销时一律返回 False。"""
+    """用 DID 名下任意一把活跃公钥验签。身份或密钥被冻结/注销时一律返回 False。"""
     if not did or not signature:
         return False
     with SessionLocal() as db:
@@ -306,17 +326,16 @@ def verify_signature(did: str | None, message: str, signature: str) -> bool:
         ).scalar_one_or_none()
         if identity is None or identity.status != "active":
             return False
-        key = db.execute(
-            select(DidKey).where(DidKey.did == did, DidKey.status == "active")
-            .order_by(DidKey.version.desc()).limit(1)
-        ).scalar_one_or_none()
-    if key is None or key.algorithm != "SM2":
-        return False
-    return sm2_verify(message, signature, key.public_key)
+        keys = _active_keys(db, did)
+    return _match_key(keys, message, signature) is not None
 
 
 def verify_detail(db: Session, did: str, message: str, signature: str) -> dict:
-    """契约 2.2 POST /did/verify：除 valid 外还要返回主体类型、状态与失败原因。"""
+    """契约 2.2 POST /did/verify：除 valid 外还要返回主体类型、状态与失败原因。
+
+    keyVersion / keyId / algorithm 回传的是**实际命中的那把密钥**，
+    验签失败时回传最新一把，方便前端提示用户对照。
+    """
     identity = db.execute(
         select(DidIdentity).where(DidIdentity.did == did)
     ).scalar_one_or_none()
@@ -327,21 +346,24 @@ def verify_detail(db: Session, did: str, message: str, signature: str) -> dict:
         return {"valid": False, "subjectType": identity.subject_type,
                 "status": identity.status, "reason": f"身份状态为 {identity.status}，不可用于验签"}
 
-    key = db.execute(
-        select(DidKey).where(DidKey.did == did, DidKey.status == "active")
-        .order_by(DidKey.version.desc()).limit(1)
-    ).scalar_one_or_none()
-    if key is None:
+    keys = _active_keys(db, did)
+    if not keys:
         return {"valid": False, "subjectType": identity.subject_type,
                 "status": identity.status, "reason": "该身份没有可用的活跃密钥"}
 
-    valid = sm2_verify(message, signature, key.public_key)
+    matched = _match_key(keys, message, signature)
+    hit = matched or keys[0]
+    reason = None if matched else (
+        f"签名与该身份 {len(keys)} 把活跃密钥均不匹配，原文可能被篡改或签名伪造"
+    )
     return {
-        "valid": valid,
+        "valid": matched is not None,
         "subjectType": identity.subject_type,
         "status": identity.status,
-        "keyVersion": key.version,
-        "reason": None if valid else "签名与公钥不匹配，原文可能被篡改或签名伪造",
+        "keyId": hit.id,
+        "keyVersion": hit.version,
+        "algorithm": hit.algorithm,
+        "reason": reason,
     }
 
 
@@ -352,12 +374,20 @@ def sign_with_custody(did: str, message: str) -> str | None:
     仍然能走通完整的「签名 → 验签 → 上链」流程，而不是把验签环节跳过去。
     """
     with SessionLocal() as db:
-        key = db.execute(
-            select(DidKey).where(DidKey.did == did, DidKey.status == "active", DidKey.custody == 1)
-            .order_by(DidKey.version.desc()).limit(1)
-        ).scalar_one_or_none()
-        if key is None or not key.private_key_enc:
+        candidates = [
+            k for k in db.execute(
+                select(DidKey).where(DidKey.did == did, DidKey.status == "active",
+                                     DidKey.custody == 1)
+                .order_by(DidKey.version.desc())
+            ).scalars().all()
+            if k.private_key_enc
+        ]
+        if not candidates:
             return None
+        # 优先用国密 SM2（平台主算法，签名长度 128 hex 与各处列宽对齐），
+        # 没有 SM2 托管密钥时才退到版本最新的那把（ECC / RSA 同样能签能验）
+        key = next((k for k in candidates if k.algorithm == "SM2"), candidates[0])
+        algorithm = key.algorithm
         public_key = key.public_key
         enc = key.private_key_enc
     try:
@@ -365,7 +395,14 @@ def sign_with_custody(did: str, message: str) -> str | None:
     except Exception as exc:  # noqa: BLE001
         logger.error("托管私钥解密失败 did=%s：%s（KEY_CUSTODY_SECRET 是否被改过？）", did, exc)
         return None
-    return sm2_sign(message, private_key, public_key)
+    try:
+        return sign_by_algorithm(message, private_key, algorithm, public_key)
+    except Exception as exc:  # noqa: BLE001
+        # 存量库里可能还留着旧版本用随机串占位的 ECC / RSA 密钥（本轮之前 ECC/RSA 不是真密钥），
+        # 拿它去签会抛异常。这里降级成「签不出来」，由调用方按未签名处理，绝不 500。
+        logger.warning("托管签名失败 did=%s algorithm=%s：%s（可能是旧版占位密钥，请轮换）",
+                       did, algorithm, exc)
+        return None
 
 
 # ---------------------------------------------------------------- 状态缓存（供中间件高频调用）

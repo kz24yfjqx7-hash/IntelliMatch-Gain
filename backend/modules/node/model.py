@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base, BigIntPK
+from core.response import now_naive  # 时间列统一走应用侧东八区时钟，见 B-023
 
 
 class NodeInfo(Base):
@@ -23,8 +24,10 @@ class NodeInfo(Base):
     load_kw: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     soc: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=0)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class NodeMetric(Base):

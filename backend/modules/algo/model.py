@@ -10,6 +10,7 @@ from sqlalchemy import JSON, DateTime, Float, Integer, Numeric, String, Text, fu
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base, BigIntPK
+from core.response import now_naive  # 时间列统一走应用侧东八区时钟，见 B-023
 
 
 class AlgoFlTask(Base):
@@ -34,8 +35,10 @@ class AlgoFlTask(Base):
     trace_id: Mapped[str | None] = mapped_column(String(64))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class AlgoFlRound(Base):
@@ -44,14 +47,17 @@ class AlgoFlRound(Base):
     id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
     task_id: Mapped[str] = mapped_column(String(32))
     round: Mapped[int] = mapped_column(Integer)
-    loss: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
+    # B-011：原 DECIMAL(10,6)，算法返回的 loss 是 kW² 量级 MSE，≥10000 时溢出，
+    # 导致整轮训练进度既不落库也不上链（日志里刷 562 次 Out of range）。改 DOUBLE。
+    loss: Mapped[float | None] = mapped_column(Float)
     acc: Mapped[Decimal | None] = mapped_column(Numeric(6, 4))
     compression_ratio: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     epsilon_spent: Mapped[Decimal | None] = mapped_column(Numeric(8, 4))
     gradient_hash: Mapped[str | None] = mapped_column(String(80))
     node_contributions: Mapped[list | None] = mapped_column(JSON)
     evidence_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
 
 
 class AlgoModelVersion(Base):
@@ -67,7 +73,8 @@ class AlgoModelVersion(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime)
     model_hash: Mapped[str | None] = mapped_column(String(80))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
 
 
 class AlgoDispatchTask(Base):
@@ -94,8 +101,10 @@ class AlgoDispatchTask(Base):
     creator_did: Mapped[str | None] = mapped_column(String(128))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class AlgoAiAnalysis(Base):
@@ -112,7 +121,8 @@ class AlgoAiAnalysis(Base):
     actor_did: Mapped[str | None] = mapped_column(String(128))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
 
 
 class AlgoRiskAssessment(Base):
@@ -128,4 +138,5 @@ class AlgoRiskAssessment(Base):
     actor_did: Mapped[str | None] = mapped_column(String(128))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())

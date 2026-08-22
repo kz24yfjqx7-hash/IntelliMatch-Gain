@@ -5,6 +5,9 @@ from sqlalchemy import JSON, BigInteger, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base, BigIntPK
+# 时间列一律走应用侧东八区时钟：数据库服务器时区可能是 UTC，
+# 若 created_at 用 now_cst()、updated_at 用 CURRENT_TIMESTAMP，两者会差 8 小时（B-023）
+from core.response import now_naive
 
 
 class DidIdentity(Base):
@@ -19,8 +22,10 @@ class DidIdentity(Base):
     did_document: Mapped[dict] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String(16), default="active")
     metadata_: Mapped[dict | None] = mapped_column("metadata", JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class DidKey(Base):
@@ -36,10 +41,13 @@ class DidKey(Base):
     status: Mapped[str] = mapped_column(String(16), default="active")
     version: Mapped[int] = mapped_column(Integer, default=1)
     purpose: Mapped[str] = mapped_column(String(32), default="sign")
-    bound_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    bound_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
     expire_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class DidKeyRotationLog(Base):
@@ -56,7 +64,8 @@ class DidKeyRotationLog(Base):
     operator_did: Mapped[str | None] = mapped_column(String(128))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
 
 
 class DidDeviceBinding(Base):
@@ -66,7 +75,9 @@ class DidDeviceBinding(Base):
     did: Mapped[str] = mapped_column(String(128))
     device_id: Mapped[str] = mapped_column(String(64), unique=True)
     device_model: Mapped[str | None] = mapped_column(String(64))
-    bound_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    bound_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
     last_online_at: Mapped[datetime | None] = mapped_column(DateTime)
     status: Mapped[str] = mapped_column(String(16), default="bound")
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())

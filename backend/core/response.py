@@ -26,6 +26,19 @@ def now_cst() -> datetime:
     return datetime.now(CST).replace(microsecond=0)
 
 
+def now_naive() -> datetime:
+    """写 DATETIME 列用的当前东八区时间（去掉 tzinfo）。
+
+    所有 DATETIME 列都是「无时区、按东八区解释」（`iso()` 也是这么读回来的），
+    所以落库前必须把 tzinfo 摘掉，否则驱动会按 UTC 转换。
+
+    模型层的 `default=` / `onupdate=` 一律用这个函数，不要依赖数据库的
+    `CURRENT_TIMESTAMP`——数据库服务器时区可能是 UTC（本机 MariaDB 就是），
+    那样 created_at 与 updated_at 会差 8 小时（B-023）。
+    """
+    return now_cst().replace(tzinfo=None)
+
+
 def iso(dt: datetime | None) -> str | None:
     """datetime -> '2026-08-17T14:23:05+08:00'。库里取出的 naive 时间按东八区解释。"""
     if dt is None:

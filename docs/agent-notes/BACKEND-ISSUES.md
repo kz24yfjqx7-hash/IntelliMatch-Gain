@@ -45,6 +45,7 @@
 - 实际：`{"code":1001,"message":"参数错误： Field required"}`（HTTP 400），身份中心「轮换密钥」按钮在真后端 400
 - 影响页面：`/identity`（密钥轮换）
 - 建议：`body: DidRotateKeyRequest = DidRotateKeyRequest()` 给默认值。乙方已兼容（`frontend/src/api/did.js:16-18` 固定发 `{}`），两端都可用，无需回归。
+- **✅ 已修复（fix-identity，2026-08-22）**：`backend/modules/did/router.py:84-86` 给 `body` 加默认值 `DidRotateKeyRequest()`，无 body / 带 body 两种调用都返回 `code 0`。回归 `backend/tests/test_did_fix_b020_b013_b023.py::test_b013_轮换密钥不带请求体也能成功`；真机 `curl -X POST /api/v1/did/<did>/rotate-key`（不带 `-d`）实测 `{"code":0,...,"version":5}`。
 
 ## B-014 P1 `POST /assets`、`POST /risk/assess` 偶发 500，且 traceId 退化为 `tr-00000000-00000000`
 
@@ -100,6 +101,10 @@
 - 涉及：`backend/modules/did/service.py` verify 路径（按 version desc 取单把密钥）、`backend/core/gm_crypto.py`（只有 SM2 sign/verify，`generate_keypair_by_algorithm` 能生成 ECC/RSA）。
 - 建议：verify 时遍历该 DID 全部 active 密钥择一匹配，或请求体支持 `keyId`；ECC/RSA 补验签实现，否则 `POST /keys` 不应接受这两种算法。
 - 契约：2.3 密钥管理 / 2.2 `POST /did/verify`。
+- **✅ 已修复（fix-identity，2026-08-22）**：两条建议都做了。
+  ① `backend/core/gm_crypto.py`：椭圆曲线点运算改为按曲线参数化（`_Curve` / `_ec_add` / `_ec_mul`），新增 secp256r1 上的 **ECDSA**（`ecdsa_sign` / `ecdsa_verify`，SHA-256）与 **RSA PKCS#1 v1.5 + SHA-256**（`rsa_generate_keypair` / `rsa_sign` / `rsa_verify`，纯 `pow()`，Miller-Rabin 生成素数，零新增依赖）；`generate_keypair_by_algorithm` 不再返回随机串占位，并新增统一入口 `sign_by_algorithm` / `verify_by_algorithm`（算法未知或格式非法一律返回 False，不抛异常）。RSA 取 1024 位、公钥只存模数 n、私钥存 p‖q，使公钥 256 / 签名 256 / 托管密文 576 字符都落在既有列宽内，**不需要改表**。
+  ② `backend/modules/did/service.py`：新增 `_active_keys()` / `_match_key()`，`verify_detail` 与 `verify_signature` 改为遍历该 DID 全部 active 密钥逐把尝试，命中即通过；响应回传实际命中的 `keyId` / `keyVersion` / `algorithm`（契约 2.2 的 `valid` / `subjectType` / `status` / `reason` 字段名保持不变）。`sign_with_custody` 按密钥算法选签名算法（优先 SM2），并对存量「随机串占位」的旧 ECC/RSA 密钥做异常降级（返回 None，不 500）。
+  回归：`backend/tests/test_did_fix_b020_b013_b023.py`（8 条 B-020 用例）；真机 8021 实测同一 DID 上 SM2 v1 / SM2 v2 / ECC v3 / RSA v4 四把活跃密钥的签名 `valid` 全为 true，改一个字的原文 `valid:false`。
 
 ## B-021 ｜中 ｜ WebSocket 未按契约每 5 秒周期推送 `node_status`，只在设备上线时推一次
 - 提出：test-func，2026-08-22，用例 TC-311-04 / TC-UI-13
@@ -109,6 +114,7 @@
 - 影响：首页拓扑 / 节点卡片的实时指标在真后端模式下不会自动刷新，需要前端自己轮询 `GET /nodes`。
 - 建议：`ws/manager.py` 起一个 5 秒的后台任务广播 `GET /nodes` 的实时指标，或在文档里把该消息明确降级为事件型并通知前端改轮询。
 - 乙方兼容（integration 2026-08-22 复核，`qa/check_backend_live.sh` ws 用例同样 0 条）：`frontend/src/stores/perspective.js:startNodePolling()` 每 15 秒兜底轮询 `GET /nodes`，且只在这 15 秒内没收到过 node_status 时才发请求（mock 模式零额外请求）。
+- **✅ 已修复（fix-ws，2026-08-22）**：`backend/ws/manager.py` 新增 5 秒周期广播任务（`NODE_STATUS_INTERVAL` / `broadcast_node_status_once` / `_node_status_loop` / `start_node_status_task` / `stop_node_status_task`，挂在 `register_ws_endpoint` 内的 `@app.on_event("startup"/"shutdown")` 上，没动 main.py 启动逻辑）；`backend/modules/node/service.py` 新增 `tick_node_metrics()`——在库里真实值上做有界随机游走并落库（soc 与 storageOutput 符号耦合，offline 节点不动），保证「推出去的值 == GET /nodes 读到的值」。无 WS 连接时直接返回，不开会话不打库。实测 8014 实例 16 秒收到 4 节点 × 3 轮 = 12 条，payload `{nodeId,status,metrics}` 与契约 2.13 一致。单测 `tests/test_websocket.py::test_B021_*` 共 5 条。前端 `startNodePolling()` 兜底轮询按要求保留未动。
 
 ## B-022 ｜低（负载相关）｜ 30 并发登录在机器有其它负载时尾延迟超 5 秒，个别请求 ReadTimeout
 - 提出：test-func，2026-08-22，用例 TC-NF-02
@@ -118,6 +124,7 @@
 - 原因：bcrypt 校验为 CPU 密集且 `uvicorn` 单进程单 worker，登录请求在 GIL 上排队，尾延迟对机器负载非常敏感。
 - 建议：bcrypt cost 降到 10、把 `verify_password` 放进线程池，或部署时 `--workers N`；演示前避免多人同时登录。
 - 契约：无明确性能条款。空闲环境达标，故降为「低（负载相关）」；答辩机若与其它服务混跑，建议 `--workers 2~4` 或把 `verify_password` 放线程池。
+- **✅ 已修复（fix-ws，2026-08-22）**：**根因不是 bcrypt**。实测本机 30 线程并发 `verify_password` 总墙钟仅 340ms（bcrypt 4.x 是 Rust 实现，计算期间释放 GIL；且 `/auth/login` 是同步路由，FastAPI 早已把它丢进 anyio 工作线程，从未阻塞事件循环）。真正卡点是 SQLAlchemy 连接池被打满——日志 `QueuePool limit of size 5 overflow 5 reached, connection timed out, timeout 30.00`，因为一个写请求要同时占两条连接（`get_db` 会话 + `@audited` 里 `write_audit_log()` 另开的审计会话）。改动：`backend/core/database.py:16-24` `pool_size 5→10`、`max_overflow 5→20`、新增 `pool_timeout=8`（上限 30 条，远低于 MariaDB `max_connections=151`；打满时快速失败而非吊死 30 秒）；`backend/core/security.py` 钉住 `bcrypt__rounds=10`（passlib 默认 12，而 `02_seed.sql` 演示账号哈希是 cost=10，不钉住则新建用户登录慢 4 倍；cost 从哈希串自身读出，旧哈希仍可验），并新增 `verify_password_async()` 供未来的异步鉴权路径使用。TC-NF-02 同写法实测：修复前 30/30 全部 `ReadTimeout`（wall 33349ms），修复后 **30/30 全 200，最大 3543ms / 3446ms < 5000ms 门槛**（其中服务端仅占约 0.6s，其余是测量客户端每次新建 httpx Client 的自身开销）。
 
 ## B-023 ｜低 ｜ `createdAt` 与 `updatedAt` 时区口径不一致，同一时刻相差 8 小时
 - 提出：test-func，2026-08-22，用例 TC-312-04
@@ -126,6 +133,10 @@
 - 实际：`createdAt=2026-08-22T20:28:04+08:00`、`updatedAt=2026-08-22T12:28:04+08:00`，差 28800 秒。`created_at` 由应用侧 `now_cst()` 写入，`updated_at` 走模型的 `server_default=func.now()`（`backend/modules/did/model.py:23,42` 等多张表同样写法），取的是**数据库服务器**时间；本机 MariaDB 时区为 UTC，于是两者差 8 小时。
 - 影响：按 `updatedAt` 排序/筛选会得到错误顺序；部署到 UTC 主机的 Docker 环境同样复现（除非给 db 容器设 `TZ=Asia/Shanghai`）。
 - 建议：`updated_at` 也由应用侧写入，或建库时统一 `time_zone='+08:00'` 并在部署文档中写明。
+- **✅ 已修复（fix-identity，2026-08-22）**：两条建议都做了（互为保险，无需改表）。
+  ① `backend/core/response.py` 新增 `now_naive()`（东八区、秒级、无 tzinfo）；`backend/modules/{did,auth,algo,asset,node,permission,evidence,audit}/model.py` 全部 34 个时间列改为 `default=now_naive`（`updated_at` 另加 `onupdate=now_naive`），`server_default=func.now()` 保留仅用于建表 DDL。
+  ② `backend/core/database.py` 加 `connect` 事件，每条 MySQL 连接执行 `SET time_zone='+08:00'`，让 DDL 里的 `CURRENT_TIMESTAMP` / 原生 SQL 的 `NOW()` 也走东八区（SQLite 跳过）。
+  回归：`backend/tests/test_did_fix_b020_b013_b023.py` 4 条 B-023 用例（含「不允许再出现只有 server_default 的时间列」的防回归断言）；真机 MariaDB 实测新建 DID `createdAt=updatedAt=2026-08-22T23:45:45+08:00`，8 小时差消失（存量老数据的 `updated_at` 仍是旧值，不回填）。
 
 ## B-024 P3 WebSocket 鉴权失败时握手直接 403，而不是先接受再以 close code 4001 关闭
 
@@ -135,6 +146,7 @@
 - 实际：HTTP 403 拒绝握手，客户端拿不到 4001，无法区分「鉴权失败」与「网络不可达」，前端只能按通用错误退避重连
 - 影响：前端重连策略（`frontend/src/api/ws.js`）无法在 token 失效时立即跳登录；不影响演示
 - 建议：`websocket.accept()` 后 `close(code=4001)`
+- **✅ 已修复（fix-ws，2026-08-22）**：`backend/ws/manager.py` 两处 `close(code=4001)` 之前补 `await websocket.accept()`（缺 token / 鉴权失败各一处）。前端 `frontend/src/api/ws.js` 的 `socket.onclose` 改为读 `evt.code`，等于 4001（导出常量 `WS_CLOSE_AUTH_FAILED`）时不再退避重连，而是清重连定时器 + `forceLogout()`（清会话并 `router.replace('/login?redirect=...')`），与 `src/api/request.js` 收到 `code 1002` 的处理一致。8014 实测：无 token → `close code=4001 reason='缺少 token'`；错误 token → `close code=4001 reason='鉴权失败'`。单测 `tests/test_websocket.py::test_B024_鉴权失败先完成握手再以4001关闭`。
 
 ## B-025 ｜中 ｜ 存证被篡改后 `POST /evidence/demo/restore` 实际不可用，链无法恢复（B-001 的现场后果）
 

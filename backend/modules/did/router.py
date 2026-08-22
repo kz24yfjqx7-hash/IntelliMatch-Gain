@@ -85,7 +85,8 @@ def change_status(
          resource_id_arg="did")
 def rotate_key(
     did: str,
-    body: DidRotateKeyRequest,
+    # 契约 2.2 没有为该接口定义请求体，无 body 也要能轮换（B-013）
+    body: DidRotateKeyRequest = DidRotateKeyRequest(),
     db: Session = Depends(get_db),
     principal: Principal = Depends(current_user),
 ):

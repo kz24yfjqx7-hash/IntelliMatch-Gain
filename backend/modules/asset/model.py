@@ -6,6 +6,7 @@ from sqlalchemy import JSON, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base, BigIntPK
+from core.response import now_naive  # 时间列统一走应用侧东八区时钟，见 B-023
 
 
 class EnergyAsset(Base):
@@ -27,8 +28,10 @@ class EnergyAsset(Base):
     chain_tx_id: Mapped[str | None] = mapped_column(String(64))
     evidence_id: Mapped[str | None] = mapped_column(String(64))
     trace_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, onupdate=now_naive, server_default=func.now())
 
 
 class EnergyAssetLineage(Base):
@@ -42,4 +45,5 @@ class EnergyAssetLineage(Base):
     hash: Mapped[str | None] = mapped_column(String(80))
     trace_id: Mapped[str | None] = mapped_column(String(64))
     detail: Mapped[str | None] = mapped_column(String(512))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_naive, server_default=func.now())
