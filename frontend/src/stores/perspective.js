@@ -158,7 +158,7 @@ export const usePerspectiveStore = defineStore('perspective', () => {
 
   /**
    * 节点指标轮询兜底：契约 2.13 要求 node_status 每 5 秒推一次，
-   * 真后端目前只在 /nodes/{id}/online 时推（见 BACKEND-ISSUES B-020），
+   * 真后端目前只在 /nodes/{id}/online 时推（见 BACKEND-ISSUES B-021），
    * 于是这里每 15 秒检查一次——期间没收到过 node_status 才重新拉列表，
    * 收得到推送时不会产生任何多余请求（mock 模式即如此）。
    */

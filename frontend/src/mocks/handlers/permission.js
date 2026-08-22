@@ -3,6 +3,21 @@ import { http } from 'msw'
 import { db, RESOURCES, ACTIONS, nextId, permissionsOfRoles } from '../db.js'
 import { BASE, handle, ok, body, query, paginate, requireAuth, requirePerm, writeAudit, writeEvidence, raiseAlert, MockError, now } from '../helpers.js'
 
+/** 请求体里的 grants 可能是对象（旧形状）或契约数组形状，统一成 {资源: [动作]} */
+function toGrantsMap(data) {
+  if (data?.grantsMap && typeof data.grantsMap === 'object' && !Array.isArray(data.grantsMap)) return data.grantsMap
+  const g = data?.grants
+  if (Array.isArray(g)) {
+    const map = {}
+    for (const item of g) {
+      if (!item?.resourceType || !item?.action) continue
+      ;(map[item.resourceType] = map[item.resourceType] || []).push(item.action)
+    }
+    return map
+  }
+  return g && typeof g === 'object' ? g : {}
+}
+
 function roleDto(r) {
   const { scope, ...rest } = r
   return { ...rest, scope: scope || 'all', permissions: permissionsOfRoles([r.code]) }
@@ -45,7 +60,7 @@ export const permissionHandlers = [
     if (!/^[a-z_]{3,32}$/.test(data.code)) throw new MockError(1001, 'code 须为小写字母与下划线')
     if (db.roles.find(r => r.code === data.code)) throw new MockError(1006, '角色已存在')
     const grants = {}
-    for (const [res, acts] of Object.entries(data.grants || {})) if (RESOURCES.includes(res)) grants[res] = (acts || []).filter(a => ACTIONS.includes(a))
+    for (const [res, acts] of Object.entries(toGrantsMap(data))) if (RESOURCES.includes(res)) grants[res] = (acts || []).filter(a => ACTIONS.includes(a))
     const role = { code: data.code, name: data.name, builtin: false, grants, createdAt: now() }
     db.roles.push(role)
     const ev = writeEvidence({ category: 'permission', refId: `role-${role.code}`, actorDid: user.did, traceId, payload: { op: 'role:create', code: role.code, grants } })
@@ -60,9 +75,9 @@ export const permissionHandlers = [
     if (!role) throw new MockError(1005, '角色不存在')
     const data = await body(request)
     if (data.name) role.name = data.name
-    if (data.grants && typeof data.grants === 'object') {
+    if (data.grants || data.grantsMap) {
       const grants = {}
-      for (const [res, acts] of Object.entries(data.grants)) if (RESOURCES.includes(res) || res === 'user') grants[res] = (acts || []).filter(a => ACTIONS.includes(a) || a === 'manage')
+      for (const [res, acts] of Object.entries(toGrantsMap(data))) if (RESOURCES.includes(res) || res === 'user') grants[res] = (acts || []).filter(a => ACTIONS.includes(a) || a === 'manage')
       role.grants = grants
     }
     role.updatedAt = now()

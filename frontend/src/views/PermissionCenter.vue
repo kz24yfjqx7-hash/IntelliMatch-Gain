@@ -298,7 +298,7 @@ const roles = ref([])
 const rolesLoading = ref(false)
 async function loadRoles() {
   rolesLoading.value = true
-  try { roles.value = (await listRoles()).items || [] } catch { /* 拦截器已提示 */ } finally { rolesLoading.value = false }
+  try { roles.value = await listRoles() } catch { /* 拦截器已提示 */ } finally { rolesLoading.value = false }
 }
 const roleDialogVisible = ref(false)
 const roleSaving = ref(false)
