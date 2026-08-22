@@ -45,7 +45,7 @@ const stages = reactive([
   { key: 'identity', icon: '🪪', label: '身份接入', metric: 'DID 数', path: '/identity', color: '#00B4D8', value: null },
   { key: 'assets', icon: '🗂️', label: '数据登记', metric: '资产数', path: '/assets', color: '#2ECC71', value: null, perm: 'asset:read' },
   { key: 'permission', icon: '🛡️', label: '权限授权', metric: '授权数', path: '/permission', color: '#F39C12', value: null },
-  { key: 'privacy', icon: '🧮', label: '隐私计算', metric: 'FL 任务', path: '/edge/privacy', color: '#9b59b6', value: null },
+  { key: 'privacy', icon: '🧮', label: '隐私计算', metric: 'FL 任务', path: '/edge/privacy', color: '#9b59b6', value: null, perm: 'model:read' },
   { key: 'dispatch', icon: '⚡', label: '智能调度', metric: '调度任务', path: '/cloud/aggregate', color: '#e67e22', value: null, perm: 'dispatch:read' },
   { key: 'evidence', icon: '⛓️', label: '存证审计', metric: '链高度', path: '/evidence', color: '#1abc9c', value: null, perm: 'evidence:read' }
 ])
@@ -65,6 +65,7 @@ function display(s) {
 }
 
 async function refresh() {
+  if (!userStore.isLoggedIn) return
   loading.value = true
   await Promise.allSettled(stages.map(async s => {
     // 无权限的环节不请求，避免 1003 提示刷屏

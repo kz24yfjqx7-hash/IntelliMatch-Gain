@@ -27,6 +27,8 @@ import config
 
 log = logging.getLogger("algo.deepseek")
 _lock = threading.Lock()
+# 最近一次 live 调用/探活结果：None=未知（尚未调用），True=可达，False=不可达（health 报 cache）
+_live_ok: bool | None = None
 
 SCENES = ("dispatch", "risk", "data", "qa", "audit")
 SYSTEM_PROMPT = (
@@ -295,6 +297,7 @@ def _build_messages(scene: str, context: dict | None, question: str | None) -> l
 
 def call_live(scene: str, context: dict | None, question: str | None, timeout: float | None = None) -> tuple[str, list[str]] | None:
     """调用真实 DeepSeek（OpenAI 兼容 chat/completions）。失败返回 None。"""
+    global _live_ok
     if not config.DEEPSEEK_API_KEY or not config.DEEPSEEK_BASE_URL:
         return None
     try:
@@ -323,8 +326,10 @@ def call_live(scene: str, context: dict | None, question: str | None, timeout: f
             answer, reasoning = content, []
         if len(reasoning) < 2:
             reasoning += rule_answer(scene, context, question)[1]
+        _live_ok = True
         return answer, reasoning[:6]
     except Exception as exc:  # noqa: BLE001  任何异常都降级
+        _live_ok = False
         log.warning("DeepSeek live 调用失败，降级：%s", exc)
         return None
 
@@ -375,5 +380,33 @@ def _analyze(scene: str, context: dict | None, question: str | None, t0: float) 
 
 
 def status() -> str:
-    """health 接口用：有 key 为 live，否则 cache。"""
-    return "live" if (config.DEEPSEEK_API_KEY and config.DEEPSEEK_BASE_URL) else "cache"
+    """
+    health 接口用（契约 3.1：live | cache）。
+    未配置 key/base_url，或最近一次 live 调用失败（不可达/超时/鉴权失败）时报 cache，
+    否则报 live。这样 health 与 analyze 的实际降级行为一致。
+    """
+    if not (config.DEEPSEEK_API_KEY and config.DEEPSEEK_BASE_URL):
+        return "cache"
+    return "cache" if _live_ok is False else "live"
+
+
+def probe_live(timeout: float = 3.0) -> bool | None:
+    """启动时探活一次：把 _live_ok 置为真实可达性。未配置时返回 None 不探测。"""
+    global _live_ok
+    if not (config.DEEPSEEK_API_KEY and config.DEEPSEEK_BASE_URL):
+        return None
+    try:
+        import httpx
+
+        # 只发一次极短的请求，失败与否都只用来标记可达性
+        resp = httpx.post(
+            f"{config.DEEPSEEK_BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {config.DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+            json={"model": config.DEEPSEEK_MODEL, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1, "stream": False},
+            timeout=timeout,
+        )
+        _live_ok = resp.status_code < 500 and resp.status_code != 401
+    except Exception as exc:  # noqa: BLE001
+        _live_ok = False
+        log.warning("DeepSeek 探活失败，health 将报 cache：%s", exc)
+    return _live_ok

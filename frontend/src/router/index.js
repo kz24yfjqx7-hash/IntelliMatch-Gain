@@ -47,19 +47,19 @@ const routes = [
         path: 'edge/privacy',
         name: 'PrivacyCompute',
         component: () => import('@/views/PrivacyCompute.vue'),
-        meta: { perspective: 'edge', title: '边缘隐私保护计算' }
+        meta: { perspective: 'edge', title: '边缘隐私保护计算', permission: 'model:read' }
       },
       {
         path: 'edge/response',
         name: 'TerminalResponse',
         component: () => import('@/views/TerminalResponse.vue'),
-        meta: { perspective: 'edge', title: '终端响应与执行' }
+        meta: { perspective: 'edge', title: '终端响应与执行', permission: 'dispatch:read' }
       },
       {
         path: 'audit',
         name: 'AuditLog',
         component: () => import('@/views/AuditLog.vue'),
-        meta: { perspective: 'global', title: '系统审计与日志中心' }
+        meta: { perspective: 'global', title: '系统审计与日志中心', roles: ['sys_admin', 'regulator'] }
       },
       // ---- 可信数据空间四个中心（frontend-pages 负责页面实现）----
       {
@@ -114,6 +114,10 @@ router.beforeEach(async to => {
   }
   if (requiresAuth && !userStore.isLoggedIn) {
     return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.roles && !userStore.hasRole(to.meta.roles)) {
+    ElMessage.warning(`无权访问「${to.meta.title || to.path}」，仅限角色 ${to.meta.roles.join('/')}`)
+    return { path: userStore.homePath() }
   }
   if (to.meta.permission && !userStore.hasPermission(to.meta.permission)) {
     ElMessage.warning(`无权访问「${to.meta.title || to.path}」，需要权限 ${to.meta.permission}`)

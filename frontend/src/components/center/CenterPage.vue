@@ -1,6 +1,6 @@
 <template>
-  <!-- 四个中心页的统一外壳：标题栏 + 操作区 + 内容；深色科技风 -->
   <div class="center-page">
+    <!-- 四个中心页的统一外壳：标题栏 + 操作区 + 内容；深色科技风。注意：根节点前不能放注释，否则成为 fragment 根，AppLayout 的 <transition mode="out-in"> 无法完成离场，后续路由渲染为空 -->
     <div class="center-header">
       <div class="center-title-box">
         <span class="center-icon">{{ icon }}</span>

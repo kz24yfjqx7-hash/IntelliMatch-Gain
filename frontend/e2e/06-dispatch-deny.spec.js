@@ -31,11 +31,14 @@ test('越权演示：vpp 模拟越权下发 → 1003 横幅 → admin 右上角�
   await shot(page, 'dispatch-deny-bell')
   await page.keyboard.press('Escape')
 
-  // 审计中心出现 high 日志 + traceId 时间轴
+  // 审计中心出现 high 日志 + traceId 时间轴（审计接口仅 sys_admin/regulator 可读，切回 admin）
+  await switchUser(page, 'admin')
   await nav(page, '/audit')
   await page.getByRole('tab', { name: '风险告警' }).click()
   await expect(page.locator('.el-tab-pane:visible')).toContainText('R01')
   await page.getByRole('tab', { name: '全流程追踪' }).click()
+  // 默认 traceId 由最近高风险日志异步填入，真后端较慢，等填好再追踪
+  await expect(page.getByPlaceholder(/输入 traceId/)).not.toHaveValue('')
   await page.getByRole('button', { name: '追踪' }).click()
   await expect(page.locator('.el-timeline-item').first()).toBeVisible()
   // 唯一允许的 4xx：越权 issue 的 403（这正是被测现象）

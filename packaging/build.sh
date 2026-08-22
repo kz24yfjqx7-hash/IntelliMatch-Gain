@@ -275,10 +275,26 @@ fi
 step 5 "构建自建镜像（buildx --output type=docker,dest=...）"
 
 mkdir -p "${BUILD_DIR}/images" "${DL_DIR}" "${DIST_DIR}"
+# backend/ 是甲方目录，不能在其中新增/修改文件；其 .dockerignore 只排除 __pycache__/.pyc/.pytest_cache，
+# 没有排除 .venv（几十 MB 以上）和本地 .env，Dockerfile 的 `COPY . .` 会把它们打进镜像。
+# 因此 backend 用临时 context 构建：复制到 build/ctx-backend 并排除 .venv / __pycache__ / .pytest_cache / .env / *.pyc。
+# tests/ 按甲方 .dockerignore 注释保留（便于目标机上 docker compose exec backend pytest）。
+BACKEND_CTX="${BUILD_DIR}/ctx-backend"
+prepare_backend_ctx() {
+  rm -rf "${BACKEND_CTX}"; mkdir -p "${BACKEND_CTX}"
+  tar -C "${ROOT_DIR}/backend" \
+      --exclude='./.venv' --exclude='./venv' --exclude='__pycache__' --exclude='*.pyc' \
+      --exclude='./.pytest_cache' --exclude='./.env' --exclude='./.git' \
+      -cf - . | tar -C "${BACKEND_CTX}" -xf -
+  ok "backend 临时 context：${BACKEND_CTX}（已排除 .venv / __pycache__ / .pytest_cache / .env，大小 $(du -sh "${BACKEND_CTX}" | cut -f1)）"
+}
+if [[ " ${SERVICES[*]} " == *" backend "* && ${DRY_RUN} -eq 0 ]]; then prepare_backend_ctx; fi
 for arch in "${ARCHES[@]}"; do
   for svc in "${SERVICES[@]}"; do
     out="${BUILD_DIR}/images/${svc}-${arch}.tar"
     info "构建 energy-tds/${svc}:${VERSION} @ linux/${arch}"
+    ctx="${ROOT_DIR}/${svc}"
+    [[ "${svc}" == "backend" && ${DRY_RUN} -eq 0 ]] && ctx="${BACKEND_CTX}"
     extra_args=()
     if [[ "${svc}" == "frontend" ]]; then
       extra_args+=(--build-arg VITE_USE_MOCK=false --build-arg VITE_API_BASE=/api/v1 --build-arg VITE_WS_BASE=/ws)
@@ -288,7 +304,7 @@ for arch in "${ARCHES[@]}"; do
       --output "type=docker,dest=${out}" \
       -t "energy-tds/${svc}:${VERSION}" \
       ${extra_args[@]+"${extra_args[@]}"} \
-      "${ROOT_DIR}/${svc}"
+      "${ctx}"
     run_sh "gzip -f '${out}'"
     ok "→ images/${svc}-${arch}.tar.gz"
   done
@@ -394,6 +410,7 @@ for arch in "${ARCHES[@]}"; do
   run cp "${SCRIPT_DIR}/assets/mysql-${arch}.cnf" "${pkg}/config/mysql.cnf"
 
   # SQL（甲方建表脚本）
+  # 只拷 *.sql：backend/sql/ 里的 gen_seed.py / 导入.py 是甲方生成脚本，mysql initdb 只执行 .sql/.sh，不需要也不应带入安装包
   if [[ -d "${ROOT_DIR}/backend/sql" ]]; then
     run_sh "cp '${ROOT_DIR}'/backend/sql/*.sql '${pkg}/sql/'"
   else

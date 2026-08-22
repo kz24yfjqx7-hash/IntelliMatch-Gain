@@ -38,8 +38,10 @@ def test_low_soc_never_discharges(client):
         b = _dispatch(client, nodes)
         act = {a["nodeId"]: a for a in b["actions"]}
         assert act["Node-C"]["action"] != "discharge", act["Node-C"]
-        viol = [v for v in b["constraintsChecked"]["violations"] if v["nodeId"] == "Node-C"]
-        assert viol, "SOC=15 触发 socMin 约束应记入 violations"
+        # 越限节点的约束校验留痕写在动作 reason 里；violations 只收「动作被改写」的真实拦截
+        assert "低于下限" in act["Node-C"]["reason"], act["Node-C"]["reason"]
+        for v in b["constraintsChecked"]["violations"]:
+            assert v["attempted"] != v["applied"] or v["constraint"] == "maxPowerKw", v
 
 
 def test_high_soc_never_charges(client):
@@ -51,8 +53,9 @@ def test_high_soc_never_charges(client):
         b = _dispatch(client, nodes)
         act = {a["nodeId"]: a for a in b["actions"]}
         assert act["Node-A"]["action"] != "charge", act["Node-A"]
-        viol = [v for v in b["constraintsChecked"]["violations"] if v["nodeId"] == "Node-A"]
-        assert viol, "SOC=97 触发 socMax 约束应记入 violations"
+        assert "高于上限" in act["Node-A"]["reason"], act["Node-A"]["reason"]
+        for v in b["constraintsChecked"]["violations"]:
+            assert v["attempted"] != v["applied"] or v["constraint"] == "maxPowerKw", v
 
 
 def test_power_within_limit(client):

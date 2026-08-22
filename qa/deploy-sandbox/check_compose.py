@@ -25,16 +25,28 @@ contract = (root / "contract/API-CONTRACT.md").read_text(encoding="utf-8")
 sec4 = contract.split("## 第四部分")[1].split("## 第五部分")[0]
 CONTRACT_VARS = set(re.findall(r"^([A-Z_]+)=", sec4, re.M))
 EXEMPT = {"FL_ROUND_DELAY"}  # qa 已豁免的 algo 内部变量（带默认值）
+# 甲 backend/core/config.py 读取但契约第四部分没有的变量（compose 里必须带 ${VAR:-默认}）
+BACKEND_EXTRA = {"REDIS_DB", "JWT_ALGORITHM", "KEY_CUSTODY_SECRET", "ALGO_TIMEOUT", "DEBUG", "DB_WAIT_TIMEOUT"}
+EXEMPT |= BACKEND_EXTRA
 
 env_example = (root / ".env.example").read_text(encoding="utf-8")
 ENV_VARS = set(re.findall(r"^([A-Z_]+)=", env_example, re.M))
-if ENV_VARS != CONTRACT_VARS:
-    fail(f".env.example 变量集合 != 契约：多 {ENV_VARS - CONTRACT_VARS} 少 {CONTRACT_VARS - ENV_VARS}")
+if ENV_VARS - BACKEND_EXTRA != CONTRACT_VARS:
+    fail(f".env.example 变量集合 != 契约：多 {ENV_VARS - CONTRACT_VARS - BACKEND_EXTRA} 少 {CONTRACT_VARS - ENV_VARS}")
 else:
-    ok(".env.example 变量集合与契约第四部分完全一致")
+    ok(".env.example 变量集合 = 契约第四部分 + backend 非契约变量 " + ",".join(sorted(BACKEND_EXTRA)))
+for v in BACKEND_EXTRA:
+    if v not in ENV_VARS:
+        fail(f".env.example 缺 backend 非契约变量 {v}")
+    elif not re.search(r"^" + v + r"=.*非契约变量", env_example, re.M):
+        fail(f".env.example {v} 行须注明“非契约变量”")
+if not re.search(r"^KEY_CUSTODY_SECRET=.*(install\.sh|随机)", env_example, re.M):
+    fail(".env.example KEY_CUSTODY_SECRET 须注明由 install.sh 随机生成")
 # .env.example 默认值与契约一致
 contract_defaults = dict(re.findall(r"^([A-Z_]+)=(.*)$", sec4, re.M))
 for k, v in re.findall(r"^([A-Z_]+)=([^#\n]*)", env_example, re.M):
+    if k in BACKEND_EXTRA:
+        continue
     if contract_defaults.get(k, "").strip() != v.strip():
         fail(f".env.example {k} 默认值 {v.strip()!r} != 契约 {contract_defaults.get(k)!r}")
 
@@ -133,10 +145,13 @@ for n, s in svcs.items():
             fail(f"{n}.environment 含契约外 key {k}")
 # backend 必须拿到它需要的全部变量
 need_backend = {"MYSQL_HOST", "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD", "REDIS_HOST", "REDIS_PORT",
-                "BACKEND_PORT", "JWT_SECRET", "JWT_EXPIRE_SECONDS", "ALGO_SERVICE_URL"}
+                "BACKEND_PORT", "JWT_SECRET", "JWT_EXPIRE_SECONDS", "ALGO_SERVICE_URL"} | BACKEND_EXTRA
 miss = need_backend - set(svcs["backend"]["environment"])
 if miss:
     fail(f"backend.environment 缺 {miss}")
+be = svcs["backend"]["environment"]
+if be.get("KEY_CUSTODY_SECRET") == be.get("JWT_SECRET"):
+    fail("KEY_CUSTODY_SECRET 不得与 JWT_SECRET 同源")
 need_algo = {"ALGO_PORT", "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "DEEPSEEK_MODEL", "DEEPSEEK_TIMEOUT", "DEEPSEEK_OFFLINE_FALLBACK"}
 miss = need_algo - set(svcs["algo-service"]["environment"])
 if miss:
@@ -159,8 +174,10 @@ if "curl" in hc or "urllib" not in hc:
 if "/algo/v1/health" not in hc or "${ALGO_PORT}" not in hc:
     fail("algo healthcheck URL 应为 http://127.0.0.1:${ALGO_PORT}/algo/v1/health")
 hc = " ".join(svcs["backend"]["healthcheck"]["test"])
-if "urllib" not in hc or "/api/v1/health" not in hc:
-    fail("backend healthcheck 应用 urllib 探 /api/v1/health")
+if "urllib" not in hc or "${BACKEND_PORT}/health'" not in hc or "/api/v1/health" in hc:
+    fail("backend healthcheck 应用 urllib 探根路径 /health（/api/v1/health 在后端为 404）")
+if "curl" in hc:
+    fail("backend healthcheck 不得依赖 curl（python:slim 无 curl）")
 hc = " ".join(svcs["frontend"]["healthcheck"]["test"])
 if "wget" not in hc:
     fail("frontend healthcheck 应用 busybox wget（nginx:alpine 无 curl）")

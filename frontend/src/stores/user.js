@@ -79,12 +79,13 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function logout() {
+    // 先清本地会话再通知后端：避免页面上仍在进行的请求带着即将失效的 token 返回 401（真后端登出会吊销 jti）
+    const t = token.value
+    clearSession()
     try {
-      if (token.value) await authApi.logout()
+      if (t) await authApi.logout({ headers: { Authorization: `Bearer ${t}` } })
     } catch {
       // 后端不可达也要能退出
-    } finally {
-      clearSession()
     }
   }
 
@@ -99,6 +100,9 @@ export const useUserStore = defineStore('user', () => {
     const list = Array.isArray(role) ? role : [role]
     return list.some(r => roles.value.includes(r))
   }
+
+  /** 审计中心（日志/告警/报表）只对 sys_admin、regulator 开放：契约未给 audit 资源权限，真后端按角色校验 */
+  const canReadAudit = computed(() => hasRole(['sys_admin', 'regulator']))
 
   /** 应用启动时恢复会话：有 token 则拉 me 并连 WS */
   async function restore() {
@@ -121,6 +125,7 @@ export const useUserStore = defineStore('user', () => {
   return {
     token, user, roles, permissions, isLoggedIn, loading,
     primaryRole, roleLabel, displayName, did,
+    canReadAudit,
     login, logout, fetchMe, restore, clearSession, hasPermission, hasRole, homePath
   }
 })

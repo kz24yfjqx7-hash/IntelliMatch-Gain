@@ -64,9 +64,22 @@ def test_fl_train_tolerates_edge_nodes(client, nodes, run_job):
 
 
 def test_fl_rounds_1_and_eps_tiny(client, run_job):
+    """极小预算：第 1 轮即耗尽 → 熔断停止（status=failed + anomaly + error），不得静默跑完。"""
     job = run_job(rounds=1, dp={"enabled": True, "epsilon": 1e-6, "delta": 1e-5})
-    assert job["status"] == "success"
+    assert job["status"] == "failed", job["status"]
+    assert job["anomaly"]["type"] == "privacy_budget_exhausted"
+    assert "熔断" in job.get("error", "")
+    assert len(job["rounds"]) == 1
     assert json.dumps(job)  # 可序列化、无 NaN
+
+
+def test_fl_budget_exhausted_stops_early(client, run_job):
+    """预算耗尽后不再继续消耗：请求 20 轮，实际轮数必须远小于 20，且 ε 不会累计到目标值的数倍。"""
+    job = run_job(rounds=20, dp={"enabled": True, "epsilon": 0.05, "delta": 1e-5})
+    assert job["status"] == "failed", job["status"]
+    assert job["anomaly"]["type"] == "privacy_budget_exhausted"
+    assert len(job["rounds"]) < 20, f"耗尽后仍跑满 {len(job['rounds'])} 轮"
+    assert job["rounds"][-1]["epsilonSpent"] == max(r["epsilonSpent"] for r in job["rounds"])
 
 
 # ---------------- DQN

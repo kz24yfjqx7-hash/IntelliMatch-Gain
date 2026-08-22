@@ -11,6 +11,12 @@ import { ref, computed } from 'vue'
 import { createEdgeReport } from '../services/dispatchTask.js'
 import * as nodeApi from '@/api/node'
 import { wsClient, WS_TYPES } from '@/api/ws'
+import { useUserStore } from './user.js'
+
+/** 菜单按角色过滤（user store 尚未建好时放行，便于单测） */
+function userStoreHasRole(roles) {
+  try { return useUserStore().hasRole(roles) } catch { return true }
+}
 
 /** 种子节点：后端不可达时的兜底，字段与契约 GET /nodes 对齐 */
 const SEED_NODES = [
@@ -74,8 +80,8 @@ export const usePerspectiveStore = defineStore('perspective', () => {
   const edgeMenus = [
     { path: '/edge/classification', title: '本地感知与分级', icon: 'document' },
     { path: '/edge/risk', title: '动态隐私风险评估', icon: 'warning' },
-    { path: '/edge/privacy', title: '边缘隐私保护计算', icon: 'lock' },
-    { path: '/edge/response', title: '终端响应与执行', icon: 'finished' }
+    { path: '/edge/privacy', title: '边缘隐私保护计算', icon: 'lock', permission: 'model:read' },
+    { path: '/edge/response', title: '终端响应与执行', icon: 'finished', permission: 'dispatch:read' }
   ]
 
   /** 可信数据空间四个中心：两种视角都显示 */
@@ -87,12 +93,13 @@ export const usePerspectiveStore = defineStore('perspective', () => {
   ]
 
   const globalMenus = [
-    { path: '/audit', title: '系统审计与日志中心', icon: 'list' }
+    // 真后端审计接口仅 sys_admin/regulator 可读（契约未定义 audit 资源权限），其它角色不显示入口
+    { path: '/audit', title: '系统审计与日志中心', icon: 'list', roles: ['sys_admin', 'regulator'] }
   ]
 
   const currentMenus = computed(() => {
     const menus = currentPerspective.value === 'cloud' ? cloudMenus : edgeMenus
-    return [...menus, ...globalMenus]
+    return [...menus, ...globalMenus.filter(m => !m.roles || userStoreHasRole(m.roles))]
   })
 
   function togglePerspective() {

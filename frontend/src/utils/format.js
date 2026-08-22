@@ -30,15 +30,17 @@ export function nowIso() {
 /** 显示用：`MM-DD HH:mm:ss`；无效输入返回 '--' */
 export function fmtTime(value, pattern = 'MM-DD HH:mm:ss') {
   if (!value) return '--'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return String(value)
+  const raw = new Date(value)
+  if (Number.isNaN(raw.getTime())) return String(value)
+  // 统一按东八区显示（契约 1.5 时间为 +08:00），不依赖浏览器所在时区
+  const d = new Date(raw.getTime() + TZ_OFFSET_MIN * 60 * 1000)
   const map = {
-    YYYY: d.getFullYear(),
-    MM: pad(d.getMonth() + 1),
-    DD: pad(d.getDate()),
-    HH: pad(d.getHours()),
-    mm: pad(d.getMinutes()),
-    ss: pad(d.getSeconds())
+    YYYY: d.getUTCFullYear(),
+    MM: pad(d.getUTCMonth() + 1),
+    DD: pad(d.getUTCDate()),
+    HH: pad(d.getUTCHours()),
+    mm: pad(d.getUTCMinutes()),
+    ss: pad(d.getUTCSeconds())
   }
   return pattern.replace(/YYYY|MM|DD|HH|mm|ss/g, k => map[k])
 }

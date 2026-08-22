@@ -111,6 +111,7 @@ async function ack(alert) {
 }
 
 function refreshAlerts() {
+  if (!userStore.canReadAudit) return
   logStore.fetchAlerts({ status: 'open' }).catch(() => {})
 }
 

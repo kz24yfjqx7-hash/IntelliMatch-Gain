@@ -76,10 +76,25 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
+      # 非契约变量，甲 backend/core/config.py 读取：Redis 库号（默认 0）
+      REDIS_DB: ${REDIS_DB:-0}
+      # BACKEND_PORT 必须保持 8000：甲方 backend/Dockerfile 的 CMD 固定 --port 8000 / EXPOSE 8000，
+      # nginx.conf 也固定反代 backend:8000；改此变量不会改变容器实际监听端口
       BACKEND_PORT: ${BACKEND_PORT}
       JWT_SECRET: ${JWT_SECRET}
+      # 非契约变量，甲 backend/core/config.py 读取：JWT 签名算法（默认 HS256）
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRE_SECONDS: ${JWT_EXPIRE_SECONDS}
+      # 非契约变量，甲 backend/core/config.py 读取：托管私钥 SM4 加密密钥种子。
+      # 必须与 JWT_SECRET 不同且安装后不可再变（否则已托管私钥解不回来）；install.sh 随机生成写入 .env
+      KEY_CUSTODY_SECRET: ${KEY_CUSTODY_SECRET:-energy-tds-key-custody-2026}
       ALGO_SERVICE_URL: ${ALGO_SERVICE_URL}
+      # 非契约变量，甲 backend/core/config.py 读取：调用算法服务超时秒数（默认 15）
+      ALGO_TIMEOUT: ${ALGO_TIMEOUT:-15.0}
+      # 非契约变量，甲 backend/core/config.py 读取：调试开关（默认 false）
+      DEBUG: ${DEBUG:-false}
+      # 非契约变量，甲 backend/core/config.py 读取：启动时等待 MySQL 就绪的最长秒数（默认 120，树莓派首次建库给足）
+      DB_WAIT_TIMEOUT: ${DB_WAIT_TIMEOUT:-120}
       TZ: Asia/Shanghai
     expose:
       - "${BACKEND_PORT}"
@@ -91,8 +106,9 @@ services:
       algo-service:
         condition: service_started
     healthcheck:
-      # 甲方镜像基于 python:3.11-slim，无 curl，用 urllib 探活
-      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:${BACKEND_PORT}/api/v1/health',timeout=3).status==200 else 1)\" || curl -fs http://127.0.0.1:${BACKEND_PORT}/api/v1/health >/dev/null"]
+      # 甲方镜像基于 python:3.11-slim，无 curl，用 urllib 探活。
+      # 端点是根路径 GET /health（backend/main.py，不包装、不需登录）；/api/v1/health 不存在（返回 404 的 1005 包裹）
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:${BACKEND_PORT}/health',timeout=3).status==200 else 1)\""]
       interval: 15s
       timeout: 5s
       retries: 8

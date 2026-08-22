@@ -43,7 +43,8 @@ onMounted(async () => {
   } catch {
     logStore.addLog('节点列表拉取失败，使用本地种子数据', 'WARN', 'SYSTEM')
   }
-  logStore.fetchAlerts({ status: 'open' }).catch(() => {})
+  // 真后端 /audit/alerts 仅 sys_admin/regulator 可读（其它角色 1003 且会被风控计数），按角色门控；告警仍通过 WS audit_alert 实时到达
+  if (userStore.canReadAudit) logStore.fetchAlerts({ status: 'open' }).catch(() => {})
 })
 
 // 离开布局（退出登录回到 /login）时清理 WS 订阅，避免重复订阅与泄漏

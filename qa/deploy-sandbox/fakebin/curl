@@ -26,10 +26,10 @@ case "$url" in
     printf '{"manifests":[{"platform":{"architecture":"amd64","os":"linux"}}'
     [[ " ${FAKE_NO_ARM64_IMAGES:-} " == *" ${img} "* ]] || printf ',{"platform":{"architecture":"arm64","os":"linux"}}'
     echo ']}'; exit 0 ;;
-  */api/v1/health|*/healthz)
+  */health|*/healthz)
     n=0; [[ -f "${FAKE_STATE}/health_calls" ]] && n="$(cat "${FAKE_STATE}/health_calls")"; n=$((n+1)); echo "$n" > "${FAKE_STATE}/health_calls"
     okat="${FAKE_HEALTH_OK_AT:-1}"
-    [[ "$okat" -gt 0 && "$n" -ge "$okat" ]] && { echo '{"code":0}'; exit 0; }; exit 7 ;;
+    [[ "$okat" -gt 0 && "$n" -ge "$okat" ]] && { echo '{"status":"ok"}'; exit 0; }; exit 7 ;;
 esac
 [[ $head -eq 1 ]] && exit 0
 exit 0

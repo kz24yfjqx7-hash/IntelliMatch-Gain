@@ -4,8 +4,8 @@ import request from './request'
 export function login({ username, password }) {
   return request.post('/auth/login', { username, password })
 }
-export function logout() {
-  return request.post('/auth/logout')
+export function logout(config) {
+  return request.post('/auth/logout', null, config)
 }
 export function getMe() {
   return request.get('/auth/me')

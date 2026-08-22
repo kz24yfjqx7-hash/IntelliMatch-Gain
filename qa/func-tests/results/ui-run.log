@@ -1,0 +1,16 @@
+[通过] TC-UI-01 登录页：错误密码提示；六角色登录后显示角色标签并按角色落地
+[通过] TC-UI-02 首页驾驶舱保留 + 能源可信数据空间流程横幅（六环节计数、点击跳转）+ 拓扑节点详情/下发协同任务
+[失败] TC-UI-03 统一身份与可信接入中心：用户认证管理 / DID 注册·查询·认证 / 密钥生成·绑定·注销 — 断言失败：用户列表含 admin
+[失败] TC-UI-04 能源数据资产中心：数据登记 → 自动分类分级 → 上链 → 溯源 → 授权入口 — locator.innerText: Timeout 30000ms exceeded.
+[失败] TC-UI-05 权限控制中心：角色管理 / 权限审批（subject 申请→admin 审批）/ 数据访问控制（矩阵+校验器） — 断言失败：角色管理列出 ≥6 角色
+[失败] TC-UI-06 隐私计算页：数据不出域流程、隐私预算仪表盘；联邦学习任务状态/节点信息/模型版本/每轮哈希随 WS 增长 — 断言失败：页面含数据不出域流程与隐私预算
+[失败] TC-UI-07 云端聚合与调度：生成 DQN 策略 → AI 解释（来源标识）→ 签名下发 → 终端响应 DID 验签 → 回执 — locator.click: Timeout 30000ms exceeded.
+[失败] TC-UI-08 vpp 模拟越权下发 → 1003 拦截横幅 → 铃铛 R01 告警 → 审计中心高风险日志与 traceId 时间轴 — locator.click: Timeout 30000ms exceeded.
+[失败] TC-UI-09 区块链存证中心：存证查询 → 校验 → 篡改演示被检出 → 链状态断裂 → 导出凭证 → 业务链路追踪 — locator.click: Timeout 30000ms exceeded.
+[失败] TC-UI-10 审计页面：任务级全流程追踪、风险告警确认、审计报告（DeepSeek 解读+来源标识）、CSV 导出、按月统计图 — page.waitForEvent: Target page, context or browser has been closed
+[失败] TC-UI-11 边端视角：本地感知与分级（L1–L3 打标）、动态隐私风险评估（算法服务评分） — page.evaluate: Target page, context or browser has been closed
+[失败] TC-UI-12 页面级 RBAC：vpp 无签名下发/篡改演示/新建用户/审批；subject 访问调度页被守卫拦回；edge 侧栏无存证菜单且为边端视角 — locator.click: Target page, context or browser has been closed
+[失败] TC-UI-13 WebSocket 实时：前端建立 ws 连接并收到 node_status 节点状态推送（5 秒一次） — page.goto: Target page, context or browser has been closed
+[失败] TC-UI-14 1366×768 下 11 条路由无横向溢出、ECharts 容器尺寸非 0、无未捕获异常 — page.evaluate: Target page, context or browser has been closed
+[失败] TC-UI-15 退出登录后访问受保护路由重定向到 /login?redirect= — locator.click: Target page, context or browser has been closed
+{"tag":"test-08221108","total":15,"pass":2,"fail":13,"consoleErrors":["Failed to load resource: the server responded with a status of 401 (Unauthorized)","Failed to load resource: the server responded with a status of 401 (Unauthorized)"]}

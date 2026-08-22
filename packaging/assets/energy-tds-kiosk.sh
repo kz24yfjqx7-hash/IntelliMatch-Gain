@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 能源可信数据空间平台 · 树莓派 Kiosk 启动脚本（由 energy-tds-kiosk.service 调用）
-#   1) 等平台真正就绪：优先等 /api/v1/health（后端 + 数据库都起来），最长 5 分钟；
+#   1) 等平台真正就绪：优先等 /health（nginx 反代到 backend 根路径 GET /health，后端 + 数据库都起来），最长 5 分钟；
 #      演练包（无 backend）或超时则退回只等 nginx 的 /healthz，再不行也照常拉起浏览器（页面会自行重试）。
 #   2) 以 kiosk 参数全屏拉起 chromium；--disable-gpu-compositing 缓解树莓派渲染卡顿。
 set -u
@@ -11,7 +11,7 @@ probe() { curl -fs --max-time 3 "$1" >/dev/null 2>&1 || wget -q -T 3 -O /dev/nul
 
 waited=0
 while [ "${waited}" -lt "${WAIT_SECONDS}" ]; do
-  if probe "${URL}/api/v1/health"; then echo "[kiosk] 平台健康检查通过（${waited}s）"; break; fi
+  if probe "${URL}/health"; then echo "[kiosk] 平台健康检查通过（${waited}s）"; break; fi
   sleep 5; waited=$((waited + 5))
 done
 if [ "${waited}" -ge "${WAIT_SECONDS}" ]; then

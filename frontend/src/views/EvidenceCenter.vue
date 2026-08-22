@@ -9,13 +9,13 @@
     <div class="panel" :class="{ danger: chain && !chain.intact }">
       <div class="panel-title">
         <span>链状态 <span class="sub">GET /evidence/chain/status · block_hash = H(prev + payloadHash + ts)</span></span>
-        <span v-if="chain" class="chain-flag" :class="chain.intact ? 'ok' : 'bad'">{{ chain.intact ? '✔ 链完整 intact' : `✘ 链断裂 brokenAt 高度 ${chain.brokenAt}` }}</span>
+        <span v-if="chain" class="chain-flag" :class="chain.intact ? 'ok' : 'bad'">{{ chain.intact ? '✔ 链完整 intact' : `✘ 链断裂 brokenAt 高度 ${chain.brokenAt ?? chain.brokenAtId}` }}</span>
       </div>
       <div class="status-grid">
         <div class="stat-row">
           <StatCard icon="📦" label="链高度 height" :value="chain?.height" :loading="statusLoading" />
           <StatCard icon="🧾" label="存证总数" :value="chain?.totalRecords" :loading="statusLoading" />
-          <StatCard icon="🛡️" :label="chain?.intact === false ? '断裂高度 brokenAt' : '完整性'" :value="chain ? (chain.intact ? 'INTACT' : chain.brokenAt) : '--'" :tone="chain?.intact === false ? 'danger' : 'success'" :loading="statusLoading" />
+          <StatCard icon="🛡️" :label="chain?.intact === false ? '断裂高度 brokenAt' : '完整性'" :value="chain ? (chain.intact ? 'INTACT' : (chain.brokenAt ?? chain.brokenAtId)) : '--'" :tone="chain?.intact === false ? 'danger' : 'success'" :loading="statusLoading" />
           <StatCard icon="⚠️" label="被篡改记录" :value="(chain?.tamperedIds || []).length" :tone="(chain?.tamperedIds || []).length ? 'danger' : 'primary'" :loading="statusLoading" />
           <div class="last-hash">
             <div class="muted">lastHash</div>
@@ -206,9 +206,31 @@ const BLOCK_COUNT = 16
 /* ---------- 链状态 ---------- */
 const chain = ref(null)
 const statusLoading = ref(false)
+/** 本会话内篡改过的存证 id（真后端 chain/status 不回 tamperedIds，用它兜底标红） */
+const localTamperedIds = ref([])
+/**
+ * 归一化链状态（兼容真后端与 mock 两种形状）：
+ *  - brokenAt：契约示例为 null/高度；真后端返回断裂处的 evidenceId 字符串 → 统一成高度 brokenAt + 字符串 brokenAtId
+ *  - tamperedIds：mock 扩展字段；真后端缺失时用 brokenAtId + 本会话篡改记录兜底
+ */
+async function normalizeChain(c) {
+  if (!c) return c
+  const out = { ...c }
+  let brokenAtId = null
+  if (typeof c.brokenAt === 'string' && c.brokenAt) {
+    brokenAtId = c.brokenAt
+    out.brokenAt = null
+    try { out.brokenAt = (await getEvidence(brokenAtId))?.blockHeight ?? null } catch { /* 忽略 */ }
+  }
+  out.brokenAtId = brokenAtId
+  const ids = new Set([...(c.tamperedIds || []), ...localTamperedIds.value])
+  if (brokenAtId) ids.add(brokenAtId)
+  out.tamperedIds = [...ids]
+  return out
+}
 async function loadStatus() {
   statusLoading.value = true
-  try { chain.value = await getChainStatus() } catch { /* 拦截器已提示 */ } finally { statusLoading.value = false }
+  try { chain.value = await normalizeChain(await getChainStatus()) } catch { /* 拦截器已提示 */ } finally { statusLoading.value = false }
 }
 const categoryOption = computed(() => ({
   tooltip: TOOLTIP,
@@ -271,7 +293,12 @@ function rowClass({ row }) {
 const detailVisible = ref(false)
 const detail = ref(null)
 async function viewDetail(row) {
-  try { detail.value = await getEvidence(row.evidenceId); detailVisible.value = true } catch { /* 拦截器已提示 */ }
+  try {
+    const d = await getEvidence(row.evidenceId)
+    // 真后端详情不带 tampered 布尔，但带 verification.intact；mock 两者都有
+    detail.value = { ...d, tampered: Boolean(d.tampered) || d.verification?.intact === false || isTampered(row) }
+    detailVisible.value = true
+  } catch { /* 拦截器已提示 */ }
 }
 const verifyVisible = ref(false)
 const verifyResult = ref(null)
@@ -289,7 +316,7 @@ async function exportCert(row) {
     const cert = await getCertificate(row.evidenceId)
     const blob = new Blob([JSON.stringify(cert, null, 2)], { type: 'application/json' })
     saveBlob(blob, `certificate-${row.evidenceId}.json`)
-    logStore.addLog(`导出存证凭证 ${cert.certificateId || row.evidenceId}（intact=${cert.integrity?.intact}）`, 'INFO', 'CHAIN')
+    logStore.addLog(`导出存证凭证 ${cert.certificateId || row.evidenceId}（intact=${cert.verification?.intact ?? cert.integrity?.intact ?? '未知'}）`, 'INFO', 'CHAIN')
   } catch { /* 拦截器已提示 */ }
 }
 
@@ -313,16 +340,19 @@ async function submitTamper() {
   tampering.value = true
   try {
     const t = await tamperEvidence({ evidenceId: tamperForm.evidenceId, newValue })
+    if (!localTamperedIds.value.includes(t.evidenceId)) localTamperedIds.value.push(t.evidenceId)
     logStore.addLog(`【演示】篡改存证 ${t.evidenceId}（高度 ${t.blockHeight || '--'}）的本地数据：${tamperForm.newValueText}`, 'ERROR', 'CHAIN')
     tamperVisible.value = false
     const r = await doVerify(t.evidenceId)
-    // 让被篡改记录出现在检索表首页：按其 DID / refId 过滤
-    const target = dataEvidences.value.find(e => e.evidenceId === t.evidenceId)
-    if (target?.did || target?.refId) { query.did = target.did || target.refId; query.page = 1 }
     await loadStatus()
     await Promise.all([loadBlocks(), load()])
+    // 让被篡改记录出现在检索表首页：不在当前页时钉到表首（真后端列表不支持按 evidenceId 过滤）
+    if (!list.items.some(e => e.evidenceId === t.evidenceId)) {
+      const target = dataEvidences.value.find(e => e.evidenceId === t.evidenceId)
+      if (target) list.items = [{ ...target, tampered: true }, ...list.items]
+    }
     selected.value = list.items.find(e => e.evidenceId === t.evidenceId) || selected.value
-    if (chain.value && !chain.value.intact) logStore.addLog(`链状态：断裂于高度 ${chain.value.brokenAt}，之后 ${Math.max(0, chain.value.height - chain.value.brokenAt)} 个区块受影响`, 'ERROR', 'CHAIN')
+    if (chain.value && !chain.value.intact) logStore.addLog(`链状态：断裂于高度 ${chain.value.brokenAt ?? chain.value.brokenAtId}，之后 ${Math.max(0, chain.value.height - (chain.value.brokenAt || 0))} 个区块受影响`, 'ERROR', 'CHAIN')
     if (r && !r.intact) ElMessage.error(`校验失败：${r.message}`)
   } catch { /* 拦截器已提示 */ } finally { tampering.value = false }
 }

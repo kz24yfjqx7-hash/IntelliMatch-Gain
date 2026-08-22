@@ -40,11 +40,17 @@ async function forceLogout() {
   }
 }
 
+/** 无需登录态的接口（其余接口在未登录时不发请求，避免退出登录瞬间的定时刷新打出 401） */
+const PUBLIC_PATHS = [/\/auth\/login$/]
+
 request.interceptors.request.use(config => {
   const token = readToken()
   config.headers = config.headers || {}
   if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (!token && !config.headers.Authorization && !PUBLIC_PATHS.some(r => r.test(config.url || ''))) {
+    return Promise.reject(buildError('未登录', 1002, config.headers['X-Trace-Id'] || null, { silent: true }))
   }
   if (!config.headers['X-Trace-Id']) {
     config.headers['X-Trace-Id'] = genTraceId()
@@ -96,6 +102,8 @@ request.interceptors.response.use(
     return body
   },
   error => {
+    // 请求拦截器里本地拒绝的（未登录），不提示、直接透传
+    if (error?.silent) return Promise.reject(error)
     const traceId = error.config?.traceId
     const body = error.response?.data
     if (body && typeof body === 'object' && 'code' in body) {

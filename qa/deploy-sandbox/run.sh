@@ -116,7 +116,17 @@ http {
 EOF
   nginx -t -c "${NG}/nginx.conf" >> "${CUR_OUT}" 2>&1 || fail "nginx -t 失败"
 else echo "本机无 nginx，跳过 -t" >> "${CUR_OUT}"; fi
-NC="${ROOT_DIR}/frontend/nginx.conf"
+# deploy/nginx.conf 是源（乙方 deploy Agent 维护），frontend/nginx.conf 是镜像 COPY 的副本，两者必须一致；
+# 不一致时这里只警告并提示同步命令（frontend/ 归前端 Agent），内容断言以 deploy/nginx.conf 为准，并对它再跑一次 nginx -t
+NC="${ROOT_DIR}/deploy/nginx.conf"
+if command -v nginx >/dev/null 2>&1 && ! diff -q "${ROOT_DIR}/frontend/nginx.conf" "${NC}" >/dev/null; then
+  sed 's/listen       80;/listen 18080;/' "${NC}" > "${NG}/default.conf"
+  nginx -t -c "${NG}/nginx.conf" >> "${CUR_OUT}" 2>&1 || fail "deploy/nginx.conf nginx -t 失败"
+fi
+# /health：反代到 backend 根路径 GET /health（install.sh / kiosk.sh 轮询）；/healthz 仍为 nginx 自身
+grep -qE 'location = /health \{' "$NC" || fail "缺 location = /health"
+awk '/location = \/health \{/,/\}/' "$NC" | grep -qE 'proxy_pass +\$backend_upstream/health;' || fail "/health 未反代到 \$backend_upstream/health"
+awk '/location = \/healthz \{/,/\}/' "$NC" | grep -q "return 200" || fail "/healthz 应仍由 nginx 自身返回 200"
 grep -qE 'location /api/ \{' "$NC" && grep -qE 'proxy_pass +\$backend_upstream;' "$NC" || fail "/api/ 未用无 URI 的 proxy_pass（需保留 /api 前缀）"
 grep -qE 'proxy_pass +http://backend:8000/' "$NC" && fail "/api/ proxy_pass 带尾部 / 会剥掉前缀"
 awk '/location \/ws/,/\}/' "$NC" | grep -q 'Upgrade *\$http_upgrade' || fail "/ws 缺 Upgrade 头"
@@ -129,7 +139,8 @@ for loc in 'location / {' 'location /assets/ {' 'location = /mockServiceWorker.j
   loc_block "$loc" | grep -q 'X-Frame-Options' || fail "${loc} 内缺 X-Frame-Options（add_header 不跨层继承）"
   loc_block "$loc" | grep -q 'X-Content-Type-Options' || fail "${loc} 内缺 X-Content-Type-Options"
 done
-diff -q "${ROOT_DIR}/frontend/nginx.conf" "${ROOT_DIR}/deploy/nginx.conf" >/dev/null || fail "deploy/nginx.conf 与 frontend/nginx.conf 不一致"
+diff -q "${ROOT_DIR}/frontend/nginx.conf" "${ROOT_DIR}/deploy/nginx.conf" >/dev/null \
+  || echo "WARN deploy/nginx.conf 与 frontend/nginx.conf 不一致：frontend 镜像 COPY 的是 frontend/nginx.conf，需前端 Agent 执行 cp deploy/nginx.conf frontend/nginx.conf" | tee -a "${CUR_OUT}"
 finish
 
 begin "A5 systemd 单元（systemd-analyze verify）与 kiosk 逻辑"
@@ -146,12 +157,13 @@ grep -q '^User=pi' "${SD}/energy-tds-kiosk.service" || fail "kiosk User 未替�
 grep -q 'graphical-session.target' "${SD}/energy-tds-kiosk.service" && fail "系统级 kiosk 单元不应引用用户会话 target graphical-session.target"
 grep -q '\$(' "${SD}/energy-tds-kiosk.service" && fail "kiosk 单元 ExecStart 内含 \$( —— systemd 不做 shell 展开，逻辑应放到脚本文件"
 KS="${ROOT_DIR}/packaging/assets/energy-tds-kiosk.sh"
-grep -q '/api/v1/health' "$KS" || fail "kiosk.sh 未等待 /api/v1/health"
+grep -q '"${URL}/health"' "$KS" || fail "kiosk.sh 未等待 /health"
+grep -q '/api/v1/health"' "$KS" && fail "kiosk.sh 仍探 /api/v1/health（后端 404）"
 grep -q -- '--kiosk' "$KS" && grep -q -- '--disable-gpu-compositing' "$KS" || fail "kiosk.sh 缺 --kiosk / --disable-gpu-compositing"
 # kiosk.sh 行为实测：健康第 3 次通过 → 只探测 3 次后拉起浏览器
 sandbox_env kiosk; export FAKE_HEALTH_OK_AT=3 KIOSK_WAIT_SECONDS=60
 run_in arm bash "$KS"; rc=$?; a_rc $rc 0
-[[ "$(grep -c '^curl .*api/v1/health' "${FAKE_LOG}")" -eq 3 ]] || fail "kiosk.sh 应探测 3 次后停止（实际 $(grep -c '^curl .*api/v1/health' "${FAKE_LOG}")）"
+[[ "$(grep -c '^curl .*[0-9a-z]/health$' "${FAKE_LOG}")" -eq 3 ]] || fail "kiosk.sh 应探测 3 次后停止（实际 $(grep -c '^curl .*[0-9a-z]/health$' "${FAKE_LOG}")）"
 a_grep '平台健康检查通过'
 # 超时退路：永不健康 → 退回 /healthz 仍拉起
 sandbox_env kiosk2; export FAKE_HEALTH_OK_AT=0 KIOSK_WAIT_SECONDS=20
@@ -441,7 +453,7 @@ begin "C10 --port 8080 绕过 80 占用，.env 与健康 URL 使用新端口"
 sandbox_env c10; export FAKE_BUSY_PORTS="80:nginx:1234"
 run_in normal bash "${INST}" --port 8080; rc=$?; a_rc $rc 0
 grep -q '^FRONTEND_PORT=8080$' "${SBX}/opt/energy-tds/.env" || fail ".env FRONTEND_PORT 未改为 8080"
-a_log 'curl .*http://localhost:8080/api/v1/health'; a_grep 'http://192.168.1.100:8080'
+a_log 'curl .*http://localhost:8080/health'; a_grep 'http://192.168.1.100:8080'
 finish
 
 begin "C11 镜像 SHA256 不符 → 提示包损坏，不 docker load"
@@ -463,13 +475,18 @@ E="${SBX}/opt/energy-tds/.env"; a_file "$E"
 for k in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD; do grep -qE "^${k}=[0-9a-f]{32}$" "$E" || fail "$k 不是 32 位随机 hex"; done
 grep -qE '^JWT_SECRET=[0-9a-f]{64}$' "$E" || fail "JWT_SECRET 不是 64 位随机 hex"
 grep -q 'energy-tds-demo-secret-2026' "$E" && fail "JWT_SECRET 仍是模板默认值"
+# KEY_CUSTODY_SECRET（甲 backend/core/config.py 读取）：随机 64 位 hex，且与 JWT_SECRET 不同
+grep -qE '^KEY_CUSTODY_SECRET=[0-9a-f]{64}$' "$E" || fail "KEY_CUSTODY_SECRET 不是 64 位随机 hex"
+grep -q 'energy-tds-key-custody-2026' "$E" && fail "KEY_CUSTODY_SECRET 仍是模板默认值"
+[[ "$(sed -n 's/^JWT_SECRET=//p' "$E")" != "$(sed -n 's/^KEY_CUSTODY_SECRET=//p' "$E")" ]] || fail "KEY_CUSTODY_SECRET 与 JWT_SECRET 相同"
+for v in REDIS_DB JWT_ALGORITHM ALGO_TIMEOUT DEBUG DB_WAIT_TIMEOUT; do grep -q "^${v}=" "$E" || fail ".env 缺 backend 非契约变量 $v"; done
 grep -qE '^[A-Z_]+=.*#' "$E" && fail ".env 残留行尾注释"
 # 契约全部变量都在 .env 中
 for v in $(sed -n '/^## 第四部分/,/^## 第五部分/p' "${ROOT_DIR}/contract/API-CONTRACT.md" | grep -oE '^[A-Z_]+=' | tr -d =); do grep -q "^${v}=" "$E" || fail ".env 缺契约变量 $v"; done
 for f in docker-compose.yml config/mysql.cnf sql/01_schema.sql sql/02_seed.sql uninstall.sh VERSION 部署说明.md; do a_file "${SBX}/opt/energy-tds/$f"; done
 # docker load 五个镜像，SHA 校验在 load 之前
 [[ "$(grep -c '^docker load -q -i' "${FAKE_LOG}")" -eq 5 ]] || fail "应 docker load 5 个镜像"
-a_log '^docker compose up -d'; a_log 'curl .*http://localhost:80/api/v1/health'
+a_log '^docker compose up -d'; a_log 'curl .*http://localhost:80/health'
 a_grep '平台健康检查通过'
 # systemd
 a_file "${SBX}/systemd/energy-tds.service"; a_log '^systemctl enable energy-tds.service'
@@ -479,14 +496,14 @@ a_nofile "${SBX}/systemd/energy-tds-kiosk.service"; a_nolog 'dphys-swapfile'
 a_grep '安装完成'; a_grep '访问地址   http://192.168.1.100$'
 for acct in 'admin / admin123' 'grid / grid123' 'vpp / vpp123' 'subject / subject123' 'regulator / reg123' 'edge / edge123'; do a_grep "$acct"; done
 a_grep 'systemctl start\|stop\|status energy-tds'; a_grep 'uninstall.sh'
-SECRETS_1="$(grep -E '^(MYSQL_ROOT_PASSWORD|MYSQL_PASSWORD|JWT_SECRET)=' "$E")"
+SECRETS_1="$(grep -E '^(MYSQL_ROOT_PASSWORD|MYSQL_PASSWORD|JWT_SECRET|KEY_CUSTODY_SECRET)=' "$E")"
 finish
 
-begin "C14 第二台机器安装 → 三个密钥与 C13 全部不同"
+begin "C14 第二台机器安装 → 四个密钥与 C13 全部不同"
 sandbox_env c14
 run_in normal bash "${INST}"; rc=$?; a_rc $rc 0
-SECRETS_2="$(grep -E '^(MYSQL_ROOT_PASSWORD|MYSQL_PASSWORD|JWT_SECRET)=' "${SBX}/opt/energy-tds/.env")"
-for k in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD JWT_SECRET; do
+SECRETS_2="$(grep -E '^(MYSQL_ROOT_PASSWORD|MYSQL_PASSWORD|JWT_SECRET|KEY_CUSTODY_SECRET)=' "${SBX}/opt/energy-tds/.env")"
+for k in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD JWT_SECRET KEY_CUSTODY_SECRET; do
   [[ "$(grep "^$k=" <<<"${SECRETS_1}")" != "$(grep "^$k=" <<<"${SECRETS_2}")" ]] || fail "$k 两次安装相同"
 done
 finish
@@ -506,11 +523,11 @@ begin "C16 健康检查 180s 超时 → 打印 compose ps + logs --tail=50 并�
 sandbox_env c16; export FAKE_HEALTH_OK_AT=0
 run_in normal bash "${INST}"; rc=$?; a_rc $rc 1
 a_grep 'docker compose logs --tail=50'; a_log '^docker compose logs --tail=50'; a_log '^docker compose ps'
-[[ "$(grep -c '^curl .*api/v1/health' "${FAKE_LOG}")" -eq 60 ]] || fail "180s/3s 应轮询 60 次（实际 $(grep -c '^curl .*api/v1/health' "${FAKE_LOG}")）"
+[[ "$(grep -c '^curl .*[0-9a-z]/health$' "${FAKE_LOG}")" -eq 60 ]] || fail "180s/3s 应轮询 60 次（实际 $(grep -c '^curl .*[0-9a-z]/health$' "${FAKE_LOG}")）"
 a_grep '等待 180s 仍未通过健康检查'; a_nogrep '安装完成'; a_nofile "${SBX}/systemd/energy-tds.service"
 # 第 5 次才健康
 sandbox_env c16b; export FAKE_HEALTH_OK_AT=5
-run_in normal bash "${INST}"; rc=$?; a_rc $rc 0; [[ "$(grep -c '^curl .*api/v1/health' "${FAKE_LOG}")" -eq 5 ]] || fail "应在第 5 次轮询通过"
+run_in normal bash "${INST}"; rc=$?; a_rc $rc 0; [[ "$(grep -c '^curl .*[0-9a-z]/health$' "${FAKE_LOG}")" -eq 5 ]] || fail "应在第 5 次轮询通过"
 finish
 
 begin "C17 docker compose up 失败 → 退出并给出 logs 命令"

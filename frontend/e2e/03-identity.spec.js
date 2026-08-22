@@ -7,7 +7,10 @@ test('身份中心：注册 DID → 文档 → 验签通过 / 无效签名失败
   await page.goto('/identity')
   await expect(page.getByRole('tab', { name: 'DID 管理' })).toBeVisible()
   await page.getByRole('tab', { name: 'DID 管理' }).click()
-  const totalBefore = Number((await page.locator('.stat-card', { hasText: 'DID 总数' }).locator('.stat-value, .value').first().innerText()).replace(/\D/g, ''))
+  // 真后端统计加载较慢，等到出现数字再取基线
+  const didTotal = page.locator('.stat-card', { hasText: 'DID 总数' }).locator('.stat-value, .value').first()
+  await expect(didTotal).toHaveText(/\d/)
+  const totalBefore = Number((await didTotal.innerText()).replace(/\D/g, ''))
 
   await page.getByRole('button', { name: /注册 DID/ }).click()
   const dlg = page.locator('.el-dialog', { hasText: '注册 DID' })

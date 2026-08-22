@@ -124,11 +124,15 @@ def test_dqn_constraints_hold_on_grid(client, soc, pv, load, price):
         assert a["action"] != "discharge"
     if soc >= 95:
         assert a["action"] != "charge"
-    viol = out["constraintsChecked"]["violations"]
-    assert (len(viol) >= 1) == (soc <= 20 or soc >= 95)
-    for v in viol:
+    cc = out["constraintsChecked"]
+    assert set(cc) == {"socMin", "socMax", "maxPowerKw", "violations"}  # 契约 3.3 字段严格一致
+    # 越限区必须在动作 reason 中留痕；violations 只在动作被真正改写时出现
+    if soc <= 20 or soc >= 95:
+        assert "下限" in a["reason"] or "上限" in a["reason"], a["reason"]
+    for v in cc["violations"]:
         assert set(v) == {"nodeId", "constraint", "attempted", "applied", "detail"}
         assert v["constraint"] in ("socMin", "socMax", "maxPowerKw")
+        assert v["attempted"] != v["applied"] or v["constraint"] == "maxPowerKw", v
     json.dumps(out, allow_nan=False)
 
 
@@ -137,7 +141,7 @@ def test_dqn_constraints_hold_on_grid(client, soc, pv, load, price):
 def test_dqn_all_nodes_on_boundary(client, n, soc):
     out = _dispatch(client, [{"id": f"n{i}", "pv": 10 * i, "load": 100, "soc": soc, "price": 0.62, "hour": 12} for i in range(n)])
     assert len(out["actions"]) == n == len(out["qTable"])
-    assert len(out["constraintsChecked"]["violations"]) == n
+    assert all("下限" in a["reason"] or "上限" in a["reason"] for a in out["actions"])
     assert all(0 <= a["powerKw"] <= 30 for a in out["actions"])
 
 

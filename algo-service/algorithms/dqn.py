@@ -361,8 +361,10 @@ class DQNDispatcher:
             best = int(order[0])
             violated = None
             # ---- 硬约束校验 ----
-            # SOC ≤ 下限：禁止放电；SOC ≥ 上限：禁止充电。只要节点处于越限区，就记录一条
-            # violation（attempted=网络原始最优动作，applied=实际执行动作），即使网络本身已学会避开。
+            # SOC ≤ 下限：禁止放电；SOC ≥ 上限：禁止充电。
+            # violations 只记「网络最优动作被约束改写」（attempted != applied）的真实拦截：
+            # 契约 3.3 示例中无违规即 violations: []。节点虽在越限区但网络本就没选禁用动作时，
+            # 不算违规——该情况已由动作的 reason 字段写明（"SOC x% 低于下限 y%，禁止放电"），校验留痕不丢。
             soc = nd["soc"]
             if soc <= config.SOC_MIN:
                 violated, banned = "soc_low", 2
@@ -377,7 +379,7 @@ class DQNDispatcher:
                     continue
                 chosen = cand
                 break
-            if violated:
+            if violated and best != chosen:
                 side = "下限" if violated == "soc_low" else "上限"
                 violations.append(
                     {
@@ -385,10 +387,7 @@ class DQNDispatcher:
                         "constraint": "socMin" if violated == "soc_low" else "socMax",
                         "attempted": ACTIONS[best],
                         "applied": ACTIONS[chosen],
-                        "detail": (
-                            f"SOC={soc:.1f}% 触发{side}约束，禁止 {ACTIONS[banned]}；"
-                            + (f"原动作 {ACTIONS[best]} 改为 {ACTIONS[chosen]}" if best != chosen else f"动作 {ACTIONS[chosen]} 可行，予以保留")
-                        ),
+                        "detail": f"SOC={soc:.1f}% 触发{side}约束，禁止 {ACTIONS[banned]}，原动作 {ACTIONS[best]} 改为 {ACTIONS[chosen]}",
                     }
                 )
             # ---- 功率：Q 值优势 × SOC 余量，封顶 MAX_POWER_KW ----

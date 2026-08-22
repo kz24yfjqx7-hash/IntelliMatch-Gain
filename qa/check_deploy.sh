@@ -41,8 +41,14 @@ for v in $OPT_VARS; do echo "$CONTRACT_VARS" | grep -qx "$v" || warn "compose �
 ENV_VARS=$(grep -oE '^[A-Z_]+=' .env.example | tr -d '=' | sort -u)
 MISSING=""; for v in $CONTRACT_VARS; do echo "$ENV_VARS" | grep -qx "$v" || MISSING="$MISSING $v"; done
 [ -z "$MISSING" ] && ok ".env.example 覆盖契约全部变量" || bad ".env.example 缺少：$MISSING"
-EXTRA2=""; for v in $ENV_VARS; do echo "$CONTRACT_VARS" | grep -qx "$v" || EXTRA2="$EXTRA2 $v"; done
-[ -z "$EXTRA2" ] && ok ".env.example 无自创变量" || bad ".env.example 自创变量：$EXTRA2"
+# 甲 backend/core/config.py 读取但契约第四部分没有的变量：允许出现在 .env.example，但该行必须注明"非契约变量"
+BACKEND_EXTRA="REDIS_DB JWT_ALGORITHM KEY_CUSTODY_SECRET ALGO_TIMEOUT DEBUG DB_WAIT_TIMEOUT"
+EXTRA2=""; for v in $ENV_VARS; do
+  if echo "$BACKEND_EXTRA" | tr ' ' '\n' | grep -qx "$v"; then
+    grep -qE "^$v=.*非契约变量" .env.example || bad ".env.example $v 未注明“非契约变量”"
+  else echo "$CONTRACT_VARS" | grep -qx "$v" || EXTRA2="$EXTRA2 $v"; fi
+done
+[ -z "$EXTRA2" ] && ok ".env.example 无自创变量（backend 非契约变量已注明）" || bad ".env.example 自创变量：$EXTRA2"
 
 echo "== 4. compose 结构 =="
 grep -qE '\./backend/sql:/docker-entrypoint-initdb\.d:ro' docker-compose.yml && ok "backend/sql initdb 挂载存在" || bad "缺少 ./backend/sql:/docker-entrypoint-initdb.d:ro 挂载"
@@ -59,13 +65,20 @@ echo "== 5. Dockerfile / nginx =="
 [ -f algo-service/Dockerfile ] && grep -q 'dqn.npz' algo-service/Dockerfile && ok "algo Dockerfile 兜底 dqn.npz" || bad "algo Dockerfile 未兜底 dqn.npz"
 [ -f frontend/Dockerfile ] && grep -q 'BUILDPLATFORM' frontend/Dockerfile && grep -q 'nginx:alpine' frontend/Dockerfile && ok "frontend 多阶段 Dockerfile" || bad "frontend Dockerfile 不符合多阶段约定"
 [ -f frontend/nginx.conf ] && grep -q 'backend:8000' frontend/nginx.conf && grep -q 'Upgrade' frontend/nginx.conf && grep -q 'try_files' frontend/nginx.conf && ok "nginx.conf /api /ws SPA 齐全" || bad "nginx.conf 缺 /api 或 /ws Upgrade 或 try_files"
+grep -q 'location = /health ' deploy/nginx.conf && grep -qE 'proxy_pass +\$backend_upstream/health;' deploy/nginx.conf && ok "deploy/nginx.conf /health 反代到 backend /health" || bad "deploy/nginx.conf 缺 location = /health 反代"
+grep -q 'location = /healthz' deploy/nginx.conf && ok "deploy/nginx.conf /healthz 仍为 nginx 自身" || bad "deploy/nginx.conf 缺 /healthz"
+if diff -q deploy/nginx.conf frontend/nginx.conf >/dev/null 2>&1; then ok "frontend/nginx.conf 与 deploy/nginx.conf 一致"; else echo "WARN frontend/nginx.conf 与 deploy/nginx.conf 不一致（frontend 镜像 COPY 的是 frontend/nginx.conf，需 frontend Agent 同步：cp deploy/nginx.conf frontend/nginx.conf）"; fi
+grep -q "/health'" docker-compose.yml && ! grep -q "api/v1/health'" docker-compose.yml && ok "backend healthcheck 探根路径 /health" || bad "backend healthcheck 未探根路径 /health"
+for v in REDIS_DB JWT_ALGORITHM KEY_CUSTODY_SECRET ALGO_TIMEOUT DEBUG DB_WAIT_TIMEOUT; do grep -qE "^\s+$v: " docker-compose.yml && grep -qE "^$v=" .env.example && ok "backend 非契约变量 $v 已传递（compose + .env.example）" || bad "backend 非契约变量 $v 未传递"; done
 
 echo "== 6. install.sh 九步要点 =="
 I=packaging/install.sh
 if [ -f "$I" ]; then
   grep -q 'armv7l' "$I" && ok "armv7l 拒绝" || bad "缺 armv7l 拒绝"
   grep -qE 'openssl rand|/dev/urandom' "$I" && ok "随机密钥（openssl rand）" || bad "缺随机密钥生成"
-  grep -q '180' "$I" && grep -qE 'api/v1/health' "$I" && ok "180 秒健康轮询" || bad "缺 180s /api/v1/health 轮询"
+  grep -q '180' "$I" && grep -qE 'FRONTEND_PORT\}/health"' "$I" && ok "180 秒健康轮询（/health）" || bad "缺 180s /health 轮询"
+  grep -qE 'HEALTH_URL=.*api/v1/health' "$I" && bad "install.sh 仍轮询 /api/v1/health（backend 该路径 404，应为根路径 /health）"
+  grep -q 'KEY_CUSTODY_SECRET=' "$I" && ok "随机生成 KEY_CUSTODY_SECRET" || bad "install.sh 未生成 KEY_CUSTODY_SECRET"
   for a in 'admin / admin123' 'grid / grid123' 'vpp / vpp123' 'subject / subject123' 'regulator / reg123' 'edge / edge123'; do grep -q "$a" "$I" && ok "输出账号 $a" || bad "缺演示账号输出 $a"; done
   grep -qE 'EUID|id -u' "$I" && ok "root 检查" || bad "缺 root 检查"
   grep -qE '3\.5|3584|3500' "$I" && ok "内存 3.5GB 检查" || bad "缺内存检查"

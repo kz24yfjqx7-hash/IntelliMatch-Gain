@@ -1,0 +1,284 @@
+
+=== admin ===
+    [nav] /login
+    [nav] /login
+    [nav] /login
+    [nav] /cloud/topology
+  ok   login (1213ms)
+    [nav] /cloud/topology
+  ok   visit /cloud/topology (2137ms)
+    [nav] /cloud/aggregate
+  ok   visit /cloud/aggregate (2099ms)
+    [nav] /edge/classification
+  ok   visit /edge/classification (2086ms)
+    [nav] /edge/risk
+  ok   visit /edge/risk (2073ms)
+    [nav] /edge/privacy
+  ok   visit /edge/privacy (2094ms)
+    [nav] /edge/response
+  ok   visit /edge/response (2075ms)
+    [nav] /audit
+  ok   visit /audit (2110ms)
+    [nav] /identity
+  ok   visit /identity (2090ms)
+    [nav] /assets
+  ok   visit /assets (2099ms)
+    [nav] /permission
+  ok   visit /permission (2108ms)
+    [nav] /evidence
+  ok   visit /evidence (2120ms)
+    [nav] /identity
+  ok   identity: 注册 DID (2097ms)
+  ok   identity: 文档/验签 (5218ms)
+  ok   identity: 冻结/解冻/轮换 (5765ms)
+  FAIL identity: 密钥管理 生成并绑定: locator.click: Timeout 12000ms exceeded. | Call log: | [2m  - waiting for getByRole('tab', { name: '密钥管理' })[22m
+    msg: 已保存
+  FAIL identity: 用户管理 新建/编辑/删除: 新建用户后列表未出现 crawl34682 msg=已保存
+    [nav] /assets
+  ok   assets: 登记资产(自动分级)→溯源→详情 (7694ms)
+    [nav] /edge/classification
+    msg: 已登记 6 条资产并上链，评审可在「能源数据资产」中心查看
+  ok   classification: 开始分级 → 一键登记 (8373ms)
+    [nav] /edge/risk
+  ok   risk: 预设×3 + 立即评估 (10995ms)
+    [nav] /edge/privacy
+    msg: 
+    FL: rounds=10 status=已完成 curve=10 轮 fl_progress frames=10
+  ok   privacy: 创建并启动 FL → 等待完成 (12252ms)
+  ok   privacy: 重新生成 demo (1032ms)
+    [nav] /cloud/aggregate
+    msg: 
+  ok   aggregate: 生成调度策略 (1713ms)
+  ok   aggregate: AI 提问 (603ms)
+    msg:  download: true
+  ok   aggregate: 生成分析报告 (1556ms)
+    msg: 
+  ok   aggregate: 签名下发 (3216ms)
+    deny msg: 该任务已下发，不能重复下发
+    invalid msg: 
+  ok   aggregate: 模拟越权下发 + 无效签名 (16224ms)
+    [nav] /edge/response
+    chip: 已回执 msg: 
+  ok   response: 验签 → 回执 (7497ms)
+    [nav] /evidence
+    cert download: true msg: 
+  ok   evidence: 校验 / 详情 / 凭证 / 追踪 (4021ms)
+    tamper result contains 不一致: true  chain broken shown: true
+  ok   evidence: 篡改演示 (2868ms)
+    [nav] /audit
+    csv: audit-logs-2026-08-22.csv
+  ok   audit: 导出 CSV (1968ms)
+    trace items: 1 msg: 
+    bell 21 -> 21 msg: 
+  ok   audit: 筛选 high + 追踪 + 告警确认 + 日报 (11591ms)
+    [nav] /permission
+    checker: vpp DENIED? true  admin ALLOWED? true
+  ok   permission: 矩阵 / 校验器 (3783ms)
+    [nav] /cloud/topology
+    20s frames: {"log":0,"evidence_written":0,"pong":0,"dispatch_progress":0,"audit_alert":0,"fl_progress":0} logbar 3 -> 3 bell 21 -> 21 ws: 实时在线
+    topo nodes: Node-A 在线 did:vpp:edge:0xc82c18c...b807e1 DID 活跃 ⚡ 负荷 120 kW || Node-B 在线 did:vpp:edge:0xd33362c...bc55eb DID 活跃 ⚡ 负荷 85 kW  || Node-C 告警 did:vpp:edge:0x3a0fdd2...376155 DID 活跃 ⚡ 负荷 150 kW || Node-D 在线 did:vpp:edge:0x0267244...6360f4 DID 活跃 ⚡ 负荷 95 kW 
+  ok   ws: node_status / log / bell 页面联动观察 (20s) (20843ms)
+    [nav] /login
+  ok   logout (548ms)
+
+=== grid ===
+    [nav] /login
+    [nav] /login
+    [nav] /cloud/topology
+  ok   login (867ms)
+    [nav] /cloud/topology
+  ok   visit /cloud/topology (2154ms)
+    [nav] /cloud/aggregate
+  ok   visit /cloud/aggregate (2128ms)
+    [nav] /edge/classification
+  ok   visit /edge/classification (2103ms)
+    [nav] /edge/risk
+  ok   visit /edge/risk (2080ms)
+    [nav] /edge/privacy
+  ok   visit /edge/privacy (2085ms)
+    [nav] /edge/response
+  ok   visit /edge/response (2113ms)
+    [nav] /audit
+  ok   visit /audit (2087ms)
+    [nav] /identity
+  ok   visit /identity (2095ms)
+    [nav] /assets
+  ok   visit /assets (2095ms)
+    [nav] /permission
+  ok   visit /permission (2088ms)
+    [nav] /evidence
+  ok   visit /evidence (2113ms)
+    [nav] /login
+  ok   logout (889ms)
+
+=== vpp ===
+    [nav] /login
+    [nav] /login
+    [nav] /cloud/topology
+  ok   login (2385ms)
+    [nav] /cloud/topology
+  ok   visit /cloud/topology (2096ms)
+    [nav] /cloud/aggregate
+  ok   visit /cloud/aggregate (2098ms)
+    [nav] /edge/classification
+  ok   visit /edge/classification (2091ms)
+    [nav] /edge/risk
+  ok   visit /edge/risk (2108ms)
+    [nav] /edge/privacy
+  ok   visit /edge/privacy (2100ms)
+    [nav] /edge/response
+  ok   visit /edge/response (2098ms)
+    [nav] /audit
+  ok   visit /audit (2102ms)
+    [nav] /identity
+  ok   visit /identity (2106ms)
+    [nav] /assets
+  ok   visit /assets (2101ms)
+    [nav] /permission
+  ok   visit /permission (2086ms)
+    [nav] /evidence
+  ok   visit /evidence (2100ms)
+    [nav] /login
+  ok   logout (782ms)
+
+=== subject ===
+    [nav] /login
+    [nav] /login
+    [nav] /cloud/topology
+  ok   login (922ms)
+    [nav] /cloud/topology
+  ok   visit /cloud/topology (2095ms)
+    [nav] /cloud/aggregate
+  ok   visit /cloud/aggregate (2113ms)
+    [nav] /edge/classification
+  ok   visit /edge/classification (2114ms)
+    [nav] /edge/risk
+  ok   visit /edge/risk (2105ms)
+    [nav] /edge/privacy
+  ok   visit /edge/privacy (2095ms)
+    [nav] /edge/response
+  ok   visit /edge/response (2084ms)
+    [nav] /audit
+  ok   visit /audit (2104ms)
+    [nav] /identity
+  ok   visit /identity (2090ms)
+    [nav] /assets
+  ok   visit /assets (2098ms)
+    [nav] /permission
+  ok   visit /permission (2080ms)
+    [nav] /evidence
+  ok   visit /evidence (2111ms)
+    [nav] /permission
+    msg: 申请已提交 #48
+  ok   subject: 申请权限 (3201ms)
+    [nav] /login
+    [nav] /login
+    [nav] /login
+    [nav] /cloud/topology
+  ok   relogin admin (2875ms)
+    [nav] /permission
+    msg:  row: 48 能源主体 did:vpp:user:0x40183...c2e852 asset:read resourceId 1039 爬行申请-10258 pending 2026-08-22 11:29:25 2026-09-21 -- 通过
+  FAIL admin: 审批通过 + 已授权 + 回收: locator.click: Timeout 12000ms exceeded. | Call log: | [2m  - waiting for getByRole('tab', { name: '已授权管理' })[22m
+    [nav] /login
+  ok   logout (894ms)
+
+=== regulator ===
+    [nav] /login
+    [nav] /login
+    [nav] /cloud/topology
+  ok   login (2670ms)
+    [nav] /cloud/topology
+  ok   visit /cloud/topology (2137ms)
+    [nav] /cloud/aggregate
+  ok   visit /cloud/aggregate (2098ms)
+    [nav] /edge/classification
+  ok   visit /edge/classification (2131ms)
+    [nav] /edge/risk
+  ok   visit /edge/risk (2081ms)
+    [nav] /edge/privacy
+  ok   visit /edge/privacy (2132ms)
+    [nav] /edge/response
+  ok   visit /edge/response (2095ms)
+    [nav] /audit
+  ok   visit /audit (2131ms)
+    [nav] /identity
+  ok   visit /identity (2108ms)
+    [nav] /assets
+  ok   visit /assets (2098ms)
+    [nav] /permission
+  ok   visit /permission (2083ms)
+    [nav] /evidence
+  ok   visit /evidence (2131ms)
+    [nav] /login
+  ok   logout (660ms)
+
+=== edge ===
+    [nav] /login
+    [nav] /login
+    [nav] /edge/classification
+  ok   login (950ms)
+    [nav] /cloud/topology
+  ok   visit /cloud/topology (2148ms)
+    [nav] /cloud/aggregate
+  ok   visit /cloud/aggregate (2139ms)
+    [nav] /edge/classification
+  ok   visit /edge/classification (2123ms)
+    [nav] /edge/risk
+  ok   visit /edge/risk (2092ms)
+    [nav] /edge/privacy
+  ok   visit /edge/privacy (2096ms)
+    [nav] /edge/response
+  ok   visit /edge/response (2114ms)
+    [nav] /audit
+  ok   visit /audit (2109ms)
+    [nav] /identity
+  ok   visit /identity (2082ms)
+    [nav] /assets
+  ok   visit /assets (2162ms)
+    [nav] /permission
+  ok   visit /permission (2104ms)
+    [nav] /evidence
+  ok   visit /evidence (2092ms)
+    [nav] /login
+  ok   logout (1125ms)
+
+=== WS totals === {"log":43,"evidence_written":62,"pong":5,"dispatch_progress":23,"audit_alert":2,"fl_progress":10}
+=== failed steps ===
+  admin:/identity#actions identity: 密钥管理 生成并绑定 => locator.click: Timeout 12000ms exceeded. | Call log: | [2m  - waiting for getByRole('tab', { name: '密钥管理' })[22m
+  admin:/identity#actions identity: 用户管理 新建/编辑/删除 => 新建用户后列表未出现 crawl34682 msg=已保存
+  admin:/permission#approve admin: 审批通过 + 已授权 + 回收 => locator.click: Timeout 12000ms exceeded. | Call log: | [2m  - waiting for getByRole('tab', { name: '已授权管理' })[22m
+=== issues per page ===
+admin:/assets#actions
+    [warning] [ECharts] Can't get DOM width or height. Please check dom.clientWidth and dom.clientHeight. They should not be 0.For example, you may need to call this in the c
+admin:/cloud/aggregate#actions
+    [error] Failed to load resource: the server responded with a status of 409 (Conflict)
+    [api POST /api/v1/dispatch/tasks/dp-000042/issue 409 code= {"code":1006,"message":"该任务已下发，不能重复下发","data":null,"traceId":"tr-20260822-9b14bde5"}
+grid:/audit
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+vpp:/audit
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+subject:/cloud/aggregate
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+subject:/edge/privacy
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+subject:/edge/response
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+subject:/audit
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+subject:/assets
+    [text /assets] empty table: 资产列表 链上只存 SM3 摘要，原始 payload 存库
+regulator:/edge/risk
+    [text /edge/risk] empty table: 🧮 因子贡献（weight × score）
+edge:/edge/risk
+    [error] Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+    [api POST /api/v1/risk/assess 500 code= {"code":5000,"message":"服务器内部错误","data":null,"traceId":"tr-00000000-00000000"}
+    [text /edge/risk] empty table: 🧮 因子贡献（weight × score）
+edge:/audit
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+edge:/identity
+    [text /identity] empty table: el-tab-pane
+edge:/assets
+    [text /assets] empty table: 资产列表 链上只存 SM3 摘要，原始 payload 存库
+edge:/evidence
+    [warning] [Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1
+report: /home/stu/yanxulong/Tzb/energy-tds/qa/crawl-report.json

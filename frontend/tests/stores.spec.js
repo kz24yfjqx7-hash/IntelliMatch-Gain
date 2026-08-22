@@ -123,6 +123,11 @@ describe('stores/perspective', () => {
     expect(p.isCloud).toBe(true)
     p.togglePerspective()
     expect(p.isEdge).toBe(true)
+    // 审计中心入口按角色门控（真后端 /audit/* 仅 sys_admin/regulator）
+    const u = useUserStore()
+    u.user = { roles: ['vpp_operator'] }
+    expect(p.currentMenus.map(m => m.path)).not.toContain('/audit')
+    u.user = { roles: ['sys_admin'] }
     expect(p.currentMenus.map(m => m.path)).toContain('/audit')
   })
 

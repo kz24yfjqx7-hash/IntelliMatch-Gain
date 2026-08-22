@@ -1,0 +1,1755 @@
+{
+  "pages": {
+    "admin:/login": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3,
+        "log": 1
+      }
+    },
+    "admin:/cloud/topology": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 2,
+        "log": 1
+      }
+    },
+    "admin:/cloud/aggregate": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "admin:/edge/risk": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "admin:/edge/privacy": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 5,
+        "log": 1
+      }
+    },
+    "admin:/edge/response": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "admin:/identity": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4,
+        "log": 2
+      }
+    },
+    "admin:/assets": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "admin:/permission": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "admin:/evidence": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "admin:/identity#actions": {
+      "console": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+        }
+      ],
+      "api": [
+        {
+          "method": "POST",
+          "path": "/api/v1/keys",
+          "status": 404,
+          "body": "{\"code\":1005,\"message\":\"身份 did:vpp:device:0xada903dbb97a53a19adfe9534daef43e 不存在\",\"data\":null,\"traceId\":\"tr-20260822-79ea9302\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/users",
+          "status": 400,
+          "body": "{\"code\":1001,\"message\":\"参数错误：username String should have at least 3 characters\",\"data\":null,\"traceId\":\"tr-20260822-94512fcd\"}"
+        }
+      ],
+      "text": [
+        {
+          "label": "identity register result",
+          "issue": "null @ …:device:0xada90...aef43e（爬行逆变器-60914），存证 null 2026/8/22 11:12:42 [DID] 系统管理员 did…"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 60,
+        "log": 3,
+        "pong": 1,
+        "dispatch_progress": 3
+      }
+    },
+    "admin:/assets#actions": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[ECharts] Can't get DOM width or height. Please check dom.clientWidth and dom.clientHeight. They should not be 0.For example, you may need to call this in the callback of window.onload."
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 18,
+        "pong": 1,
+        "log": 10,
+        "audit_alert": 1
+      }
+    },
+    "admin:/edge/classification#actions": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 9,
+        "log": 2
+      }
+    },
+    "admin:/edge/risk#actions": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "pong": 1
+      }
+    },
+    "admin:/edge/privacy#actions": {
+      "console": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+        }
+      ],
+      "api": [
+        {
+          "method": "POST",
+          "path": "/api/v1/assets",
+          "status": 500,
+          "body": "{\"code\":5000,\"message\":\"服务器内部错误\",\"data\":null,\"traceId\":\"tr-00000000-00000000\"}"
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "log": 12,
+        "audit_alert": 1,
+        "evidence_written": 24,
+        "fl_progress": 20,
+        "pong": 1
+      }
+    },
+    "admin:/cloud/aggregate#actions": {
+      "console": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 409 (Conflict)"
+        }
+      ],
+      "api": [
+        {
+          "method": "POST",
+          "path": "/api/v1/dispatch/tasks/dp-000031/issue",
+          "status": 409,
+          "body": "{\"code\":1006,\"message\":\"该任务已下发，不能重复下发\",\"data\":null,\"traceId\":\"tr-20260822-e9d3d682\"}"
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "dispatch_progress": 8,
+        "evidence_written": 51,
+        "log": 4
+      }
+    },
+    "admin:/edge/response#actions": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 20,
+        "pong": 1,
+        "dispatch_progress": 3,
+        "log": 3
+      }
+    },
+    "admin:/evidence#actions": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "evidence detail",
+          "issue": "null @ …a061137b9b46fc73d103be8f98\", \"detail\": null, \"at\": \"2026-08-22T19:14:58+08:0…"
+        },
+        {
+          "label": "evidence trace",
+          "issue": "undefined @ …1:15:05 [CHAIN] 导出存证凭证 ev-001084（intact=undefined）…"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 14,
+        "log": 1
+      }
+    },
+    "admin:/audit#actions": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "frontend ops",
+          "issue": "undefined @ … INFO CHAIN 导出存证凭证 ev-001084（intact=undefined） — 成功 2026/8/22 11:15:03…"
+        },
+        {
+          "label": "frontend ops",
+          "issue": "null @ …:device:0xada90...aef43e（爬行逆变器-60914），存证 null — 成功 2026/8/22 11:12:42 WA…"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 28,
+        "log": 3,
+        "pong": 1
+      }
+    },
+    "admin:/permission#actions": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 9
+      }
+    },
+    "admin:ws-check": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 29,
+        "pong": 1
+      }
+    },
+    "grid:/login": {
+      "console": [],
+      "api": [
+        {
+          "method": "GET",
+          "path": "/api/v1/did?size=1",
+          "status": 401,
+          "body": ""
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "log": 1
+      }
+    },
+    "grid:/cloud/aggregate": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "grid:/edge/classification": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1
+      }
+    },
+    "grid:/edge/risk": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "/edge/risk",
+          "issue": "empty table: 🧮 因子贡献（weight × score）"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 2
+      }
+    },
+    "grid:/edge/privacy": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "grid:/edge/response": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 5
+      }
+    },
+    "grid:/audit": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1:5199undefined/' cannot be created in a document with origin 'http://127.0.0.1:5199' and URL 'http://127.0.0.1:5199/audit'.\n    at changeLocation (http://127.0.0.1:5199/node_modules/.vite/deps/vue-router.js?v=adb66db7:975:58)\n    at Object."
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "grid:/identity": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "grid:/assets": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "grid:/evidence": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "vpp:/login": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "log": 1
+      }
+    },
+    "vpp:/cloud/topology": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "vpp:/cloud/aggregate": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1
+      }
+    },
+    "vpp:/edge/classification": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 2
+      }
+    },
+    "vpp:/edge/risk": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "/edge/risk",
+          "issue": "empty table: 🧮 因子贡献（weight × score）"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1
+      }
+    },
+    "vpp:/edge/response": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "vpp:/audit": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1:5199undefined/' cannot be created in a document with origin 'http://127.0.0.1:5199' and URL 'http://127.0.0.1:5199/audit'.\n    at changeLocation (http://127.0.0.1:5199/node_modules/.vite/deps/vue-router.js?v=adb66db7:975:58)\n    at Object."
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "vpp:/identity": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1
+      }
+    },
+    "vpp:/assets": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 2
+      }
+    },
+    "vpp:/permission": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/login": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "log": 1
+      }
+    },
+    "subject:/cloud/topology": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/cloud/aggregate": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1:5199undefined/' cannot be created in a document with origin 'http://127.0.0.1:5199' and URL 'http://127.0.0.1:5199/cloud/aggregate'.\n    at changeLocation (http://127.0.0.1:5199/node_modules/.vite/deps/vue-router.js?v=adb66db7:975:58)\n    "
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/edge/risk": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "subject:/edge/privacy": {
+      "console": [],
+      "api": [
+        {
+          "method": "GET",
+          "path": "/api/v1/fl/tasks?size=20",
+          "status": 403,
+          "body": "{\"code\":1003,\"message\":\"角色 energy_subject 无 model:read 权限\",\"data\":null,\"traceId\":\"tr-20260822-ee1b5830\"}"
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 2
+      }
+    },
+    "subject:/edge/response": {
+      "console": [],
+      "api": [
+        {
+          "method": "GET",
+          "path": "/api/v1/dispatch/tasks?size=50",
+          "status": 403,
+          "body": "{\"code\":1003,\"message\":\"角色 energy_subject 无 dispatch:read 权限\",\"data\":null,\"traceId\":\"tr-20260822-bd856bac\"}"
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1
+      }
+    },
+    "subject:/audit": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1:5199undefined/' cannot be created in a document with origin 'http://127.0.0.1:5199' and URL 'http://127.0.0.1:5199/audit'.\n    at changeLocation (http://127.0.0.1:5199/node_modules/.vite/deps/vue-router.js?v=adb66db7:975:58)\n    at Object."
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/identity": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/assets": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "/assets",
+          "issue": "empty table: 资产列表 链上只存 SM3 摘要，原始 payload 存库"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/permission": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/evidence": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "subject:/permission#apply": {
+      "console": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 409 (Conflict)"
+        }
+      ],
+      "api": [
+        {
+          "method": "POST",
+          "path": "/api/v1/permissions/apply",
+          "status": 409,
+          "body": "{\"code\":1006,\"message\":\"已有一条待审批的相同申请，请勿重复提交\",\"data\":null,\"traceId\":\"tr-20260822-7d39198a\"}"
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 21,
+        "log": 1,
+        "pong": 1
+      }
+    },
+    "admin:/permission#approve": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 54,
+        "log": 2,
+        "pong": 1
+      }
+    },
+    "regulator:/login": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "log": 1
+      }
+    },
+    "regulator:/cloud/aggregate": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3,
+        "dispatch_progress": 3
+      }
+    },
+    "regulator:/edge/classification": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/edge/risk": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 5,
+        "log": 1
+      }
+    },
+    "regulator:/edge/response": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/audit": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/identity": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/assets": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/permission": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/evidence": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "regulator:/logout": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1
+      }
+    },
+    "edge:/login": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "log": 1
+      }
+    },
+    "edge:/cloud/topology": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "edge:/cloud/aggregate": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "edge:/edge/classification": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "edge:/edge/risk": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "/edge/risk",
+          "issue": "empty table: 🧮 因子贡献（weight × score）"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 2
+      }
+    },
+    "edge:/edge/privacy": {
+      "console": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+        }
+      ],
+      "api": [
+        {
+          "method": "POST",
+          "path": "/api/v1/risk/assess",
+          "status": 500,
+          "body": "{\"code\":5000,\"message\":\"服务器内部错误\",\"data\":null,\"traceId\":\"tr-00000000-00000000\"}"
+        }
+      ],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 1,
+        "dispatch_progress": 3,
+        "log": 1
+      }
+    },
+    "edge:/edge/response": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4,
+        "log": 1
+      }
+    },
+    "edge:/audit": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1:5199undefined/' cannot be created in a document with origin 'http://127.0.0.1:5199' and URL 'http://127.0.0.1:5199/audit'.\n    at changeLocation (http://127.0.0.1:5199/node_modules/.vite/deps/vue-router.js?v=adb66db7:975:58)\n    at Object."
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 5,
+        "dispatch_progress": 1,
+        "log": 1
+      }
+    },
+    "edge:/identity": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 4
+      }
+    },
+    "edge:/assets": {
+      "console": [],
+      "api": [],
+      "text": [
+        {
+          "label": "/assets",
+          "issue": "empty table: 资产列表 链上只存 SM3 摘要，原始 payload 存库"
+        }
+      ],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "edge:/permission": {
+      "console": [],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    },
+    "edge:/evidence": {
+      "console": [
+        {
+          "type": "warning",
+          "text": "[Vue Router warn]: Error with push/replace State SecurityError: Failed to execute 'replaceState' on 'History': A history state object with URL 'http://127.0.0.1:5199undefined/' cannot be created in a document with origin 'http://127.0.0.1:5199' and URL 'http://127.0.0.1:5199/evidence'.\n    at changeLocation (http://127.0.0.1:5199/node_modules/.vite/deps/vue-router.js?v=adb66db7:975:58)\n    at Obje"
+        }
+      ],
+      "api": [],
+      "text": [],
+      "actions": [],
+      "ws": {
+        "evidence_written": 3
+      }
+    }
+  },
+  "ws": {
+    "total": {
+      "evidence_written": 513,
+      "log": 55,
+      "pong": 9,
+      "dispatch_progress": 21,
+      "audit_alert": 2,
+      "fl_progress": 20
+    },
+    "perPhase": [
+      {
+        "phase": "fl",
+        "fl_progress_frames": 20,
+        "roundsShown": 10,
+        "status": "已完成",
+        "curveMeta": "10 轮"
+      },
+      {
+        "phase": "issue",
+        "dispatch_progress_frames": 2
+      },
+      {
+        "phase": "evidence-view",
+        "evidence_written_frames_since_start": 228
+      },
+      {
+        "phase": "idle20s",
+        "frames": {
+          "evidence_written": 26,
+          "log": 0,
+          "pong": 1,
+          "dispatch_progress": 0,
+          "audit_alert": 0,
+          "fl_progress": 0
+        },
+        "logbar": [
+          6,
+          6
+        ],
+        "bell": [
+          22,
+          22
+        ],
+        "wsLabel": "实时在线"
+      }
+    ],
+    "sockets": 7,
+    "samples": {
+      "evidence_written": {
+        "type": "evidence_written",
+        "ts": "2026-08-22T19:12:16+08:00",
+        "traceId": "tr-20260822-87468b68",
+        "payload": {
+          "evidenceId": "ev-001042",
+          "category": "algo",
+          "blockHeight": 1042
+        }
+      },
+      "log": {
+        "type": "log",
+        "ts": "2026-08-22T19:12:16+08:00",
+        "traceId": null,
+        "payload": {
+          "level": "info",
+          "module": "ws",
+          "content": "admin 已接入实时通道",
+          "traceId": null
+        }
+      },
+      "pong": {
+        "type": "pong"
+      },
+      "dispatch_progress": {
+        "type": "dispatch_progress",
+        "ts": "2026-08-22T19:12:53+08:00",
+        "traceId": "tr-20260822-f98903c5",
+        "payload": {
+          "taskId": "dp-000030",
+          "stage": "aggregating",
+          "detail": "汇集各节点实时运行数据"
+        }
+      },
+      "audit_alert": {
+        "type": "audit_alert",
+        "ts": "2026-08-22T19:13:23+08:00",
+        "traceId": "tr-20260822-205231e3",
+        "payload": {
+          "alertId": "al-000038",
+          "ruleCode": "R01_UNAUTHORIZED",
+          "ruleName": "越权访问",
+          "riskLevel": "high",
+          "message": "越权访问被拦截：GET /api/v1/audit/logs（该操作仅限 sys_admin/regulator，当前角色 energy_subject）",
+          "actorDid": "did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852",
+          "actorName": "能源主体",
+          "hitCount": 3,
+          "evidenceId": "ev-001050",
+          "at": "2026-08-22T11:13:23+08:00"
+        }
+      },
+      "fl_progress": {
+        "type": "fl_progress",
+        "ts": "2026-08-22T19:14:14+08:00",
+        "traceId": "tr-20260822-1d28c6ad",
+        "payload": {
+          "taskId": "fl-000033",
+          "round": 1,
+          "totalRounds": 10,
+          "loss": 0.090171,
+          "acc": 0.0325,
+          "compressionRatio": 90.06,
+          "epsilonSpent": 0.3162,
+          "gradientHash": "91cdae3e05e07062b2b8266971e1e1f5e3928f225e1d3423c1124ca66883fc34",
+          "evidenceId": "ev-001056"
+        }
+      }
+    }
+  },
+  "actions": [
+    {
+      "phase": "admin:/login",
+      "name": "login",
+      "ok": true,
+      "ms": 3371
+    },
+    {
+      "phase": "admin:/cloud/topology",
+      "name": "visit /cloud/topology",
+      "ok": true,
+      "ms": 2132
+    },
+    {
+      "phase": "admin:/cloud/aggregate",
+      "name": "visit /cloud/aggregate",
+      "ok": true,
+      "ms": 2177
+    },
+    {
+      "phase": "admin:/edge/classification",
+      "name": "visit /edge/classification",
+      "ok": true,
+      "ms": 2101
+    },
+    {
+      "phase": "admin:/edge/risk",
+      "name": "visit /edge/risk",
+      "ok": true,
+      "ms": 2112
+    },
+    {
+      "phase": "admin:/edge/privacy",
+      "name": "visit /edge/privacy",
+      "ok": true,
+      "ms": 2100
+    },
+    {
+      "phase": "admin:/edge/response",
+      "name": "visit /edge/response",
+      "ok": true,
+      "ms": 2089
+    },
+    {
+      "phase": "admin:/audit",
+      "name": "visit /audit",
+      "ok": true,
+      "ms": 2107
+    },
+    {
+      "phase": "admin:/identity",
+      "name": "visit /identity",
+      "ok": true,
+      "ms": 2087
+    },
+    {
+      "phase": "admin:/assets",
+      "name": "visit /assets",
+      "ok": true,
+      "ms": 2116
+    },
+    {
+      "phase": "admin:/permission",
+      "name": "visit /permission",
+      "ok": true,
+      "ms": 2072
+    },
+    {
+      "phase": "admin:/evidence",
+      "name": "visit /evidence",
+      "ok": true,
+      "ms": 2126
+    },
+    {
+      "phase": "admin:/identity#actions",
+      "name": "identity: 注册 DID",
+      "ok": true,
+      "ms": 1403
+    },
+    {
+      "phase": "admin:/identity#actions",
+      "name": "identity: 文档/验签",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 10000ms exceeded. | Call log: | \u001b[2m  - waiting for locator('.el-table__row').filter({ hasText: '爬行逆变器-60914' }).first() to be visible\u001b[22m"
+    },
+    {
+      "phase": "admin:/identity#actions",
+      "name": "identity: 冻结/解冻/轮换",
+      "ok": false,
+      "error": "locator.click: Timeout 12000ms exceeded. | Call log: | \u001b[2m  - waiting for locator('.el-tab-pane:visible .el-table__row').filter({ hasText: '爬行逆变器-60914' }).first().getByRole('button', { name: '冻结', exact: true })\u001b[22m"
+    },
+    {
+      "phase": "admin:/identity#actions",
+      "name": "identity: 密钥管理 生成并绑定",
+      "ok": true,
+      "ms": 2924
+    },
+    {
+      "phase": "admin:/identity#actions",
+      "name": "identity: 用户管理 新建/编辑/删除",
+      "ok": false,
+      "error": "新建用户后列表未出现 crawl60914 msg=参数错误：username String should have at least 3 characters"
+    },
+    {
+      "phase": "admin:/assets#actions",
+      "name": "assets: 登记资产(自动分级)→溯源→详情",
+      "ok": true,
+      "ms": 8595
+    },
+    {
+      "phase": "admin:/edge/classification#actions",
+      "name": "classification: 开始分级 → 一键登记",
+      "ok": true,
+      "ms": 8410
+    },
+    {
+      "phase": "admin:/edge/risk#actions",
+      "name": "risk: 预设×3 + 立即评估",
+      "ok": false,
+      "error": "locator.click: Timeout 12000ms exceeded. | Call log: | \u001b[2m  - waiting for getByRole('button', { name: '立即评估' })\u001b[22m"
+    },
+    {
+      "phase": "admin:/edge/privacy#actions",
+      "name": "privacy: 创建并启动 FL → 等待完成",
+      "ok": true,
+      "ms": 30459
+    },
+    {
+      "phase": "admin:/edge/privacy#actions",
+      "name": "privacy: 重新生成 demo",
+      "ok": true,
+      "ms": 1041
+    },
+    {
+      "phase": "admin:/cloud/aggregate#actions",
+      "name": "aggregate: 生成调度策略",
+      "ok": true,
+      "ms": 4718
+    },
+    {
+      "phase": "admin:/cloud/aggregate#actions",
+      "name": "aggregate: AI 提问",
+      "ok": true,
+      "ms": 583
+    },
+    {
+      "phase": "admin:/cloud/aggregate#actions",
+      "name": "aggregate: 生成分析报告",
+      "ok": true,
+      "ms": 1565
+    },
+    {
+      "phase": "admin:/cloud/aggregate#actions",
+      "name": "aggregate: 签名下发",
+      "ok": true,
+      "ms": 3216
+    },
+    {
+      "phase": "admin:/cloud/aggregate#actions",
+      "name": "aggregate: 模拟越权下发 + 无效签名",
+      "ok": true,
+      "ms": 16219
+    },
+    {
+      "phase": "admin:/edge/response#actions",
+      "name": "response: 验签 → 回执",
+      "ok": false,
+      "error": "locator.click: Timeout 12000ms exceeded. | Call log: | \u001b[2m  - waiting for getByRole('button', { name: /开始校验|重新校验/ })\u001b[22m"
+    },
+    {
+      "phase": "admin:/evidence#actions",
+      "name": "evidence: 校验 / 详情 / 凭证 / 追踪",
+      "ok": true,
+      "ms": 6232
+    },
+    {
+      "phase": "admin:/evidence#actions",
+      "name": "evidence: 篡改演示",
+      "ok": true,
+      "ms": 5996
+    },
+    {
+      "phase": "admin:/audit#actions",
+      "name": "audit: 导出 CSV",
+      "ok": true,
+      "ms": 2948
+    },
+    {
+      "phase": "admin:/audit#actions",
+      "name": "audit: 筛选 high + 追踪 + 告警确认 + 日报",
+      "ok": true,
+      "ms": 16020
+    },
+    {
+      "phase": "admin:/permission#actions",
+      "name": "permission: 矩阵 / 校验器",
+      "ok": true,
+      "ms": 3931
+    },
+    {
+      "phase": "admin:ws-check",
+      "name": "ws: node_status / log / bell 页面联动观察 (20s)",
+      "ok": true,
+      "ms": 20833
+    },
+    {
+      "phase": "admin:/logout",
+      "name": "logout",
+      "ok": true,
+      "ms": 829
+    },
+    {
+      "phase": "grid:/login",
+      "name": "login",
+      "ok": true,
+      "ms": 1665
+    },
+    {
+      "phase": "grid:/cloud/topology",
+      "name": "visit /cloud/topology",
+      "ok": true,
+      "ms": 2122
+    },
+    {
+      "phase": "grid:/cloud/aggregate",
+      "name": "visit /cloud/aggregate",
+      "ok": true,
+      "ms": 2106
+    },
+    {
+      "phase": "grid:/edge/classification",
+      "name": "visit /edge/classification",
+      "ok": true,
+      "ms": 2138
+    },
+    {
+      "phase": "grid:/edge/risk",
+      "name": "visit /edge/risk",
+      "ok": true,
+      "ms": 2108
+    },
+    {
+      "phase": "grid:/edge/privacy",
+      "name": "visit /edge/privacy",
+      "ok": true,
+      "ms": 2179
+    },
+    {
+      "phase": "grid:/edge/response",
+      "name": "visit /edge/response",
+      "ok": true,
+      "ms": 2113
+    },
+    {
+      "phase": "grid:/audit",
+      "name": "visit /audit",
+      "ok": true,
+      "ms": 2104
+    },
+    {
+      "phase": "grid:/identity",
+      "name": "visit /identity",
+      "ok": true,
+      "ms": 2110
+    },
+    {
+      "phase": "grid:/assets",
+      "name": "visit /assets",
+      "ok": true,
+      "ms": 2138
+    },
+    {
+      "phase": "grid:/permission",
+      "name": "visit /permission",
+      "ok": true,
+      "ms": 2133
+    },
+    {
+      "phase": "grid:/evidence",
+      "name": "visit /evidence",
+      "ok": true,
+      "ms": 2110
+    },
+    {
+      "phase": "grid:/logout",
+      "name": "logout",
+      "ok": true,
+      "ms": 792
+    },
+    {
+      "phase": "vpp:/login",
+      "name": "login",
+      "ok": true,
+      "ms": 2069
+    },
+    {
+      "phase": "vpp:/cloud/topology",
+      "name": "visit /cloud/topology",
+      "ok": true,
+      "ms": 2138
+    },
+    {
+      "phase": "vpp:/cloud/aggregate",
+      "name": "visit /cloud/aggregate",
+      "ok": true,
+      "ms": 2105
+    },
+    {
+      "phase": "vpp:/edge/classification",
+      "name": "visit /edge/classification",
+      "ok": true,
+      "ms": 2098
+    },
+    {
+      "phase": "vpp:/edge/risk",
+      "name": "visit /edge/risk",
+      "ok": true,
+      "ms": 2107
+    },
+    {
+      "phase": "vpp:/edge/privacy",
+      "name": "visit /edge/privacy",
+      "ok": true,
+      "ms": 2151
+    },
+    {
+      "phase": "vpp:/edge/response",
+      "name": "visit /edge/response",
+      "ok": true,
+      "ms": 2074
+    },
+    {
+      "phase": "vpp:/audit",
+      "name": "visit /audit",
+      "ok": true,
+      "ms": 2103
+    },
+    {
+      "phase": "vpp:/identity",
+      "name": "visit /identity",
+      "ok": true,
+      "ms": 2112
+    },
+    {
+      "phase": "vpp:/assets",
+      "name": "visit /assets",
+      "ok": true,
+      "ms": 2113
+    },
+    {
+      "phase": "vpp:/permission",
+      "name": "visit /permission",
+      "ok": true,
+      "ms": 2096
+    },
+    {
+      "phase": "vpp:/evidence",
+      "name": "visit /evidence",
+      "ok": true,
+      "ms": 2090
+    },
+    {
+      "phase": "vpp:/logout",
+      "name": "logout",
+      "ok": true,
+      "ms": 1367
+    },
+    {
+      "phase": "subject:/login",
+      "name": "login",
+      "ok": true,
+      "ms": 2163
+    },
+    {
+      "phase": "subject:/cloud/topology",
+      "name": "visit /cloud/topology",
+      "ok": true,
+      "ms": 2155
+    },
+    {
+      "phase": "subject:/cloud/aggregate",
+      "name": "visit /cloud/aggregate",
+      "ok": true,
+      "ms": 2125
+    },
+    {
+      "phase": "subject:/edge/classification",
+      "name": "visit /edge/classification",
+      "ok": true,
+      "ms": 2076
+    },
+    {
+      "phase": "subject:/edge/risk",
+      "name": "visit /edge/risk",
+      "ok": true,
+      "ms": 2120
+    },
+    {
+      "phase": "subject:/edge/privacy",
+      "name": "visit /edge/privacy",
+      "ok": true,
+      "ms": 2122
+    },
+    {
+      "phase": "subject:/edge/response",
+      "name": "visit /edge/response",
+      "ok": true,
+      "ms": 2098
+    },
+    {
+      "phase": "subject:/audit",
+      "name": "visit /audit",
+      "ok": true,
+      "ms": 2083
+    },
+    {
+      "phase": "subject:/identity",
+      "name": "visit /identity",
+      "ok": true,
+      "ms": 2094
+    },
+    {
+      "phase": "subject:/assets",
+      "name": "visit /assets",
+      "ok": true,
+      "ms": 2087
+    },
+    {
+      "phase": "subject:/permission",
+      "name": "visit /permission",
+      "ok": true,
+      "ms": 2082
+    },
+    {
+      "phase": "subject:/evidence",
+      "name": "visit /evidence",
+      "ok": true,
+      "ms": 2100
+    },
+    {
+      "phase": "subject:/permission#apply",
+      "name": "subject: 申请权限",
+      "ok": false,
+      "error": "locator.click: Timeout 12000ms exceeded. | Call log: | \u001b[2m  - waiting for getByRole('tab', { name: '申请审批' })\u001b[22m"
+    },
+    {
+      "phase": "admin:/permission#approve",
+      "name": "relogin admin",
+      "ok": false,
+      "error": "locator.fill: Timeout 12000ms exceeded. | Call log: | \u001b[2m  - waiting for locator('.login-card input, input').first()\u001b[22m"
+    },
+    {
+      "phase": "admin:/permission#approve",
+      "name": "admin: 审批通过 + 已授权 + 回收",
+      "ok": false,
+      "error": "locator.waitFor: Timeout 10000ms exceeded. | Call log: | \u001b[2m  - waiting for locator('.el-tab-pane:visible .el-table__row').filter({ hasText: '爬行申请-34198' }) to be visible\u001b[22m"
+    },
+    {
+      "phase": "subject:/logout",
+      "name": "logout",
+      "ok": true,
+      "ms": 530
+    },
+    {
+      "phase": "regulator:/login",
+      "name": "login",
+      "ok": true,
+      "ms": 959
+    },
+    {
+      "phase": "regulator:/cloud/topology",
+      "name": "visit /cloud/topology",
+      "ok": true,
+      "ms": 2128
+    },
+    {
+      "phase": "regulator:/cloud/aggregate",
+      "name": "visit /cloud/aggregate",
+      "ok": true,
+      "ms": 2091
+    },
+    {
+      "phase": "regulator:/edge/classification",
+      "name": "visit /edge/classification",
+      "ok": true,
+      "ms": 2088
+    },
+    {
+      "phase": "regulator:/edge/risk",
+      "name": "visit /edge/risk",
+      "ok": true,
+      "ms": 2121
+    },
+    {
+      "phase": "regulator:/edge/privacy",
+      "name": "visit /edge/privacy",
+      "ok": true,
+      "ms": 2127
+    },
+    {
+      "phase": "regulator:/edge/response",
+      "name": "visit /edge/response",
+      "ok": true,
+      "ms": 2095
+    },
+    {
+      "phase": "regulator:/audit",
+      "name": "visit /audit",
+      "ok": true,
+      "ms": 2082
+    },
+    {
+      "phase": "regulator:/identity",
+      "name": "visit /identity",
+      "ok": true,
+      "ms": 2107
+    },
+    {
+      "phase": "regulator:/assets",
+      "name": "visit /assets",
+      "ok": true,
+      "ms": 2100
+    },
+    {
+      "phase": "regulator:/permission",
+      "name": "visit /permission",
+      "ok": true,
+      "ms": 2087
+    },
+    {
+      "phase": "regulator:/evidence",
+      "name": "visit /evidence",
+      "ok": true,
+      "ms": 2087
+    },
+    {
+      "phase": "regulator:/logout",
+      "name": "logout",
+      "ok": true,
+      "ms": 672
+    },
+    {
+      "phase": "edge:/login",
+      "name": "login",
+      "ok": true,
+      "ms": 932
+    },
+    {
+      "phase": "edge:/cloud/topology",
+      "name": "visit /cloud/topology",
+      "ok": true,
+      "ms": 2132
+    },
+    {
+      "phase": "edge:/cloud/aggregate",
+      "name": "visit /cloud/aggregate",
+      "ok": true,
+      "ms": 2092
+    },
+    {
+      "phase": "edge:/edge/classification",
+      "name": "visit /edge/classification",
+      "ok": true,
+      "ms": 2118
+    },
+    {
+      "phase": "edge:/edge/risk",
+      "name": "visit /edge/risk",
+      "ok": true,
+      "ms": 2114
+    },
+    {
+      "phase": "edge:/edge/privacy",
+      "name": "visit /edge/privacy",
+      "ok": true,
+      "ms": 2150
+    },
+    {
+      "phase": "edge:/edge/response",
+      "name": "visit /edge/response",
+      "ok": true,
+      "ms": 2094
+    },
+    {
+      "phase": "edge:/audit",
+      "name": "visit /audit",
+      "ok": true,
+      "ms": 2081
+    },
+    {
+      "phase": "edge:/identity",
+      "name": "visit /identity",
+      "ok": true,
+      "ms": 2105
+    },
+    {
+      "phase": "edge:/assets",
+      "name": "visit /assets",
+      "ok": true,
+      "ms": 2083
+    },
+    {
+      "phase": "edge:/permission",
+      "name": "visit /permission",
+      "ok": true,
+      "ms": 2101
+    },
+    {
+      "phase": "edge:/evidence",
+      "name": "visit /evidence",
+      "ok": true,
+      "ms": 2099
+    },
+    {
+      "phase": "edge:/logout",
+      "name": "logout",
+      "ok": true,
+      "ms": 501
+    }
+  ],
+  "summary": {
+    "admin:/identity#actions": {
+      "console": 2,
+      "api": 2,
+      "text": 1
+    },
+    "admin:/assets#actions": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    },
+    "admin:/edge/privacy#actions": {
+      "console": 1,
+      "api": 1,
+      "text": 0
+    },
+    "admin:/cloud/aggregate#actions": {
+      "console": 1,
+      "api": 1,
+      "text": 0
+    },
+    "admin:/evidence#actions": {
+      "console": 0,
+      "api": 0,
+      "text": 2
+    },
+    "admin:/audit#actions": {
+      "console": 0,
+      "api": 0,
+      "text": 2
+    },
+    "grid:/login": {
+      "console": 0,
+      "api": 1,
+      "text": 0
+    },
+    "grid:/edge/risk": {
+      "console": 0,
+      "api": 0,
+      "text": 1
+    },
+    "grid:/audit": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    },
+    "vpp:/edge/risk": {
+      "console": 0,
+      "api": 0,
+      "text": 1
+    },
+    "vpp:/audit": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    },
+    "subject:/cloud/aggregate": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    },
+    "subject:/edge/privacy": {
+      "console": 0,
+      "api": 1,
+      "text": 0
+    },
+    "subject:/edge/response": {
+      "console": 0,
+      "api": 1,
+      "text": 0
+    },
+    "subject:/audit": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    },
+    "subject:/assets": {
+      "console": 0,
+      "api": 0,
+      "text": 1
+    },
+    "subject:/permission#apply": {
+      "console": 1,
+      "api": 1,
+      "text": 0
+    },
+    "edge:/edge/risk": {
+      "console": 0,
+      "api": 0,
+      "text": 1
+    },
+    "edge:/edge/privacy": {
+      "console": 1,
+      "api": 1,
+      "text": 0
+    },
+    "edge:/audit": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    },
+    "edge:/assets": {
+      "console": 0,
+      "api": 0,
+      "text": 1
+    },
+    "edge:/evidence": {
+      "console": 1,
+      "api": 0,
+      "text": 0
+    }
+  }
+}

@@ -27,7 +27,7 @@
 
         <ul class="menu-list">
           <li
-            v-for="menu in perspectiveStore.currentMenus"
+            v-for="menu in visibleCurrentMenus"
             :key="menu.path"
             class="menu-item"
             :class="{ active: isActive(menu.path), global: menu.path === '/audit' }"
@@ -90,6 +90,11 @@ const iconMap = {
   '/permission': '🔑',
   '/evidence': '⛓️'
 }
+
+/** 视角菜单：带 permission 的（边缘隐私计算 / 终端响应）按权限过滤，与路由 meta.permission 一致 */
+const visibleCurrentMenus = computed(() =>
+  perspectiveStore.currentMenus.filter(m => !m.permission || userStore.hasPermission(m.permission))
+)
 
 /** 无权限的中心菜单不显示 */
 const visibleCenterMenus = computed(() =>

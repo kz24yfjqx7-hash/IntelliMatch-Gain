@@ -53,6 +53,9 @@ def _startup() -> None:
     # 3. 缓存文件兜底创建
     deepseek.load_cache()
     log.info("DeepSeek 模式：%s", deepseek.status())
+    # 4. DeepSeek 探活（后台线程，不阻塞启动）：让 /health 的 deepseek 字段反映真实可达性，
+    #    离线环境下报 cache 而不是 live。
+    threading.Thread(target=deepseek.probe_live, name="deepseek-probe", daemon=True).start()
 
 
 # ---------------------------------------------------------------- 中间件 / 异常
@@ -224,6 +227,13 @@ class FlJob:
                         if self.anomaly is None:
                             self.anomaly = res.anomaly
                 log.info("[fl %s] round %d loss=%.5f acc=%.3f eps=%.3f cr=%.1f%% anomaly=%s", self.id, res.round, res.loss, res.acc, res.epsilonSpent, res.compressionRatio, (res.anomaly or {}).get("type"))
+                # 隐私预算耗尽：熔断停止。差分隐私的 ε 是硬上限，继续训练会持续泄露预算
+                # （实测继续跑会把 ε 累计到目标值的 10 倍、loss 发散），因此在该轮结束后终止任务。
+                if config.FL_STOP_ON_BUDGET_EXHAUSTED and (res.anomaly or {}).get("type") == "privacy_budget_exhausted":
+                    self.status = "failed"
+                    self.error = f"隐私预算耗尽：第 {res.round} 轮累计 ε={res.epsilonSpent} 已超过目标 ε={self.req.dp.epsilon}，训练已熔断停止"
+                    log.warning("[fl %s] %s", self.id, self.error)
+                    return
                 if config.FL_ROUND_DELAY > 0 and len(self.rounds) < self.req.rounds:
                     # 分段 sleep 以便及时响应取消
                     end = time.time() + config.FL_ROUND_DELAY

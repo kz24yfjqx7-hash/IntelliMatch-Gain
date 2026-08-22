@@ -14,7 +14,8 @@ export function changeDidStatus(did, { action, reason }) {
   return request.post(`/did/${encodeURIComponent(did)}/status`, { action, reason })
 }
 export function rotateDidKey(did) {
-  return request.post(`/did/${encodeURIComponent(did)}/rotate-key`)
+  // 真后端要求 JSON body（可选字段 reason/custody），契约未定义 body，传 {} 两边都兼容
+  return request.post(`/did/${encodeURIComponent(did)}/rotate-key`, {})
 }
 export function verifyDid({ did, message, signature }) {
   return request.post('/did/verify', { did, message, signature })

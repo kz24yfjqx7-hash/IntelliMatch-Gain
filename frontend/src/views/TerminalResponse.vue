@@ -22,7 +22,7 @@
                 <el-option v-for="t in nodeTasks" :key="t.id" :label="`${t.commandId || t.id} · ${STATUS[t.status] || t.status}`" :value="t.id" />
               </el-select>
               <el-button size="small" link @click="loadTasks">刷新</el-button>
-              <span class="status-chip" :class="statusClass">{{ task ? STATUS[task.status] || task.status : '未下发' }}</span>
+              <span class="status-chip" :class="statusClass">{{ task ? STATUS[nodeTaskStatus] || nodeTaskStatus : '未下发' }}</span>
             </div>
           </div>
           <template v-if="task">
@@ -72,8 +72,8 @@
           <div class="verify-result" v-if="verifyState === 'passed'">✅ 验签通过：签发者 DID 有效且签名与公钥匹配，允许执行</div>
           <div class="verify-result fail" v-else-if="verifyState === 'failed'">⛔ 验签失败：{{ verifyError }}，拒绝执行</div>
           <div class="exec-row">
-            <el-button type="success" size="large" :disabled="verifyState !== 'passed' || executing || task?.status === 'acked'" :loading="executing" @click="execute">
-              {{ task?.status === 'acked' ? '已回执' : '⚡ 确认执行并回执' }}
+            <el-button type="success" size="large" :disabled="verifyState !== 'passed' || executing || nodeTaskStatus === 'acked'" :loading="executing" @click="execute">
+              {{ nodeTaskStatus === 'acked' ? '已回执' : '⚡ 确认执行并回执' }}
             </el-button>
           </div>
         </div>
@@ -134,6 +134,8 @@ import { useLogStore } from '@/stores/logs'
 import { usePerspectiveStore } from '@/stores/perspective'
 import { ackDispatchTask, getDispatchTask } from '@/api/dispatch'
 import { getDidDocument, verifyDid } from '@/api/did'
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 import { wsClient, WS_TYPES } from '@/api/ws'
 import { sha256Hex } from '@/utils/sha256'
 import { fmtNumber, fmtTime, fmtDateTime, shortDid, shortHash } from '@/utils/format'
@@ -179,7 +181,14 @@ const targetPower = computed(() => {
   if (!a) return perspectiveStore.currentNodeData.storageOutput
   return a.action === 'charge' ? -Math.abs(a.powerKw) : a.action === 'discharge' ? Math.abs(a.powerKw) : 0
 })
-const statusClass = computed(() => ({ acked: 'success', issued: 'warning' }[task.value?.status] || 'neutral'))
+/** 本节点视角的指令状态：任务整体 acked，或本节点已在回执名单（真后端多节点时 ackStatus 为 partial） */
+const nodeTaskStatus = computed(() => {
+  const t = task.value
+  if (!t) return null
+  if (t.status === 'acked' || (t.ackedNodes || []).includes(node.value.id)) return 'acked'
+  return t.status
+})
+const statusClass = computed(() => ({ acked: 'success', issued: 'warning' }[nodeTaskStatus.value] || 'neutral'))
 
 /* ---------- 任务加载 ---------- */
 async function loadTasks() {
@@ -250,12 +259,22 @@ async function runVerify() {
     steps[1].state = 'done'
 
     steps[2].state = 'active'
-    // 演示签名：后端未回传原始签名字节，用 commandId+signerDid 派生的 sig 走同一验签接口
-    const signature = `sig:${sha256Hex(`${signer}|${task.value.commandId || task.value.id}`)}`
-    const res = await verifyDid({ did: signer, message: task.value.commandId || task.value.id, signature })
+    let res
+    if (task.value.signature && task.value.signPayload) {
+      // 任务带原始签名与待签原文：真验签
+      res = await verifyDid({ did: signer, message: task.value.signPayload, signature: task.value.signature })
+    } else if (USE_MOCK) {
+      // mock 演示签名：用 commandId+signerDid 派生的 sig 走同一验签接口
+      const signature = `sig:${sha256Hex(`${signer}|${task.value.commandId || task.value.id}`)}`
+      res = await verifyDid({ did: signer, message: task.value.commandId || task.value.id, signature })
+    } else {
+      // 真后端任务详情不回传 signature（见 BACKEND-ISSUES），无法复核签名字节：以 DID 文档解析 + 状态 active 作为接入判定
+      res = { valid: doc?.status === 'active' || Boolean(vm), subjectType: doc?.subjectType, status: doc?.status, reason: '后端未回传签名字节，未做签名复核' }
+      steps[2].title = '验签（后端未回传签名，按 DID 文档状态判定）'
+    }
     await wait(300)
     if (!res?.valid) throw new Error(res?.reason || '签名无效')
-    steps[2].detail = `valid=true · subjectType=${res.subjectType || '--'} · status=${res.status || '--'}`
+    steps[2].detail = `valid=true · subjectType=${res.subjectType || '--'} · status=${res.status || '--'}${res.reason ? ` · ${res.reason}` : ''}`
     steps[2].state = 'done'
     verifyState.value = 'passed'
     logStore.addLog(`[${node.value.id}] 指令 ${task.value.commandId} 验签通过（签发者 ${shortDid(signer)}）`, 'INFO', 'EDGE', { traceId: task.value.traceId })

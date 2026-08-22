@@ -36,6 +36,9 @@ DEEPSEEK_CACHE_MAX = int(os.getenv("DEEPSEEK_CACHE_MAX", "2000"))
 # ---- 联邦学习 ----
 # 每轮之间的停顿秒数，让前端看到曲线逐步增长；qa 测试时设为 0
 FL_ROUND_DELAY = float(os.getenv("FL_ROUND_DELAY", "1.0"))
+# 隐私预算耗尽时是否熔断停止训练（默认 true）。
+# 关掉则保持旧行为：继续跑满轮次、继续加噪与累计 ε（只用于对比演示，不符合 DP 语义）。
+FL_STOP_ON_BUDGET_EXHAUSTED = os.getenv("FL_STOP_ON_BUDGET_EXHAUSTED", "true").lower() not in ("0", "false", "no")
 # 本地训练超参
 FL_LOCAL_EPOCHS = int(os.getenv("FL_LOCAL_EPOCHS", "3"))
 FL_LOCAL_LR = float(os.getenv("FL_LOCAL_LR", "0.05"))

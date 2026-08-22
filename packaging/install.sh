@@ -207,14 +207,26 @@ rand_hex() { if command -v openssl >/dev/null 2>&1; then openssl rand -hex "$1";
 
 if [[ -f "${INSTALL_DIR}/.env" ]]; then
   warn "已存在 .env（上次安装生成），保留原密钥以兼容已有数据卷；如需重置请先 uninstall.sh --purge"
+  # 旧版 .env 可能没有 KEY_CUSTODY_SECRET（甲 backend/core/config.py 读取，非契约变量）：补一个随机值，之后永不再改
+  if ! grep -q '^KEY_CUSTODY_SECRET=' "${INSTALL_DIR}/.env"; then
+    printf '\nKEY_CUSTODY_SECRET=%s\n' "$(rand_hex 32)" >> "${INSTALL_DIR}/.env"
+    warn "旧 .env 缺 KEY_CUSTODY_SECRET，已补随机值（托管私钥加密密钥，请勿再修改）"
+  fi
 else
   # 去掉模板里的行尾注释，保证值干净
   sed -E 's/[[:space:]]+#.*$//' "${PKG_DIR}/config/.env.example" > "${INSTALL_DIR}/.env"
+  # JWT_SECRET 与 KEY_CUSTODY_SECRET 必须是两个不同的随机值：
+  # 前者每次重装可变；后者加密托管私钥，安装后必须保持不变（见 backend/core/config.py 注释）
+  JWT_SECRET_NEW="$(rand_hex 32)"
+  KEY_CUSTODY_SECRET_NEW="$(rand_hex 32)"
+  while [[ "${KEY_CUSTODY_SECRET_NEW}" == "${JWT_SECRET_NEW}" ]]; do KEY_CUSTODY_SECRET_NEW="$(rand_hex 32)"; done
   sed -i -e "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$(rand_hex 16)|" \
          -e "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=$(rand_hex 16)|" \
-         -e "s|^JWT_SECRET=.*|JWT_SECRET=$(rand_hex 32)|" \
+         -e "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET_NEW}|" \
+         -e "s|^KEY_CUSTODY_SECRET=.*|KEY_CUSTODY_SECRET=${KEY_CUSTODY_SECRET_NEW}|" \
          "${INSTALL_DIR}/.env"
-  ok "已随机生成 MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / JWT_SECRET"
+  grep -q '^KEY_CUSTODY_SECRET=' "${INSTALL_DIR}/.env" || echo "KEY_CUSTODY_SECRET=${KEY_CUSTODY_SECRET_NEW}" >> "${INSTALL_DIR}/.env"
+  ok "已随机生成 MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / JWT_SECRET / KEY_CUSTODY_SECRET（两密钥互不相同）"
 fi
 if [[ -n "${FRONTEND_PORT_OVERRIDE}" ]]; then
   sed -i "s|^FRONTEND_PORT=.*|FRONTEND_PORT=${FRONTEND_PORT_OVERRIDE}|" "${INSTALL_DIR}/.env"
@@ -254,13 +266,14 @@ fi
 # ============================================================
 # 第 8 步：启动并等待健康检查
 # ============================================================
-step 8 "docker compose up -d 并等待 /api/v1/health（最长 ${HEALTH_TIMEOUT}s）"
+# 健康端点是 backend 根路径 GET /health（经 nginx location = /health 反代）；/api/v1/health 不存在（404）
+step 8 "docker compose up -d 并等待 /health（最长 ${HEALTH_TIMEOUT}s）"
 cd "${INSTALL_DIR}"
 if [[ ${NO_START} -eq 1 ]]; then
   warn "--no-start：跳过启动"
 else
   docker compose up -d || die "容器启动失败，请查看：docker compose -f ${INSTALL_DIR}/docker-compose.yml logs --tail=50"
-  HEALTH_URL="http://localhost:${FRONTEND_PORT}/api/v1/health"
+  HEALTH_URL="http://localhost:${FRONTEND_PORT}/health"
   [[ "${PKG_SKIP_BACKEND}" == "1" ]] && HEALTH_URL="http://localhost:${FRONTEND_PORT}/healthz"
   info "等待 ${HEALTH_URL} …"
   healthy=0

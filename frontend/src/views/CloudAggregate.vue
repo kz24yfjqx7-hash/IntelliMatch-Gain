@@ -141,7 +141,7 @@
               <div class="reasoning-summary">{{ remote?.explanation || '生成策略后，这里展示 DeepSeek 对 DQN 动作的中文解释（断网时自动降级为缓存/规则模板并如实标注来源）' }}</div>
             </div>
             <div class="issue-row">
-              <el-input v-model="signature" size="small" placeholder="签发者 SM2 签名（演示：自动生成 sig:sha256…，输入 invalid 可演示 1004）" class="sig-input">
+              <el-input v-model="signature" size="small" :placeholder="USE_MOCK ? '签发者 SM2 签名（演示：自动生成 sig:sha256…，输入 invalid 可演示 1004）' : '签发者 SM2 签名（留空 = 后端用托管私钥代签 signPayload；输入 invalid 可演示 1004）'" class="sig-input">
                 <template #prepend>signature</template>
                 <template #append><el-button @click="signature = dispatchStore.buildDemoSignature(localTaskId)">生成</el-button></template>
               </el-input>
@@ -264,6 +264,7 @@ const STAGES = [
   { key: 'acked', title: '终端回执', desc: '边缘节点执行确认' }
 ]
 const FL_STATUS = { created: '已创建', running: '训练中', success: '已完成', failed: '失败', cancelled: '已取消' }
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const DP_STATUS = { created: '已创建', running: '运行中', success: '待下发', issued: '已下发', acked: '已回执', failed: '失败' }
 const ACTION_CN = { charge: '充电', idle: '待机', discharge: '放电' }
 const QUICK_QUESTIONS = ['为什么选择该节点放电？', '约束校验拦截了什么？', '总回报如何计算？']

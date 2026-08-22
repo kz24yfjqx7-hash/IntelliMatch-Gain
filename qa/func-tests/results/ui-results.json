@@ -1,0 +1,203 @@
+{
+ "summary": {
+  "tag": "test-08221108",
+  "total": 15,
+  "pass": 2,
+  "fail": 13,
+  "consoleErrors": [
+   "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+   "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+ },
+ "results": [
+  {
+   "id": "TC-UI-01",
+   "req": "3.1/六",
+   "title": "登录页：错误密码提示；六角色登录后显示角色标签并按角色落地",
+   "steps": "打开 /login → 输错密码 → 依次用 6 个演示账号登录 → 观察右上角角色标签与落地路由 → 退出",
+   "expect": "错误密码提示并停留；6 角色均登录成功，edge 落地 /edge/classification，其余 /cloud/topology",
+   "impl": "Login.vue / router 守卫",
+   "shots": [
+    "docs/test-evidence/01-login.jpg",
+    "docs/test-evidence/02-home-admin.jpg"
+   ],
+   "evidence": "admin:系统管理员@/cloud/topology; grid:电网调度员@/cloud/topology; vpp:虚拟电厂运营商@/cloud/topology; subject:能源主体@/cloud/topology; regulator:监管方@/cloud/topology; edge:边缘节点@/edge/classification",
+   "verdict": "通过",
+   "note": ""
+  },
+  {
+   "id": "TC-UI-02",
+   "req": "四(首页)",
+   "title": "首页驾驶舱保留 + 能源可信数据空间流程横幅（六环节计数、点击跳转）+ 拓扑节点详情/下发协同任务",
+   "steps": "admin 登录 → 首页查看流程横幅六环节计数 → 点击 Node-A → 点「下发协同任务」→ 依次点击六环节验证跳转",
+   "expect": "横幅 6 环节且计数来自真后端；点击跳转到身份/资产/权限/隐私计算/调度/存证页；节点详情与协同任务日志输出",
+   "impl": "NetworkTopology.vue / TrustFlowBanner.vue",
+   "shots": [
+    "docs/test-evidence/03-home-trustflow.jpg",
+    "docs/test-evidence/04-home-node-task.jpg"
+   ],
+   "evidence": "counts=61/105/18/30/27/916; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 11:09:07\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
+   "verdict": "通过",
+   "note": ""
+  },
+  {
+   "id": "TC-UI-03",
+   "req": "4.1(身份)",
+   "title": "统一身份与可信接入中心：用户认证管理 / DID 注册·查询·认证 / 密钥生成·绑定·注销",
+   "steps": "/identity → 用户管理 tab → DID 管理：注册 DID(device) → 查询 → 文档 → 验签(正确/无效) → 冻结/解冻/轮换密钥 → 密钥管理：生成并绑定 → 注销",
+   "expect": "各操作成功并有提示，DID 文档含 verificationMethod，验签结果正确",
+   "impl": "IdentityCenter.vue",
+   "shots": [
+    "docs/test-evidence/TC-UI-03-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "断言失败：用户列表含 admin"
+  },
+  {
+   "id": "TC-UI-04",
+   "req": "4.1(资产)",
+   "title": "能源数据资产中心：数据登记 → 自动分类分级 → 上链 → 溯源 → 授权入口",
+   "steps": "/assets → 登记资产 → 填名称/选 pv/选数据源 DID → 自动分级 → 登记并上链 → 查看溯源 → 列表查询 → 详情 → 申请授权入口",
+   "expect": "显示 L 级与分级理由；登记返回 sm3 摘要与 ev- 存证；溯源含 register；授权入口可见",
+   "impl": "AssetsCenter.vue",
+   "shots": [
+    "docs/test-evidence/TC-UI-04-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "locator.innerText: Timeout 30000ms exceeded."
+  },
+  {
+   "id": "TC-UI-05",
+   "req": "4.1(权限)",
+   "title": "权限控制中心：角色管理 / 权限审批（subject 申请→admin 审批）/ 数据访问控制（矩阵+校验器）",
+   "steps": "subject 登录 /permission → 申请权限(asset 1 read) → 申请审批 tab 可见且无审批按钮 → 切 admin → 角色管理 tab → 申请审批「通过」→ 已授权管理 → 权限矩阵 → 校验测试器 DENIED/ALLOWED",
+   "expect": "申请 pending → approved；已授权列表出现；矩阵渲染；校验器结果正确",
+   "impl": "PermissionCenter.vue",
+   "shots": [
+    "docs/test-evidence/11-permission-apply-subject.jpg",
+    "docs/test-evidence/TC-UI-05-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "断言失败：角色管理列出 ≥6 角色"
+  },
+  {
+   "id": "TC-UI-06",
+   "req": "四(联邦/隐私)",
+   "title": "隐私计算页：数据不出域流程、隐私预算仪表盘；联邦学习任务状态/节点信息/模型版本/每轮哈希随 WS 增长",
+   "steps": "/edge/privacy → 填任务名、轮数 4 → 创建并启动 → 观察进度 ≥3 轮、预算环、压缩率、每轮哈希 → 等待完成 → 模型版本/节点信息",
+   "expect": "曲线随 WS fl_progress 增长；显示任务状态、节点信息、模型版本、ε 预算、压缩率、梯度哈希",
+   "impl": "PrivacyCompute.vue",
+   "shots": [
+    "docs/test-evidence/TC-UI-06-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "断言失败：页面含数据不出域流程与隐私预算"
+  },
+  {
+   "id": "TC-UI-07",
+   "req": "3.9/3.10/六",
+   "title": "云端聚合与调度：生成 DQN 策略 → AI 解释（来源标识）→ 签名下发 → 终端响应 DID 验签 → 回执",
+   "steps": "/cloud/aggregate → 生成调度策略 → 点「为什么选择该节点放电？」→ 生成签名 → 签名下发 → /edge/response 切换目标节点 → 开始校验(DID 验签) → 确认执行并回执",
+   "expect": "策略表含动作/SOC 约束；AI 解释带 live/cache/rule 标识；下发成功显示 commandId；终端验签通过并回执上链",
+   "impl": "CloudAggregate.vue / TerminalResponse.vue",
+   "shots": [
+    "docs/test-evidence/TC-UI-07-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "locator.click: Timeout 30000ms exceeded."
+  },
+  {
+   "id": "TC-UI-08",
+   "req": "3.5/3.7/六",
+   "title": "vpp 模拟越权下发 → 1003 拦截横幅 → 铃铛 R01 告警 → 审计中心高风险日志与 traceId 时间轴",
+   "steps": "vpp 登录 /cloud/aggregate → 选中任务 → 模拟越权下发 → 观察 1003 横幅/铃铛 → admin 登录 /audit → 风险告警 tab → 日志检索 riskLevel=high → 全流程追踪",
+   "expect": "1003 拦截；R01 告警；high 日志 dispatch:issue denied；traceId 时间轴",
+   "impl": "CloudAggregate.vue / AuditLog.vue / AppHeader 铃铛",
+   "shots": [
+    "docs/test-evidence/TC-UI-08-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "locator.click: Timeout 30000ms exceeded."
+  },
+  {
+   "id": "TC-UI-09",
+   "req": "4.1(存证)/3.6",
+   "title": "区块链存证中心：存证查询 → 校验 → 篡改演示被检出 → 链状态断裂 → 导出凭证 → 业务链路追踪",
+   "steps": "/evidence → 首行「校验」→ 篡改演示 → 执行篡改并校验 → 观察链状态 → 详情 → 导出凭证 → 追踪链路",
+   "expect": "篡改前完整；篡改后 intact=false 标红；链状态显示 brokenAt；凭证 JSON 下载；时间轴",
+   "impl": "EvidenceCenter.vue",
+   "shots": [
+    "docs/test-evidence/25-evidence-list.jpg",
+    "docs/test-evidence/TC-UI-09-fail.jpg"
+   ],
+   "verdict": "失败",
+   "note": "locator.click: Timeout 30000ms exceeded."
+  },
+  {
+   "id": "TC-UI-10",
+   "req": "四(审计)/3.7",
+   "title": "审计页面：任务级全流程追踪、风险告警确认、审计报告（DeepSeek 解读+来源标识）、CSV 导出、按月统计图",
+   "steps": "/audit → 导出 CSV → 全流程追踪「联邦训练链路」→ 风险告警「确认」→ 审计报告「生成报告」",
+   "expect": "CSV 下载；时间轴 ≥3 步；告警可确认；报告含 narrative 与来源徽章",
+   "impl": "AuditLog.vue",
+   "shots": [],
+   "verdict": "失败",
+   "note": "page.waitForEvent: Target page, context or browser has been closed"
+  },
+  {
+   "id": "TC-UI-11",
+   "req": "四(现有页面)/2.12",
+   "title": "边端视角：本地感知与分级（L1–L3 打标）、动态隐私风险评估（算法服务评分）",
+   "steps": "/edge/classification → 开始分级；/edge/risk → 立即评估 → 预设「预算耗尽批量导出」→ 立即评估",
+   "expect": "分级表打标 L1/L2/L3；风险评分与等级、建议显示",
+   "impl": "DataClassification.vue / RiskAssessment.vue",
+   "shots": [],
+   "verdict": "失败",
+   "note": "page.evaluate: Target page, context or browser has been closed"
+  },
+  {
+   "id": "TC-UI-12",
+   "req": "3.1/3.5",
+   "title": "页面级 RBAC：vpp 无签名下发/篡改演示/新建用户/审批；subject 访问调度页被守卫拦回；edge 侧栏无存证菜单且为边端视角",
+   "steps": "vpp：/evidence、/identity 用户管理、/permission 申请审批、/edge/privacy；subject 直接访问 /cloud/aggregate；edge 登录看侧栏；regulator 打开 /audit",
+   "expect": "按钮级与路由级权限与角色矩阵一致",
+   "impl": "v-permission / router.beforeEach / AppSidebar",
+   "shots": [],
+   "verdict": "失败",
+   "note": "locator.click: Target page, context or browser has been closed"
+  },
+  {
+   "id": "TC-UI-13",
+   "req": "3.11/3.12",
+   "title": "WebSocket 实时：前端建立 ws 连接并收到 node_status 节点状态推送（5 秒一次）",
+   "steps": "admin 登录首页 → 监听 WebSocket 帧 16 秒",
+   "expect": "收到 ≥1 条 node_status",
+   "impl": "ws/manager.py / stores/ws",
+   "shots": [],
+   "verdict": "失败",
+   "note": "page.goto: Target page, context or browser has been closed"
+  },
+  {
+   "id": "TC-UI-14",
+   "req": "非功能",
+   "title": "1366×768 下 11 条路由无横向溢出、ECharts 容器尺寸非 0、无未捕获异常",
+   "steps": "逐一打开 11 条路由",
+   "expect": "无横向滚动条、图表尺寸非 0、无未捕获 JS 异常",
+   "impl": "全部页面",
+   "shots": [],
+   "verdict": "失败",
+   "note": "page.evaluate: Target page, context or browser has been closed"
+  },
+  {
+   "id": "TC-UI-15",
+   "req": "3.1",
+   "title": "退出登录后访问受保护路由重定向到 /login?redirect=",
+   "steps": "退出 → 直接访问 /evidence",
+   "expect": "跳转 /login?redirect=/evidence",
+   "impl": "router 守卫",
+   "shots": [],
+   "verdict": "失败",
+   "note": "locator.click: Target page, context or browser has been closed"
+  }
+ ]
+}

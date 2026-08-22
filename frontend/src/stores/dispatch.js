@@ -17,6 +17,8 @@ import { usePerspectiveStore } from './perspective.js'
 import { useUserStore } from './user.js'
 import * as dispatchApi from '@/api/dispatch'
 import { sha256Hex } from '@/utils/sha256'
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 import { DEEPSEEK_ADAPTER_STATE } from '../services/dispatchTask.js'
 import {
   DISPATCH_TASK_STATUS,
@@ -218,7 +220,14 @@ export const useDispatchStore = defineStore('dispatch', () => {
   }
 
   /** 演示用签名：sig:sha256(signerDid|taskId) —— 真实环境由 SM2 私钥签名 */
+  /**
+   * 演示签名：
+   *  - mock 模式：`sig:sha256(...)`，MSW 的 mockVerifySignature 接受
+   *  - 真后端模式：浏览器里没有签发者 SM2 私钥，返回空串 → 后端 @require_signature 在 signature 为空时
+   *    用平台托管私钥（KEY_CUSTODY_SECRET 解密）对 signPayload 代签并验签；输入 `invalid` 仍可演示 1004
+   */
   function buildDemoSignature(taskId = activeTaskId.value) {
+    if (!USE_MOCK) return ''
     const userStore = useUserStore()
     const task = getTaskById(taskId)
     return `sig:${sha256Hex(`${userStore.did || 'anonymous'}|${task?.remoteId || taskId}|${Date.now()}`)}`
@@ -229,7 +238,7 @@ export const useDispatchStore = defineStore('dispatch', () => {
     const task = getTaskById(taskId)
     if (!task?.remoteId) throw Object.assign(new Error('任务尚未在后端创建，无法下发'), { code: 1001 })
     try {
-      const res = await dispatchApi.issueDispatchTask(task.remoteId, { signature: signature || buildDemoSignature(taskId) })
+      const res = await dispatchApi.issueDispatchTask(task.remoteId, { signature: signature ?? buildDemoSignature(taskId) })
       const dispatchedAt = new Date().toISOString()
       const next = updateTaskStatus(task.id, DISPATCH_TASK_STATUS.DISPATCHED, `调度指令已签名下发至 ${task.command?.targetNodeName || res.targets?.join(',')}`, {
         command: task.command ? { ...task.command, issuedAt: dispatchedAt, commandId: res.commandId, signerDid: res.signerDid } : task.command,
