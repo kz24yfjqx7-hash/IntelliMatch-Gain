@@ -494,7 +494,8 @@ onUnmounted(() => {
 
 <style scoped>
 .topology-container {
-  height: 100%;
+  /* 用 min-height 而非 height：内容超出一屏时由外层 .content-area 滚动，而不是被裁切 */
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -518,7 +519,7 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   gap: 1.5vw;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .main-area {
