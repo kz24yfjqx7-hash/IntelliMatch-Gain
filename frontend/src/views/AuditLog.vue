@@ -347,7 +347,7 @@ async function ack(row) {
 }
 let offWs = null
 function onAlert(p, msg) {
-  const item = { id: p.alertId, ruleCode: p.ruleCode, ruleName: RULE_NAMES[p.ruleCode], riskLevel: p.riskLevel, message: p.message, actorDid: p.actorDid, status: 'open', traceId: msg?.traceId, at: msg?.ts || new Date().toISOString() }
+  const item = { id: p.alertId, alertId: p.alertId, ruleCode: p.ruleCode, ruleName: RULE_NAMES[p.ruleCode], riskLevel: p.riskLevel, message: p.message, actorDid: p.actorDid, status: 'open', traceId: msg?.traceId, at: msg?.ts || new Date().toISOString() }
   if (alertStatus.value !== 'acked' && !alerts.value.find(a => a.id === item.id)) alerts.value.unshift(item)
   stats.value = { ...stats.value, openAlerts: (stats.value.openAlerts || 0) + 1, highRiskLogs: (stats.value.highRiskLogs || 0) + (p.riskLevel === 'high' || p.riskLevel === 'critical' ? 1 : 0) }
   ElNotification({

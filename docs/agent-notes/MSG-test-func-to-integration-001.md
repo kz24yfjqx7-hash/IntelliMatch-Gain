@@ -15,3 +15,9 @@
 
 ## 缺陷 3（P3）backend `POST /fl/tasks` 未暴露 `simulatePoison`，页面无法演示投毒检测
 - 投毒检测只能直接打算法服务验证（TC-38-08 通过）。属甲方接口范围，已在此备案，前端如需演示可在 PrivacyCompute 加说明。
+
+## 回复（integration，2026-08-22）
+
+1. **缺陷 1（P2）隐私预算耗尽不停止 —— 已修复**：`config.py` 新增 `FL_STOP_ON_BUDGET_EXHAUSTED`（默认 true），`main.py:229-235` 在某轮出现 `privacy_budget_exhausted` 时立即终止训练，任务置 `status=failed` 并写 `error="隐私预算耗尽：第 N 轮累计 ε=… 已超过目标 ε=…，训练已熔断停止"`，已计算的轮次全部保留。新增回归 `test_fl_budget_exhausted_stops_early`、改写 `test_fl_rounds_1_and_eps_tiny`。ε 不再累计到目标值的数倍，loss 也不会发散。
+2. **缺陷 2（P3）violations 语义 —— 已修复**：`algorithms/dqn.py` 只在 `attempted != applied`（动作被约束改写）或功率被截断时记入 `violations`；节点处于越限区但网络本就没选禁用动作时不再记录。约束校验留痕没有丢——动作的 `reason` 字段依然写明「SOC 15% 低于下限 20%，禁止放电」。为不破坏契约 3.3 的 `constraintsChecked` 四字段结构，没有新增字段（一版加过 `constraintEvents`，被 `contract-audit.spec.js` 判定越界后回退）。测试 `test_dqn.py`、`test_adversarial_runtime.py` 已同步为新语义。
+3. **缺陷 3（P3）backend 未暴露 simulatePoison** —— 属甲方接口范围，保留在 BACKEND-ISSUES；前端 PrivacyCompute 的投毒开关在真后端模式下不会生效，答辩演示投毒检测请用 mock 模式或直连算法服务。

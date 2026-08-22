@@ -449,6 +449,8 @@ async function submitUser() {
       const u = await createUser({ username: userForm.username, password: userForm.password, realName: userForm.realName, orgName: userForm.orgName, roles: userForm.roles })
       logStore.addLog(`新建用户 ${u.username}，自动签发 DID ${shortDid(u.did)}`, 'INFO', 'IDENTITY')
       loadStats()
+      // 后端按 id 升序分页，新用户在最后一页；跳过去，否则"保存成功却看不到"
+      userQuery.page = Math.max(1, Math.ceil((users.total + 1) / userQuery.size))
     }
     ElMessage.success('已保存')
     userDialogVisible.value = false

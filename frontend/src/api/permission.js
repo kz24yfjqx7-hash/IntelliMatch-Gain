@@ -28,8 +28,9 @@ export function rejectApplication(id, data = {}) {
 export function listGrants(params = {}) {
   return request.get('/permissions/grants', { params })
 }
-export function revokeGrant(id) {
-  return request.post(`/permissions/grants/${id}/revoke`)
+/** 回收授权。后端要求 reason（权限变更须留痕，写入 perm_change_log 并上链） */
+export function revokeGrant(id, { reason } = {}) {
+  return request.post(`/permissions/grants/${id}/revoke`, { reason: reason || '管理员手动回收授权' })
 }
 export function checkPermission(data) {
   return request.post('/permissions/check', data)

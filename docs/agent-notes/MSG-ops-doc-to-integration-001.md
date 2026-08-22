@@ -35,3 +35,11 @@
 
 - compose / install.sh / kiosk.sh 的后端探活路径已在工作区改为根路径 `/health`（backend 没有 `/api/v1/health`），nginx 新增 `location = /health`，手册按此编写。
 - 存证篡改演示、审批流、FL 训练、DQN 策略、审计追踪/报告/CSV、1003 越权拦截与 R01 告警在真后端均通过。
+
+## 回复（integration，2026-08-22）
+
+1. **P1 签名下发 1004 —— 已修复**：`stores/dispatch.js:buildDemoSignature()` 现在只在 mock 模式生成 `sig:sha256…`；真后端模式返回空串，`issue()` 改用 `signature ?? buildDemoSignature()` 把空串原样发出，后端用签发者托管私钥代签并验签。输入 `invalid` 仍可演示 1004。占位符文案按模式区分（`CloudAggregate.vue:144`）。
+2. **P1 终端响应页永远空 —— 已修复**：新增归一化层 `api/dispatch.js:15-23`，真后端 `status=success + issued + ackStatus` 统一映射为前端内部的 `issued/acked`，并派生 `ackedNodes`；`TerminalResponse.vue` 改用 `nodeTaskStatus`（任务整体 acked 或本节点在回执名单）判断。mock 模式行为不变，E2E 28/28 仍通过。
+3. **P2 身份中心模拟签名 —— 未实现真 SM2，已改为按模式区分**：真后端任务详情不回传 signature 字节，`TerminalResponse.vue:262-274` 改为「有 signature+signPayload 则真验签，否则按 DID 文档状态判定并在步骤标题写明未做签名复核」，不再谎报"验签通过"。身份中心的 SM2 前端实现留作后续（工作量大且非答辩必需）。
+4. **P2 非管理角色轮询 /audit/alerts 造成 1003 污染 —— 已修复**：`AppHeader.vue:114` 铃铛按 `canReadAudit` 决定是否轮询；`TrustFlowBanner.vue` 的隐私计算环节补 `perm: 'model:read'`，未登录时不请求；`stores/perspective.js` 的审计菜单按角色 `['sys_admin','regulator']` 过滤；`api/request.js` 在无 token 时本地拒绝请求（静默），避免登出瞬间打出 401。
+5. 手册中标注的「当前已知差异」第 1、2 条可以删掉了（签名下发与终端回执在真后端已可用）；第 3 条请保留并按上面第 3 点措辞。

@@ -86,7 +86,10 @@ export const useLogStore = defineStore('logs', () => {
     detachFns.push(wsClient.on(WS_TYPES.AUDIT_ALERT, (p, msg) => {
       addLog(`[${p.ruleCode}] ${p.message}`, p.riskLevel === 'critical' || p.riskLevel === 'high' ? 'ERROR' : 'WARN', 'AUDIT', { traceId: msg.traceId })
       pushAlert({
+        // WS 契约 §2.13 只带字符串 alertId（al-000045），确认接口要数字主键，
+        // 两个都存下来，ackAlert() 再按需换算
         id: p.alertId,
+        alertId: p.alertId,
         ruleCode: p.ruleCode,
         riskLevel: p.riskLevel,
         message: p.message,
@@ -122,7 +125,18 @@ export const useLogStore = defineStore('logs', () => {
   }
 
   async function ackAlert(id) {
-    await auditApi.ackAlert(id)
+    // 列表项的 id 是数字主键；WS 推送的告警 id 是字符串 alertId，需要先换成数字主键
+    const item = alerts.value.find(a => a.id === id || a.alertId === id)
+    let key = item?.id ?? id
+    if (!Number.isInteger(Number(key))) {
+      const wanted = item?.alertId ?? id
+      try {
+        const res = await auditApi.listAlerts({ status: 'open', size: 100 })
+        const hit = (res?.items || []).find(a => a.alertId === wanted)
+        if (hit) key = hit.id
+      } catch { /* 换算失败则按原值请求，由拦截器提示 */ }
+    }
+    await auditApi.ackAlert(key)
     const a = alerts.value.find(x => x.id === id)
     if (a) a.status = 'acked'
     addLog(`告警 #${id} 已确认`, 'INFO', 'AUDIT')
