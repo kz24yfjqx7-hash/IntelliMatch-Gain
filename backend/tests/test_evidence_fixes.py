@@ -514,6 +514,9 @@ def test_B010_并发写链的串行化锁存在():
 
     assert isinstance(chain_mod._WRITE_LOCK, type(threading.Lock()))
     assert chain_mod.MAX_WRITE_RETRY >= 2
+    # 会话级锁等待必须压到秒级：FOR UPDATE 行锁活到调用方提交，撞上时不能按 MySQL
+    # 默认的 50 秒干等（× 重试 3 次 = 分钟级挂起，实测把一次「回收授权」拖到 200 秒）
+    assert chain_mod._INNODB_LOCK_WAIT_TIMEOUT <= 5
 
 
 def test_迁移脚本与建表语句都包含备份表():

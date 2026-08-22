@@ -37,7 +37,7 @@
   "expect": "type=log 且四字段齐全 ts ISO8601",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"type\": \"log\", \"ts\": \"2026-08-23T01:00:53+08:00\", \"traceId\": null, \"payload\": {\"level\": \"info\", \"module\": \"ws\", \"content\": \"admin 已接入实时通道\", \"traceId\": null}}"
+  "evidence": "{\"type\": \"log\", \"ts\": \"2026-08-23T02:20:10+08:00\", \"traceId\": null, \"payload\": {\"level\": \"info\", \"module\": \"ws\", \"content\": \"admin 已接入实时通道\", \"traceId\": null}}"
  },
  {
   "id": "API-WS-05",
@@ -57,7 +57,7 @@
   "expect": "收到 evidence_written，payload 字段齐全，traceId==请求 X-Trace-Id",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"type\": \"evidence_written\", \"ts\": \"2026-08-23T01:00:53+08:00\", \"traceId\": \"tr-20260822-18053277\", \"payload\": {\"evidenceId\": \"ev-000841\", \"category\": \"identity\", \"blockHeight\": 841}}]"
+  "evidence": "[{\"type\": \"evidence_written\", \"ts\": \"2026-08-23T02:20:10+08:00\", \"traceId\": \"tr-20260822-22810502\", \"payload\": {\"evidenceId\": \"ev-001505\", \"category\": \"identity\", \"blockHeight\": 1505}}]"
  },
  {
   "id": "API-WS-07",
@@ -67,7 +67,7 @@
   "expect": "收到 audit_alert R01 字段齐全",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"type\": \"audit_alert\", \"ts\": \"2026-08-23T01:00:53+08:00\", \"traceId\": \"tr-20260823-65c84604\", \"payload\": {\"alertId\": \"al-000022\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问…"
+  "evidence": "[{\"type\": \"audit_alert\", \"ts\": \"2026-08-23T02:20:10+08:00\", \"traceId\": \"tr-20260823-2e229a2e\", \"payload\": {\"alertId\": \"al-000048\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问…"
  },
  {
   "id": "API-WS-08",
@@ -77,7 +77,7 @@
   "expect": "收到 log 且字段齐全",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"type\": \"log\", \"ts\": \"2026-08-23T01:00:53+08:00\", \"traceId\": \"tr-20260822-18053277\", \"payload\": {\"level\": \"warn\", \"module\": \"did\", \"content\": \"系统管理员 did:register → success\", \"traceId\": \"tr-20260822-18053277\"}}]"
+  "evidence": "[{\"type\": \"log\", \"ts\": \"2026-08-23T02:20:10+08:00\", \"traceId\": \"tr-20260822-22810502\", \"payload\": {\"level\": \"warn\", \"module\": \"did\", \"content\": \"系统管理员 did:register → success\", \"traceId\": \"tr-20260822-22810502\"}}]"
  },
  {
   "id": "API-WS-09",
@@ -87,7 +87,7 @@
   "expect": "每轮一条，字段齐全",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"type\": \"fl_progress\", \"ts\": \"2026-08-23T01:00:59+08:00\", \"traceId\": \"tr-20260823-d7184a68\", \"payload\": {\"taskId\": \"fl-000017\", \"round\": 1, \"totalRounds\": 2, \"loss\": 0.009467, \"acc\": 0.355, \"compressionRatio\": 90.06, \"…"
+  "evidence": "[{\"type\": \"fl_progress\", \"ts\": \"2026-08-23T02:20:17+08:00\", \"traceId\": \"tr-20260823-4a549489\", \"payload\": {\"taskId\": \"fl-000037\", \"round\": 1, \"totalRounds\": 2, \"loss\": 0.009467, \"acc\": 0.355, \"compressionRatio\": 90.06, \"…"
  },
  {
   "id": "API-WS-10",
@@ -117,7 +117,7 @@
   "expect": "收到 node_status 字段齐全",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"type\": \"node_status\", \"ts\": \"2026-08-23T01:00:55+08:00\", \"traceId\": null, \"payload\": {\"nodeId\": \"Node-A\", \"status\": \"online\", \"metrics\": {\"pvOutput\": 38.6, \"storageOutput\": -23.2, \"load\": 100.71, \"soc\": 73.34}}}]"
+  "evidence": "[{\"type\": \"node_status\", \"ts\": \"2026-08-23T02:20:13+08:00\", \"traceId\": null, \"payload\": {\"nodeId\": \"Node-A\", \"status\": \"online\", \"metrics\": {\"pvOutput\": 43.87, \"storageOutput\": -18.19, \"load\": 127.26, \"soc\": 81.7}}}]"
  },
  {
   "id": "API-WS-12",

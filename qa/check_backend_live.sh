@@ -311,6 +311,10 @@ req GET "/assets/$ASSET_ID/lineage"
 check "assets lineage 授权后含 authorize 阶段" 0 "any(c['stage']=='authorize' for c in d['chain'])"
 
 # ================================================================ 2.6 存证
+# 环境整备：本脚本以及 E2E / 功能测试的篡改演示都会让链断裂，先一键还原，
+# 否则第二次运行会从一条 broken 的链开始，后面十几条 intact 断言连锁失败。
+setuser admin
+req POST /evidence/demo/restore-all '{}'
 req GET /evidence/chain/status
 check "evidence/chain/status(篡改前)" 0 "d['height']>0 and d['lastHash'] and 'intact' in d and 'brokenAt' in d and d['totalRecords']>0 and isinstance(d['byCategory'],dict)"
 INTACT_BEFORE="$(jget 'd["intact"]')"
@@ -352,7 +356,8 @@ check "evidence/demo/tamper(admin)" 0 "d['evidenceId']=='$EV_ID' and d['tampered
 req POST /evidence/verify "{\"evidenceId\":\"$EV_ID\"}"
 check "evidence/verify 篡改后 intact=false" 0 "d['intact'] is False and d['localHash']!=d['chainHash'] and d['chainHash']=='$EV_HASH' and d.get('tamperedAt') and d.get('message')"
 req GET /evidence/chain/status
-check "evidence/chain/status 篡改后 intact=false 且 brokenAt 非空" 0 "d['intact'] is False and d['brokenAt']"
+# brokenAt 现在是区块高度（int，B-017），高度 0 是合法值不能用真值判断；断裂点 id 看 brokenAtEvidenceId
+check "evidence/chain/status 篡改后 intact=false 且断裂点非空" 0 "d['intact'] is False and d.get('brokenAt') is not None and d.get('brokenAtEvidenceId')"
 req GET "/evidence/$EV_ID/certificate"
 check "evidence/{id}/certificate(篡改后仍可导出)" 0 "'$EV_ID' in json.dumps(d)"
 

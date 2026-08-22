@@ -20,7 +20,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from sqlalchemy import func, select, text
+from sqlalchemy import event, func, select, text
 from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.orm import Session
 
@@ -40,10 +40,18 @@ GENESIS_PREV_HASH = "sm3:" + "0" * 64
 # 而失败只被 write_evidence 吞掉 ⇒ 存证被静默丢弃，高危审计日志没有 evidence_id。
 #
 # 两道防线：
-# 1. 进程内串行化：同一进程里同一时刻只有一个线程处于「取尾块 → 插入新块」之间，
+# 1. 进程内串行化：同一进程里同一时刻只有一个**业务事务**处于「取尾块 → 插入新块 → 提交」之间，
 #    把并发退化成排队，从源头消掉绝大部分锁竞争（uvicorn 单进程多线程正是这个场景）；
 # 2. 死锁 / 锁超时重试：跨进程或跨连接仍可能撞上，捕获后回滚重试，带指数退避 + 抖动。
+#
+# 第三道防线（同样来自实测）：`_write_once` 只 flush 不 commit，链尾的 FOR UPDATE 行锁
+# 要等调用方事务提交才释放。若此时**同一个请求**用另一条连接再来写链（审计日志上链原本
+# 就是另开 SessionLocal），就是自己等自己 —— 实测一次「回收授权」被拖到 200 秒
+# （innodb_lock_wait_timeout 默认 50 秒 × 重试 3 次）。两处一起治：
+#   · modules/audit/service.py 写审计存证时复用当前请求的会话（core.database.current_db_session）；
+#   · 这里把会话级 innodb_lock_wait_timeout 压到 3 秒，真撞上也是几秒内失败重试，而不是分钟级挂起。
 _WRITE_LOCK = threading.Lock()
+_INNODB_LOCK_WAIT_TIMEOUT = 3
 _RETRY_SQLSTATES = ("40001", "HY000")
 # MySQL 1213=Deadlock found、1205=Lock wait timeout；SQLite 5/6=database is locked/busy
 _RETRY_KEYWORDS = ("deadlock", "lock wait timeout", "database is locked",
@@ -219,6 +227,11 @@ class LocalHashChain(EvidenceChain):
         # SQLite 会忽略 FOR UPDATE，单测无并发也不受影响。
         stmt = select(ChainEvidence).order_by(ChainEvidence.block_height.desc()).limit(1)
         if db.bind and db.bind.dialect.name == "mysql":
+            # 万一还是撞上行锁（跨进程 / 应用锁超时降级），5 秒失败去重试，别干等 50 秒默认值
+            try:
+                db.execute(text(f"SET SESSION innodb_lock_wait_timeout={_INNODB_LOCK_WAIT_TIMEOUT}"))
+            except Exception as exc:  # noqa: BLE001  设置失败不影响正确性
+                logger.debug("设置 innodb_lock_wait_timeout 失败：%s", exc)
             stmt = stmt.with_for_update()
         tail = db.execute(stmt).scalar_one_or_none()
 

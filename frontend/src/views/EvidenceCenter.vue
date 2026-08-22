@@ -350,7 +350,12 @@ async function submitTamper() {
     await Promise.all([loadBlocks(), load()])
     // 让被篡改记录出现在检索表首页：不在当前页时钉到表首（真后端列表不支持按 evidenceId 过滤）
     if (!list.items.some(e => e.evidenceId === t.evidenceId)) {
-      const target = dataEvidences.value.find(e => e.evidenceId === t.evidenceId)
+      // 先看下拉候选里有没有；没有就直接按 id 取详情——链上千余条时被篡改的那条
+      // 往往既不在当前页也不在候选里，取不到就会出现"区块条标红了、表格里却找不到"的割裂感
+      let target = dataEvidences.value.find(e => e.evidenceId === t.evidenceId)
+      if (!target) {
+        try { target = await getEvidence(t.evidenceId) } catch { /* 取不到就算了，区块条已标红 */ }
+      }
       if (target) list.items = [{ ...target, tampered: true }, ...list.items]
     }
     selected.value = list.items.find(e => e.evidenceId === t.evidenceId) || selected.value

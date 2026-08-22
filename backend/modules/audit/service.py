@@ -40,14 +40,15 @@ def ensure_current_month_table() -> None:
 
 # ---------------------------------------------------------------- 写入
 
-def write_audit_log(payload: dict, to_chain: bool | None = None) -> str | None:
+def write_audit_log(payload: dict, to_chain: bool | None = None,
+                    request_db: Session | None = None) -> str | None:
     """写一条审计日志。返回 evidenceId（未上链则为 None）。
 
     这个函数由 core/middleware.py 的 @audited 装饰器调用，
     业务代码里不应该出现对它的直接调用。
     """
     try:
-        return _write(payload, to_chain)
+        return _write(payload, to_chain, request_db)
     except Exception as exc:  # noqa: BLE001
         logger.error("写审计日志失败（业务不受影响）：%s | %s", exc,
                      json.dumps(payload, ensure_ascii=False, default=str)[:300])
@@ -85,7 +86,8 @@ def report_chain_write_failure(category: str, ref_id, exc: BaseException) -> Non
                             "content": detail, "traceId": trace_id}, trace_id)
 
 
-def _write(payload: dict, to_chain: bool | None) -> str | None:
+def _write(payload: dict, to_chain: bool | None,
+           request_db: Session | None = None) -> str | None:
     risk = payload.get("riskLevel", "low")
     # 默认策略：高危及以上自动上链。显式传 to_chain 可以覆盖
     should_chain = to_chain if to_chain is not None else risk in _HIGH_RISK
@@ -119,7 +121,12 @@ def _write(payload: dict, to_chain: bool | None) -> str | None:
         if should_chain and not row["evidence_id"]:
             from modules.evidence.service import write_evidence
 
-            evidence = write_evidence(db, category="audit",
+            # 存证优先写在**当前请求的会话**里（由 @audited 传进来）：业务会话此刻可能
+            # 正持着链尾 FOR UPDATE 行锁且尚未提交，若这里另开一条连接去写链，
+            # 就是同一个请求自己等自己（实测一次「回收授权」被拖到 200 秒）。
+            # 会话不可用（业务已异常回滚）或请求外调用（后台任务）时退回本地会话。
+            chain_db = request_db if (request_db is not None and request_db.is_active) else db
+            evidence = write_evidence(chain_db, category="audit",
                                       ref_id=payload.get("resourceId") or payload.get("action"),
                                       payload={
                                           "action": "audit:log",
@@ -130,6 +137,21 @@ def _write(payload: dict, to_chain: bool | None) -> str | None:
                                       },
                                       actor_did=row["actor_did"], trace_id=row["trace_id"])
             row["evidence_id"] = evidence["evidenceId"]
+            if chain_db is not db:
+                # 立刻提交，释放链尾行锁；此时业务逻辑已经执行完，多提交一次无副作用
+                try:
+                    chain_db.commit()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("审计存证在请求会话上提交失败，回退本地会话：%s", exc)
+                    chain_db.rollback()
+                    evidence = write_evidence(db, category="audit",
+                                              ref_id=payload.get("resourceId") or payload.get("action"),
+                                              payload={"action": "audit:log", "module": row["module"],
+                                                       "operation": row["action"], "result": row["result"],
+                                                       "riskLevel": risk, "actorDid": row["actor_did"],
+                                                       "detail": row["detail"], "at": iso(now)},
+                                              actor_did=row["actor_did"], trace_id=row["trace_id"])
+                    row["evidence_id"] = evidence["evidenceId"]
 
         table = sharding.ensure_table(db, sharding.table_of(now))
         cols = ", ".join(sharding.COLUMNS)

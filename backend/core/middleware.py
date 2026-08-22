@@ -25,6 +25,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -148,6 +149,7 @@ def audit_step(*, module: str, action: str, risk: str = "low",
     try:
         from modules.audit.service import write_audit_log
 
+        # 后台流程没有请求会话，审计模块用自己的会话即可
         write_audit_log(payload, to_chain=chain)
     except ImportError:
         logger.info("[审计·暂存] %s", json.dumps(payload, ensure_ascii=False))
@@ -614,6 +616,11 @@ def _write_audit(module, action, risk, resource_type, resource_id_arg, kwargs,
     try:
         from modules.audit.service import write_audit_log
 
-        write_audit_log(payload, to_chain=chain)
+        # 把请求自己的 DB 会话传下去：审计存证要写在同一条连接上，
+        # 否则会和业务会话持有的链尾行锁自锁（见 modules/audit/service._write）
+        request_db = kwargs.get("db")
+        if not isinstance(request_db, Session):
+            request_db = None
+        write_audit_log(payload, to_chain=chain, request_db=request_db)
     except ImportError:
         logger.info("[审计·暂存] %s", json.dumps(payload, ensure_ascii=False))

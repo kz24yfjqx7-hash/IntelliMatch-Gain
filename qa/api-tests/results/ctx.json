@@ -1,148 +1,150 @@
 {
  "admin_did": "did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98",
- "user_id": 11,
- "user_name": "test-user-18011545",
+ "user_id": 16,
+ "user_name": "test-user-22776870",
  "dev": {
-  "did": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
+  "did": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
   "didDocument": {
    "@context": "https://w3id.org/did/v1",
-   "id": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
-   "controller": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
+   "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+   "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
    "verificationMethod": [
     {
-     "id": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5#key-1",
+     "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-1",
      "type": "SM2VerificationKey2023",
-     "controller": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
-     "publicKeyHex": "0442802678e8eaa0d9e440bfa69f822c405ee83984e9cfab0e0f42b3cb329fb7370f67846b04ed33446953471aae13744d6cdf75ca3699ef8a15c158926c3710dd"
+     "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+     "publicKeyHex": "048da77943796d65ac21004d03eb14188d0a267283783716fe98d56d780973adb6c7340037e931964ee38d7e7a024a24e04c0c996bf555d3649a1d677bae891a61"
     }
    ],
    "authentication": [
-    "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5#key-1"
+    "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-1"
    ],
-   "created": "2026-08-23T01:00:11+08:00"
+   "created": "2026-08-23T02:19:37+08:00"
   },
-  "publicKey": "0442802678e8eaa0d9e440bfa69f822c405ee83984e9cfab0e0f42b3cb329fb7370f67846b04ed33446953471aae13744d6cdf75ca3699ef8a15c158926c3710dd",
-  "privateKey": "551cc4c0edd44dbce8a698e8fb3da9ccd4b092a7eb99cd22815240e1b078dc64",
+  "publicKey": "048da77943796d65ac21004d03eb14188d0a267283783716fe98d56d780973adb6c7340037e931964ee38d7e7a024a24e04c0c996bf555d3649a1d677bae891a61",
+  "privateKey": "e7367343fc43104b7028a5876d943f2959ab0c5e490acde30dcbcaa14da5fe49",
   "custody": false,
-  "chainTxId": "blk-000715-0",
-  "evidenceId": "ev-000715",
-  "createdAt": "2026-08-23T01:00:11+08:00"
+  "chainTxId": "blk-001379-0",
+  "evidenceId": "ev-001379",
+  "createdAt": "2026-08-23T02:19:37+08:00"
  },
  "dev_custody": {
-  "did": "did:vpp:device:0xbd4fe602412192308f62c5be1c5d7a0c",
+  "did": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
   "didDocument": {
    "@context": "https://w3id.org/did/v1",
-   "id": "did:vpp:device:0xbd4fe602412192308f62c5be1c5d7a0c",
-   "controller": "did:vpp:device:0xbd4fe602412192308f62c5be1c5d7a0c",
+   "id": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
+   "controller": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
    "verificationMethod": [
     {
-     "id": "did:vpp:device:0xbd4fe602412192308f62c5be1c5d7a0c#key-1",
+     "id": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2#key-1",
      "type": "SM2VerificationKey2023",
-     "controller": "did:vpp:device:0xbd4fe602412192308f62c5be1c5d7a0c",
-     "publicKeyHex": "04d421690c479d0d026ec1184cb1e59cd0a6e37d15f1c8cb2196ec2da7d111741bb4e1269d0ef9a6e5c39c90d14ffacf8141365f60a90c2fffae7525ed5736d6ff"
+     "controller": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
+     "publicKeyHex": "0457bbf74512eb08cdb9ce3651032b3ec9e369483f06bce282ba6c294129654c386d4b1850ae24362d6b943957f2e75bed1858aa1753d546455e5b031453bd1c5a"
     }
    ],
    "authentication": [
-    "did:vpp:device:0xbd4fe602412192308f62c5be1c5d7a0c#key-1"
+    "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2#key-1"
    ],
-   "created": "2026-08-23T01:00:12+08:00"
+   "created": "2026-08-23T02:19:37+08:00"
   },
-  "publicKey": "04d421690c479d0d026ec1184cb1e59cd0a6e37d15f1c8cb2196ec2da7d111741bb4e1269d0ef9a6e5c39c90d14ffacf8141365f60a90c2fffae7525ed5736d6ff",
-  "privateKey": "c46840a7fb0e46e8824f6208d36ad67405fc2c8d199d14b411de046ea6247785",
+  "publicKey": "0457bbf74512eb08cdb9ce3651032b3ec9e369483f06bce282ba6c294129654c386d4b1850ae24362d6b943957f2e75bed1858aa1753d546455e5b031453bd1c5a",
+  "privateKey": "28746395c6b8b2a19ef4e348bf0193f6e16a2f92959066bf0bf2d13c3d16a833",
   "custody": true,
-  "chainTxId": "blk-000716-0",
-  "evidenceId": "ev-000716",
-  "createdAt": "2026-08-23T01:00:12+08:00"
+  "chainTxId": "blk-001380-0",
+  "evidenceId": "ev-001380",
+  "createdAt": "2026-08-23T02:19:37+08:00"
  },
  "dev_v2": {
-  "did": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
-  "publicKey": "04eaec1468f46da4352b764736f26092f797d6eced0af77f857054666baa57f614daa9b4febfbd3aa9f3b85679fb8cafde9c8ea4ac49244c16b677694c9b0b79b8",
-  "privateKey": "57f8d8ea5a9c0b77ce6c87243fe26a132480fcd3ed39703b755278fc2370a99b",
+  "did": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+  "publicKey": "04406a16004868accf7eb4bebc15cfe04b41e17baf343b414ed722d2a9bae76274218fa84d3bbf3784835a2624ebdc0be3bd8793db5cc1812d85dd7b6515d4f401",
+  "privateKey": "27e70498bdc8e8f9cdbd16e9db69d5ea61924a058ba407be0c298d3ec1bb7a00",
   "version": 2,
   "algorithm": "SM2",
   "custody": false,
-  "evidenceId": "ev-000724",
+  "evidenceId": "ev-001387",
   "didDocument": {
    "@context": "https://w3id.org/did/v1",
-   "id": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
-   "controller": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
+   "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+   "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
    "verificationMethod": [
     {
-     "id": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5#key-2",
+     "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-2",
      "type": "SM2VerificationKey2023",
-     "controller": "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5",
-     "publicKeyHex": "04eaec1468f46da4352b764736f26092f797d6eced0af77f857054666baa57f614daa9b4febfbd3aa9f3b85679fb8cafde9c8ea4ac49244c16b677694c9b0b79b8"
+     "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+     "publicKeyHex": "04406a16004868accf7eb4bebc15cfe04b41e17baf343b414ed722d2a9bae76274218fa84d3bbf3784835a2624ebdc0be3bd8793db5cc1812d85dd7b6515d4f401"
     }
    ],
    "authentication": [
-    "did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5#key-2"
+    "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-2"
    ],
-   "created": "2026-08-23T01:00:11+08:00",
-   "updated": "2026-08-23T01:00:12+08:00"
+   "created": "2026-08-23T02:19:37+08:00",
+   "updated": "2026-08-23T02:19:38+08:00"
   }
  },
- "user_did": "did:vpp:user:0x4822b0e6127d065e38609eef7550626b",
- "key_id": 60,
- "asset_id": 1093,
- "asset_ev": "ev-000744",
- "role": "test_role_18014399",
- "app_id": 32,
- "grant_id": 18,
- "env_restored": [],
- "ev_id": "ev-000767",
+ "user_did": "did:vpp:user:0x465957766815ba993b1d4bf22213ac37",
+ "key_id": 105,
+ "asset_id": 1120,
+ "asset_ev": "ev-001407",
+ "role": "test_role_22779669",
+ "app_id": 60,
+ "grant_id": 30,
+ "env_restored": [
+  "ev-001352"
+ ],
+ "ev_id": "ev-001431",
  "chain_before": {
-  "height": 768,
-  "lastHash": "sm3:ff00beaed5e6d79da212ae1b73c2926cde35f70f91aafb8bad720bcf7b7496a9",
+  "height": 1432,
+  "lastHash": "sm3:09915d34fc2c0231563e0c285c254504aea7f481e2527f4d1f75528a79b09125",
   "intact": true,
   "brokenAt": null,
   "brokenAtEvidenceId": null,
-  "totalRecords": 768,
+  "totalRecords": 1432,
   "byCategory": {
-   "data": 118,
-   "identity": 99,
-   "permission": 78,
-   "audit": 342,
-   "algo": 131
+   "data": 160,
+   "identity": 182,
+   "permission": 146,
+   "audit": 671,
+   "algo": 273
   },
   "chainType": "LocalHashChain",
-  "verifiedAt": "2026-08-23T01:00:15+08:00"
+  "verifiedAt": "2026-08-23T02:19:40+08:00"
  },
- "alert_id": 23,
+ "alert_id": 53,
  "edge_d": {
   "did": "did:vpp:edge:0x026724404a9c4c835306ce158a6360f4",
-  "privateKey": "a3b1b2d2e4bcfb8eee568499674ab64ea981ad78811ddfb32b274316600723ce",
-  "publicKey": "041220a09db67099fe12531fa6d198507dadabdfee3324f4906aa79fca8183f6b73732157bc75883843bb0c0d4b35b7d1c83dbf70fabb84b8405cd99f58f20a588"
+  "privateKey": "2d614fe26c3632e8450b71ebdc0e1f9b67f0d79cd9fa0229a2b9c40bb7be66ea",
+  "publicKey": "04056e5186b76adb4a5bb2b898c5dca6f2b6d48d43c09d89ba9390df5bd1094586e19f70ad98eff9e3a0d08792a012a18f1086c8a446cd924baf27e10b59c1f1ad"
  },
- "fl": "fl-000015",
- "dp": "dp-000020",
+ "fl": "fl-000035",
+ "dp": "dp-000036",
  "dp_run": {
-  "id": "dp-000020",
+  "id": "dp-000036",
   "status": "success",
   "strategy": {
    "actions": [
     {
      "nodeId": "Node-A",
      "action": "discharge",
-     "powerKw": 18.0,
-     "qValue": 46.6438,
+     "powerKw": 18.1,
+     "qValue": 48.312,
      "reason": "负荷最高，SOC充足"
     },
     {
      "nodeId": "Node-C",
      "action": "charge",
-     "powerKw": 16.1,
-     "qValue": 38.4753,
+     "powerKw": 16.9,
+     "qValue": 45.6447,
      "reason": "SOC有余量"
     },
     {
      "nodeId": "Node-D",
      "action": "discharge",
-     "powerKw": 17.0,
-     "qValue": 50.5966,
+     "powerKw": 17.2,
+     "qValue": 53.7031,
      "reason": "负荷排第2位，SOC充足"
     }
    ],
-   "totalReward": 135.7156,
+   "totalReward": 147.6598,
    "timeWindow": "2026-08-22T19:00~20:00+08:00",
    "constraintsChecked": {
     "socMin": 20.0,
@@ -154,28 +156,28 @@
   "qTable": [
    {
     "nodeId": "Node-A",
-    "charge": 23.3278,
-    "idle": 42.0459,
-    "discharge": 46.6438
+    "charge": 16.1282,
+    "idle": 43.3691,
+    "discharge": 48.312
    },
    {
     "nodeId": "Node-C",
-    "charge": 38.4753,
-    "idle": 37.063,
-    "discharge": 34.1497
+    "charge": 45.6447,
+    "idle": 42.8154,
+    "discharge": 41.8428
    },
    {
     "nodeId": "Node-D",
-    "charge": 25.3298,
-    "idle": 47.2401,
-    "discharge": 50.5966
+    "charge": 18.938,
+    "idle": 49.6912,
+    "discharge": 53.7031
    }
   ],
-  "explanation": "该调度策略在2026年8月22日19:00-20:00时段内，基于各节点的负荷水平与SOC状态进行优化：Node-A因负荷最高且SOC充足而放电18kW，Node-D因负荷次高且SOC充足放电17kW，Node-C因SOC有余量而充电16.1kW，所有操作均未违反功率和SOC约束，总奖励为135.72。",
+  "explanation": "该调度策略依据各节点负荷水平与SOC状态，在满足功率和SOC约束的前提下，优先让高负荷且SOC充足的节点放电，同时让SOC有余量的节点充电，以平衡供需并最大化总收益（147.66）。",
   "explanationSource": "live",
-  "evidenceId": "ev-000817",
-  "traceId": "tr-20260823-8b94888f",
-  "signPayload": "dispatch:issue:dp-000020:sm3:d8fd3fd768d79373db33bc162d136ae9bd2f2f620fbea30232d53da10edbf8d8"
+  "evidenceId": "ev-001481",
+  "traceId": "tr-20260823-1857f674",
+  "signPayload": "dispatch:issue:dp-000036:sm3:075a124241e801707e64e366dc814576eadce5b99f588029ddbaf6df1c48926a"
  },
  "ai_source": "live"
 }

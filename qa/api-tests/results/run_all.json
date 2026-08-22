@@ -17,7 +17,7 @@
   "expect": "alg=HS256；payload 含 sub/username/roles/did/exp；exp-iat≈28800",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"header\": {\"alg\": \"HS256\", \"typ\": \"JWT\"}, \"payload\": {\"sub\": \"1\", \"username\": \"admin\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"iat\": 1787418011, \"exp\": 1787446811, \"jti\": \"0820…"
+  "evidence": "{\"header\": {\"alg\": \"HS256\", \"typ\": \"JWT\"}, \"payload\": {\"sub\": \"1\", \"username\": \"admin\", \"roles\": [\"sys_admin\"], \"did\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"iat\": 1787422776, \"exp\": 1787451576, \"jti\": \"4697…"
  },
  {
   "id": "API-AUTH-03",
@@ -27,7 +27,7 @@
   "expect": "401/1002 且统一包裹；message 不区分用户名是否存在",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260823-1756cfcb\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260823-613c1398\"}"
  },
  {
   "id": "API-AUTH-04",
@@ -37,7 +37,7 @@
   "expect": "与密码错误同样 401/1002，message 相同",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260823-c4e5fd1a\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260823-a9d19726\"}"
  },
  {
   "id": "API-AUTH-05",
@@ -47,7 +47,7 @@
   "expect": "400/1001 统一包裹（非 FastAPI 422）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password Field required\", \"data\": null, \"traceId\": \"tr-20260823-afcd20cd\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password Field required\", \"data\": null, \"traceId\": \"tr-20260823-67ff67f5\"}"
  },
  {
   "id": "API-AUTH-06",
@@ -57,7 +57,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-43f7bb0a\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-bdeb090d\"}"
  },
  {
   "id": "API-AUTH-07",
@@ -87,7 +87,7 @@
   "expect": "logout 200；之后 401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"登录已失效，请重新登录\", \"data\": null, \"traceId\": \"tr-20260823-58aa0c6f\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"登录已失效，请重新登录\", \"data\": null, \"traceId\": \"tr-20260823-3e7ef7ff\"}"
  },
  {
   "id": "API-AUTH-10",
@@ -97,7 +97,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-1b62c3ec\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-b9bdd069\"}"
  },
  {
   "id": "API-AUTH-11",
@@ -107,7 +107,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-7d792538\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-eee7d71d\"}"
  },
  {
   "id": "API-AUTH-12",
@@ -117,7 +117,7 @@
   "expect": "401/1002（运行实例未使用示例密钥）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-d1cbaa15\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-def3fab2\"}"
  },
  {
   "id": "API-AUTH-13",
@@ -127,7 +127,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-b250c20e\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-a0a2bd3e\"}"
  },
  {
   "id": "API-AUTH-14",
@@ -137,13 +137,13 @@
   "expect": "401/1002 不 500",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-f1633918\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260823-ee8263c6\"}"
  },
  {
   "id": "API-AUTH-15",
   "module": "AUTH",
   "basis": "契约 1.2 traceId 沿用",
-  "step": "GET /auth/me 带 X-Trace-Id:tr-20260822-18011508",
+  "step": "GET /auth/me 带 X-Trace-Id:tr-20260822-22776835",
   "expect": "响应头 X-Trace-Id 与 body.traceId 均回显",
   "actual": "与预期一致",
   "verdict": "通过",
@@ -177,7 +177,7 @@
   "expect": "403/1003 message 点名 sys_admin",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-c588db06\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-8b3bd6b4\"}"
  },
  {
   "id": "API-USER-03",
@@ -187,17 +187,17 @@
   "expect": "200；返回 id/username/did；不返回密码",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 11, \"username\": \"test-user-18011545\", \"realName\": \"测试用户\", \"orgName\": \"测试机构\", \"roles\": [\"vpp_operator\"], \"did\": \"did:vpp:user:0x4822b0e6127d065e38609eef7550626b\", \"phone\": null,…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 16, \"username\": \"test-user-22776870\", \"realName\": \"测试用户\", \"orgName\": \"测试机构\", \"roles\": [\"vpp_operator\"], \"did\": \"did:vpp:user:0x465957766815ba993b1d4bf22213ac37\", \"phone\": null,…"
  },
  {
   "id": "API-USER-04",
   "module": "USER",
   "basis": "DB-SCHEMA 密码 bcrypt 存储",
-  "step": "查 sys_user.password_hash (test-user-18011545)",
+  "step": "查 sys_user.password_hash (test-user-22776870)",
   "expect": "$2b$ 开头 60 字符，非明文",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"hash\": \"$2b$10$YtxBv…\"}"
+  "evidence": "{\"hash\": \"$2b$10$N3GMc…\"}"
  },
  {
   "id": "API-USER-05",
@@ -207,7 +207,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"用户名 test-user-18011545 已存在\", \"data\": null, \"traceId\": \"tr-20260823-a992f473\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"用户名 test-user-22776870 已存在\", \"data\": null, \"traceId\": \"tr-20260823-fc80cd17\"}"
  },
  {
   "id": "API-USER-06",
@@ -217,7 +217,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password String should have at least 6 characters\", \"data\": null, \"traceId\": \"tr-20260823-90e6d016\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password String should have at least 6 characters\", \"data\": null, \"traceId\": \"tr-20260823-30965b25\"}"
  },
  {
   "id": "API-USER-07",
@@ -227,7 +227,7 @@
   "expect": "200 status=disabled",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 11, \"username\": \"test-user-18011545\", \"realName\": \"测试用户-改\", \"orgName\": \"测试机构\", \"roles\": [\"vpp_operator\"], \"did\": \"did:vpp:user:0x4822b0e6127d065e38609eef7550626b\", \"phone\": nul…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 16, \"username\": \"test-user-22776870\", \"realName\": \"测试用户-改\", \"orgName\": \"测试机构\", \"roles\": [\"vpp_operator\"], \"did\": \"did:vpp:user:0x465957766815ba993b1d4bf22213ac37\", \"phone\": nul…"
  },
  {
   "id": "API-USER-08",
@@ -237,7 +237,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"账号已被停用，请联系系统管理员\", \"data\": null, \"traceId\": \"tr-20260823-6c2adab7\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"账号已被停用，请联系系统管理员\", \"data\": null, \"traceId\": \"tr-20260823-351f573d\"}"
  },
  {
   "id": "API-USER-09",
@@ -247,7 +247,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"用户 999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-9c81d436\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"用户 999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-505c0686\"}"
  },
  {
   "id": "API-USER-10",
@@ -257,7 +257,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-15a3d0cf\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-e09a6e24\"}"
  },
  {
   "id": "API-DID-01",
@@ -267,7 +267,7 @@
   "expect": "did 形如 did:vpp:device:0x+32hex；didDocument @context/id/controller/verificationMethod[type=SM2VerificationKey2023]；publicKey 04 开头 130；privateKey 64；evidenceId ev-；chainTxId blk-",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"didDocument\": {\"@context\": \"https://w3id.org/did/v1\", \"id\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"control…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"didDocument\": {\"@context\": \"https://w3id.org/did/v1\", \"id\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"control…"
  },
  {
   "id": "API-DID-02",
@@ -277,7 +277,7 @@
   "expect": "与返回 did 一致",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"recalc\": \"did:vpp:device:0x21bd7fd05e4c4716b1466772688f4e89\"}"
+  "evidence": "{\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"recalc\": \"did:vpp:device:0xd2e1d284d578785d28119f6d13068e29\"}"
  },
  {
   "id": "API-DID-03",
@@ -287,7 +287,7 @@
   "expect": "为 NULL/空，且不等于明文私钥",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"private_key_enc\": \"None\", \"custody\": \"0\", \"public_key\": \"0442802678e8eaa0d9e440bf\"}"
+  "evidence": "{\"private_key_enc\": \"None\", \"custody\": \"0\", \"public_key\": \"048da77943796d65ac21004d\"}"
  },
  {
   "id": "API-DID-04",
@@ -297,7 +297,7 @@
   "expect": "非空密文（hex，长度>64）且 ≠ 返回的明文私钥",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"enc_prefix\": \"6d301332ab4ddea640dde42b\", \"len\": 192}"
+  "evidence": "{\"enc_prefix\": \"8e74af861bfeab16abb57c52\", \"len\": 192}"
  },
  {
   "id": "API-DID-05",
@@ -307,7 +307,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：subjectType String should match pattern '^(user|device|org|edge)$'\", \"data\": null, \"traceId\": \"tr-20260823-ee2bc905\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：subjectType String should match pattern '^(user|device|org|edge)$'\", \"data\": null, \"traceId\": \"tr-20260823-cc45c8e9\"}"
  },
  {
   "id": "API-DID-06",
@@ -317,17 +317,17 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-2a89e376\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-288662fc\"}"
  },
  {
   "id": "API-DID-07",
   "module": "DID",
   "basis": "契约 2.2 GET /did 筛选分页",
-  "step": "GET /did?subjectType=device&status=active&keyword=test-dev-18011896",
+  "step": "GET /did?subjectType=device&status=active&keyword=test-dev-22777159",
   "expect": "分页结构；items 均 device/active；命中刚注册的",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-18011896\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"stat…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-22777159\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"stat…"
  },
  {
   "id": "API-DID-08",
@@ -337,7 +337,7 @@
   "expect": "400/1001 或被截到 200",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：size Input should be less than or equal to 200\", \"data\": null, \"traceId\": \"tr-20260823-909f19eb\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：size Input should be less than or equal to 200\", \"data\": null, \"traceId\": \"tr-20260823-eba07f33\"}"
  },
  {
   "id": "API-DID-09",
@@ -347,7 +347,7 @@
   "expect": "200；含 did/didDocument/status=active；不含 privateKey",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-18011896\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"status\": \"activ…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-22777159\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"status\": \"activ…"
  },
  {
   "id": "API-DID-10",
@@ -357,7 +357,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"身份 did:vpp:device:0x00000000000000000000000000000000 不存在\", \"data\": null, \"traceId\": \"tr-20260823-6f787325\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"身份 did:vpp:device:0x00000000000000000000000000000000 不存在\", \"data\": null, \"traceId\": \"tr-20260823-ee29d8d5\"}"
  },
  {
   "id": "API-DID-11",
@@ -367,7 +367,7 @@
   "expect": "valid=true subjectType=device status=active reason=null",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": true, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 56, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": null}, \"traceId\": \"tr-20260823-39a86901\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": true, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 101, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": null}, \"traceId\": \"tr-20260823-ee6fa8b2\"}"
  },
  {
   "id": "API-DID-12",
@@ -377,7 +377,7 @@
   "expect": "200 valid=false",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 56, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-4…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 101, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-…"
  },
  {
   "id": "API-DID-13",
@@ -387,7 +387,7 @@
   "expect": "valid=false",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 56, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-6…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 101, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-…"
  },
  {
   "id": "API-DID-14",
@@ -397,7 +397,7 @@
   "expect": "400/1001 或 valid=false，不 500",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 56, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-d…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 101, \"keyVersion\": 1, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-…"
  },
  {
   "id": "API-DID-15",
@@ -407,7 +407,7 @@
   "expect": "200；存在的有文档，不存在的标注",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-18011896\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"stat…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"subjectType\": \"device\", \"subjectName\": \"test-dev-22777159\", \"orgName\": \"test-园区\", \"controllerDid\": null, \"stat…"
  },
  {
   "id": "API-DID-16",
@@ -417,7 +417,7 @@
   "expect": "status=frozen 带 evidenceId",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"status\": \"frozen\", \"reason\": \"test-冻结\", \"evidenceId\": \"ev-000717\"}, \"traceId\": \"tr-20260823-ef9cf6f3\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"status\": \"frozen\", \"reason\": \"test-冻结\", \"evidenceId\": \"ev-001381\"}, \"traceId\": \"tr-20260823-575f0768\"}"
  },
  {
   "id": "API-DID-17",
@@ -427,7 +427,7 @@
   "expect": "valid=false status=frozen",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"frozen\", \"reason\": \"身份状态为 frozen，不可用于验签\"}, \"traceId\": \"tr-20260823-ca818f38\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"frozen\", \"reason\": \"身份状态为 frozen，不可用于验签\"}, \"traceId\": \"tr-20260823-4c6e1cd3\"}"
  },
  {
   "id": "API-DID-18",
@@ -437,7 +437,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"身份已处于 frozen 状态\", \"data\": null, \"traceId\": \"tr-20260823-87c15e6f\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"身份已处于 frozen 状态\", \"data\": null, \"traceId\": \"tr-20260823-1e393fc7\"}"
  },
  {
   "id": "API-DID-19",
@@ -447,7 +447,7 @@
   "expect": "status=active",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"status\": \"active\", \"reason\": \"test-解冻\", \"evidenceId\": \"ev-000720\"}, \"traceId\": \"tr-20260823-c905419d\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"status\": \"active\", \"reason\": \"test-解冻\", \"evidenceId\": \"ev-001384\"}, \"traceId\": \"tr-20260823-3478a62a\"}"
  },
  {
   "id": "API-DID-20",
@@ -457,7 +457,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：action String should match pattern '^(freeze|unfreeze|revoke)$'\", \"data\": null, \"traceId\": \"tr-20260823-c7f55bca\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：action String should match pattern '^(freeze|unfreeze|revoke)$'\", \"data\": null, \"traceId\": \"tr-20260823-76dc840e\"}"
  },
  {
   "id": "API-DID-21",
@@ -467,7 +467,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-be023375\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-c479c2f1\"}"
  },
  {
   "id": "API-DID-22",
@@ -477,7 +477,7 @@
   "expect": "version=2；publicKey 变化；did 不变",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"publicKey\": \"04eaec1468f46da4352b764736f26092f797d6eced0af77f857054666baa57f614daa9b4febfbd3aa9f3b85679fb8cafde9c8ea4ac49…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"publicKey\": \"04406a16004868accf7eb4bebc15cfe04b41e17baf343b414ed722d2a9bae76274218fa84d3bbf3784835a2624ebdc0be3bd8793db5c…"
  },
  {
   "id": "API-DID-23",
@@ -487,7 +487,7 @@
   "expect": "valid=false",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 58, \"keyVersion\": 2, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-3…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"active\", \"keyId\": 103, \"keyVersion\": 2, \"algorithm\": \"SM2\", \"reason\": \"签名与该身份 1 把活跃密钥均不匹配，原文可能被篡改或签名伪造\"}, \"traceId\": \"tr-20260823-…"
  },
  {
   "id": "API-DID-24",
@@ -507,7 +507,7 @@
   "expect": "revoke→revoked；unfreeze 409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"身份已注销，注销不可逆\", \"data\": null, \"traceId\": \"tr-20260823-cef0a191\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"身份已注销，注销不可逆\", \"data\": null, \"traceId\": \"tr-20260823-d6ba1c4f\"}"
  },
  {
   "id": "API-DID-26",
@@ -517,7 +517,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"身份 did:vpp:user:0x4822b0e6127d065e38609eef7550626b 状态为 frozen，已被拒绝接入\", \"data\": null, \"traceId\": \"tr-20260823-df5e7851\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"身份 did:vpp:user:0x465957766815ba993b1d4bf22213ac37 状态为 frozen，已被拒绝接入\", \"data\": null, \"traceId\": \"tr-20260823-c10c107a\"}"
  },
  {
   "id": "API-DID-27",
@@ -527,17 +527,17 @@
   "expect": "存在 R02_ABNORMAL_DID 告警",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 [{\"id\": 22, \"alertId\": \"al-000020\", \"ruleCode\": \"R02_ABNORMAL_DID\", \"ruleName\": \"异常 DID 登录\", \"riskLevel\": \"critical\", \"message\": \"DID 状态为 frozen，拒绝接入\", \"actorDid\": \"did:vpp:user:0x4822b0e6127d065e38609eef7550626b\", \"acto…"
+  "evidence": "HTTP 200 [{\"id\": 52, \"alertId\": \"al-000046\", \"ruleCode\": \"R02_ABNORMAL_DID\", \"ruleName\": \"异常 DID 登录\", \"riskLevel\": \"critical\", \"message\": \"DID 状态为 frozen，拒绝接入\", \"actorDid\": \"did:vpp:user:0x465957766815ba993b1d4bf22213ac37\", \"acto…"
  },
  {
   "id": "API-KEY-01",
   "module": "KEY",
   "basis": "契约 2.3 GET /keys",
-  "step": "GET /keys?did=did:vpp:device:0x92fe2486a9436…",
+  "step": "GET /keys?did=did:vpp:device:0x295f3c4d70561…",
   "expect": "分页；items 字段 id/did/algorithm=SM2/publicKey/status/version/boundAt/expireAt；无私钥",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 58, \"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"algorithm\": \"SM2\", \"publicKey\": \"04eaec1468f46da4352b764736f26092f797d6eced0af77f857054666baa57f614d…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 103, \"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"algorithm\": \"SM2\", \"publicKey\": \"04406a16004868accf7eb4bebc15cfe04b41e17baf343b414ed722d2a9bae76274…"
  },
  {
   "id": "API-KEY-02",
@@ -547,7 +547,7 @@
   "expect": "200 返回 id/version 递增",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 60, \"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"algorithm\": \"SM2\", \"publicKey\": \"04864baafd6b7a53c49da61857f32c761ad81674bb299e391610ea3c42806b7fb871d40825324e…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 105, \"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"algorithm\": \"SM2\", \"publicKey\": \"04d20fe96605ebca147c45ba8b205a6a2dc05749ae8e64f12e6242cd847dd15cc21b9152a100f…"
  },
  {
   "id": "API-KEY-03",
@@ -557,7 +557,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：algorithm String should match pattern '^(SM2|ECC|RSA)$'\", \"data\": null, \"traceId\": \"tr-20260823-2ffa79ab\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：algorithm String should match pattern '^(SM2|ECC|RSA)$'\", \"data\": null, \"traceId\": \"tr-20260823-1df759f8\"}"
  },
  {
   "id": "API-KEY-04",
@@ -567,7 +567,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"身份 did:vpp:device:0x00000000000000000000000000000000 不存在\", \"data\": null, \"traceId\": \"tr-20260823-90c0cb06\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"身份 did:vpp:device:0x00000000000000000000000000000000 不存在\", \"data\": null, \"traceId\": \"tr-20260823-37d5e073\"}"
  },
  {
   "id": "API-KEY-05",
@@ -577,7 +577,7 @@
   "expect": "200 status=frozen",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 60, \"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"status\": \"frozen\", \"reason\": \"test\", \"evidenceId\": \"ev-000738\"}, \"traceId\": \"tr-20260823-74db8aba\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 105, \"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"status\": \"frozen\", \"reason\": \"test\", \"evidenceId\": \"ev-001401\"}, \"traceId\": \"tr-20260823-ccb874f3\"}"
  },
  {
   "id": "API-KEY-06",
@@ -587,7 +587,7 @@
   "expect": "200 status=revoked",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 60, \"did\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"status\": \"revoked\", \"reason\": \"test\", \"evidenceId\": \"ev-000740\"}, \"traceId\": \"tr-20260823-d863e8c0\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 105, \"did\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"status\": \"revoked\", \"reason\": \"test\", \"evidenceId\": \"ev-001403\"}, \"traceId\": \"tr-20260823-34f76e82\"}"
  },
  {
   "id": "API-KEY-07",
@@ -597,7 +597,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"密钥已注销，注销不可逆\", \"data\": null, \"traceId\": \"tr-20260823-56d6103c\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"密钥已注销，注销不可逆\", \"data\": null, \"traceId\": \"tr-20260823-45b9c19a\"}"
  },
  {
   "id": "API-KEY-08",
@@ -617,7 +617,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"密钥 999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-98999262\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"密钥 999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-46b33af0\"}"
  },
  {
   "id": "API-KEY-10",
@@ -627,7 +627,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260823-dbcb206a\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260823-42527ac3\"}"
  },
  {
   "id": "API-ASSET-01",
@@ -637,7 +637,7 @@
   "expect": "id/hash=sm3:64hex/level∈L1-L4/chainTxId/evidenceId/authStatus/createdAt",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1093, \"hash\": \"sm3:145056bc512548eb4731745b9b89bcb0d4e925ed52c8b67d5d41be7df9c27b42\", \"level\": \"L4\", \"chainTxId\": \"blk-000744-0\", \"evidenceId\": \"ev-000744\", \"authStatus\": \"unau…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1120, \"hash\": \"sm3:145056bc512548eb4731745b9b89bcb0d4e925ed52c8b67d5d41be7df9c27b42\", \"level\": \"L4\", \"chainTxId\": \"blk-001407-0\", \"evidenceId\": \"ev-001407\", \"authStatus\": \"unau…"
  },
  {
   "id": "API-ASSET-02",
@@ -647,7 +647,7 @@
   "expect": "payload 完整；本地 payload_hash == 返回 hash",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1093, \"name\": \"test-pv-18013982\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"ownerDid\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752c…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1120, \"name\": \"test-pv-22779255\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"ownerDid\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb41…"
  },
  {
   "id": "API-ASSET-03",
@@ -657,7 +657,7 @@
   "expect": "存证 payload 无 pvOutput/location 原始值",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000744\", \"category\": \"data\", \"refId\": \"1093\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:4a6ed5a692430d4cd359a6d4a1d8535d95295f51f6…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001407\", \"category\": \"data\", \"refId\": \"1120\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:eabe79f23eab0f09dd44e162ccc0e4036b03af0b25…"
  },
  {
   "id": "API-ASSET-04",
@@ -667,7 +667,7 @@
   "expect": "分页；items 符合筛选",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1093, \"name\": \"test-pv-18013982\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"ownerDid\": \"did:vpp:device:0x92fe2486a9436f5b6…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1120, \"name\": \"test-pv-22779255\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"ownerDid\": \"did:vpp:device:0x295f3c4d7056107ef…"
  },
  {
   "id": "API-ASSET-05",
@@ -677,7 +677,7 @@
   "expect": "400/1001（或空列表）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：dataType String should match pattern '^(pv|wind|storage|load|dispatch)$'\", \"data\": null, \"traceId\": \"tr-20260823-f0b8bfdd\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：dataType String should match pattern '^(pv|wind|storage|load|dispatch)$'\", \"data\": null, \"traceId\": \"tr-20260823-a48650cf\"}"
  },
  {
   "id": "API-ASSET-06",
@@ -687,7 +687,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"数据资产 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-8bd59b64\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"数据资产 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-1ea8f819\"}"
  },
  {
   "id": "API-ASSET-07",
@@ -697,7 +697,7 @@
   "expect": "assetId/traceId/chain[stage,at,actorDid,evidenceId]；含 register 与 access",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"assetId\": 1093, \"traceId\": \"tr-20260823-e2ed1b21\", \"chain\": [{\"stage\": \"register\", \"at\": \"2026-08-23T01:00:14+08:00\", \"actorDid\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\"…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"assetId\": 1120, \"traceId\": \"tr-20260823-1c3bb2dc\", \"chain\": [{\"stage\": \"register\", \"at\": \"2026-08-23T02:19:39+08:00\", \"actorDid\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\"…"
  },
  {
   "id": "API-ASSET-08",
@@ -717,7 +717,7 @@
   "expect": "400/1001 或 502/2001，不得 500",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：records List should have at least 1 item after validation, not 0\", \"data\": null, \"traceId\": \"tr-20260823-caa38863\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：records List should have at least 1 item after validation, not 0\", \"data\": null, \"traceId\": \"tr-20260823-cc7b2762\"}"
  },
  {
   "id": "API-ASSET-10",
@@ -727,7 +727,7 @@
   "expect": "byLevel/byType/total/authorized/onChain；total≥81",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"byLevel\": [{\"level\": \"L1\", \"count\": 12}, {\"level\": \"L2\", \"count\": 36}, {\"level\": \"L3\", \"count\": 32}, {\"level\": \"L4\", \"count\": 13}], \"byType\": [{\"dataType\": \"pv\", \"count\": 43}, {\"dat…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"byLevel\": [{\"level\": \"L1\", \"count\": 12}, {\"level\": \"L2\", \"count\": 51}, {\"level\": \"L3\", \"count\": 42}, {\"level\": \"L4\", \"count\": 15}], \"byType\": [{\"dataType\": \"pv\", \"count\": 64}, {\"dat…"
  },
  {
   "id": "API-ASSET-11",
@@ -737,7 +737,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-02a8611d\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-00b0175d\"}"
  },
  {
   "id": "API-ASSET-12",
@@ -757,7 +757,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-ef8dbe68\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-5f6a6752\"}"
  },
  {
   "id": "API-ASSET-14",
@@ -767,7 +767,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：level String should match pattern '^(L1|L2|L3|L4)$'\", \"data\": null, \"traceId\": \"tr-20260823-bac57582\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：level String should match pattern '^(L1|L2|L3|L4)$'\", \"data\": null, \"traceId\": \"tr-20260823-9b3aaa00\"}"
  },
  {
   "id": "API-ASSET-15",
@@ -777,7 +777,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 regulator 无 asset:write 权限\", \"data\": null, \"traceId\": \"tr-20260823-73f7b169\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 regulator 无 asset:write 权限\", \"data\": null, \"traceId\": \"tr-20260823-a5e77995\"}"
  },
  {
   "id": "API-PERM-01",
@@ -797,7 +797,7 @@
   "expect": "200",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"code\": \"test_role_18014399\", \"name\": \"测试自定义角色\", \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"all\"}]}, \"traceId\": \"tr-20260823-7349f1df\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"code\": \"test_role_22779669\", \"name\": \"测试自定义角色\", \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"all\"}]}, \"traceId\": \"tr-20260823-fddd4dc6\"}"
  },
  {
   "id": "API-PERM-03",
@@ -807,7 +807,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"角色码 test_role_18014399 已存在\", \"data\": null, \"traceId\": \"tr-20260823-be1b39e5\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"角色码 test_role_22779669 已存在\", \"data\": null, \"traceId\": \"tr-20260823-c8832276\"}"
  },
  {
   "id": "API-PERM-04",
@@ -817,7 +817,7 @@
   "expect": "200",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"code\": \"test_role_18014399\", \"name\": \"测试自定义角色\", \"description\": null, \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"all\"}, {\"resourceType\": \"evidence\", \"action\": \"…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"code\": \"test_role_22779669\", \"name\": \"测试自定义角色\", \"description\": null, \"grants\": [{\"resourceType\": \"asset\", \"action\": \"read\", \"scope\": \"all\"}, {\"resourceType\": \"evidence\", \"action\": \"…"
  },
  {
   "id": "API-PERM-05",
@@ -827,7 +827,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：grants.0.action String should match pattern '^(read|write|execute|issue|export|manage)$'\", \"data\": null, \"traceId\": \"tr-20260823-3bca4ae8\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：grants.0.action String should match pattern '^(read|write|execute|issue|export|manage)$'\", \"data\": null, \"traceId\": \"tr-20260823-f736bebb\"}"
  },
  {
   "id": "API-PERM-06",
@@ -837,7 +837,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"角色 no_such_role_x 不存在\", \"data\": null, \"traceId\": \"tr-20260823-990e24e0\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"角色 no_such_role_x 不存在\", \"data\": null, \"traceId\": \"tr-20260823-b0df3fe5\"}"
  },
  {
   "id": "API-PERM-07",
@@ -847,7 +847,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-a51e2ade\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-77997f4a\"}"
  },
  {
   "id": "API-PERM-08",
@@ -857,7 +857,7 @@
   "expect": "resources 5 项/actions 5 项/roles≥6；sys_admin.grants.dispatch 含 issue",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"resources\": [\"asset\", \"model\", \"dispatch\", \"evidence\", \"algo\"], \"actions\": [\"read\", \"write\", \"execute\", \"issue\", \"export\"], \"roles\": 9}"
+  "evidence": "HTTP 200 {\"resources\": [\"asset\", \"model\", \"dispatch\", \"evidence\", \"algo\"], \"actions\": [\"read\", \"write\", \"execute\", \"issue\", \"export\"], \"roles\": 11}"
  },
  {
   "id": "API-PERM-09",
@@ -867,7 +867,7 @@
   "expect": "allowed=false reason 含 vpp_operator；含 matchedRule/level",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"allowed\": false, \"reason\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"matchedRule\": null, \"level\": null}, \"traceId\": \"tr-20260823-1c42d28b\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"allowed\": false, \"reason\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"matchedRule\": null, \"level\": null}, \"traceId\": \"tr-20260823-26876160\"}"
  },
  {
   "id": "API-PERM-10",
@@ -877,7 +877,7 @@
   "expect": "allowed=true matchedRule 非空",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"allowed\": true, \"reason\": null, \"matchedRule\": \"role:sys_admin:dispatch:issue\", \"level\": null}, \"traceId\": \"tr-20260823-8f1c3d85\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"allowed\": true, \"reason\": null, \"matchedRule\": \"role:sys_admin:dispatch:issue\", \"level\": null}, \"traceId\": \"tr-20260823-00319b82\"}"
  },
  {
   "id": "API-PERM-11",
@@ -887,7 +887,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：resourceType String should match pattern '^(asset|model|dispatch|evidence|algo|user)$'\", \"data\": null, \"traceId\": \"tr-20260823-8b5d3345\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：resourceType String should match pattern '^(asset|model|dispatch|evidence|algo|user)$'\", \"data\": null, \"traceId\": \"tr-20260823-3892a83f\"}"
  },
  {
   "id": "API-PERM-12",
@@ -897,7 +897,7 @@
   "expect": "id/status=pending/applicantDid/createdAt/evidenceId",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 32, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1093\", \"action\": \"read\", \"reason\": \"test…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 60, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1120\", \"action\": \"read\", \"reason\": \"test…"
  },
  {
   "id": "API-PERM-13",
@@ -907,7 +907,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"expireAt 必须晚于当前时间：2020-01-01\", \"data\": null, \"traceId\": \"tr-20260823-d4fbbc31\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"expireAt 必须晚于当前时间：2020-01-01\", \"data\": null, \"traceId\": \"tr-20260823-0a68b221\"}"
  },
  {
   "id": "API-PERM-14",
@@ -917,7 +917,7 @@
   "expect": "分页；全部 pending；含刚提交的",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 32, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1093\", \"action\": \"read\", \"rea…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 60, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1120\", \"action\": \"read\", \"rea…"
  },
  {
   "id": "API-PERM-15",
@@ -927,7 +927,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-09755e84\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-0e443db4\"}"
  },
  {
   "id": "API-PERM-16",
@@ -937,7 +937,7 @@
   "expect": "审批前 403；approve status=approved 带 grantId；审批后 200",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1093, \"name\": \"test-pv-18013982\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752ce6b5\", \"ownerDid\": \"did:vpp:device:0x92fe2486a9436f5b63449de8752c…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 1120, \"name\": \"test-pv-22779255\", \"dataType\": \"pv\", \"sourceDid\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb415906\", \"ownerDid\": \"did:vpp:device:0x295f3c4d7056107efdc108e8fb41…"
  },
  {
   "id": "API-PERM-17",
@@ -947,7 +947,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"申请已处于 approved 状态，不能重复审批\", \"data\": null, \"traceId\": \"tr-20260823-19c0f42b\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"申请已处于 approved 状态，不能重复审批\", \"data\": null, \"traceId\": \"tr-20260823-5851b440\"}"
  },
  {
   "id": "API-PERM-18",
@@ -957,7 +957,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"权限申请 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-bc521a25\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"权限申请 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-242e9c99\"}"
  },
  {
   "id": "API-PERM-19",
@@ -967,7 +967,7 @@
   "expect": "含刚生效的 grantId",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 18, \"applicationId\": 32, \"granteeDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"granteeName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1093\", \"acti…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 30, \"applicationId\": 60, \"granteeDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"granteeName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1120\", \"acti…"
  },
  {
   "id": "API-PERM-20",
@@ -977,7 +977,7 @@
   "expect": "revoke 200；之后 403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-4d592120\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-48163244\"}"
  },
  {
   "id": "API-PERM-21",
@@ -987,7 +987,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"授权已处于 revoked 状态\", \"data\": null, \"traceId\": \"tr-20260823-39e3a7ac\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"授权已处于 revoked 状态\", \"data\": null, \"traceId\": \"tr-20260823-b3ce3abf\"}"
  },
  {
   "id": "API-PERM-22",
@@ -997,7 +997,7 @@
   "expect": "status=rejected",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 33, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1093\", \"action\": \"read\", \"reason\": \"test…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 61, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1120\", \"action\": \"read\", \"reason\": \"test…"
  },
  {
   "id": "API-PERM-23",
@@ -1007,7 +1007,7 @@
   "expect": "≥3 条（approve/revoke/reject）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"n\": 44}]"
+  "evidence": "[{\"n\": 112}]"
  },
  {
   "id": "API-PERM-24",
@@ -1017,7 +1017,7 @@
   "expect": "最近存在 permission 类存证",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"evidence_id\": \"ev-000766\"}, {\"evidence_id\": \"ev-000765\"}, {\"evidence_id\": \"ev-000761\"}]"
+  "evidence": "[{\"evidence_id\": \"ev-001429\"}, {\"evidence_id\": \"ev-001428\"}, {\"evidence_id\": \"ev-001424\"}]"
  },
  {
   "id": "API-EV-01",
@@ -1027,7 +1027,7 @@
   "expect": "evidenceId/hash/blockHeight/txId/prevHash/timestamp；hash==本地 SM3(canonical payload)",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000767\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7970f30d487e51ac8c30e021321c03\", \"blockHeight\": 767, \"txId\": \"blk-000767-0\", \"prevHash\": \"sm3:4e812aea9a68ec…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001431\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7970f30d487e51ac8c30e021321c03\", \"blockHeight\": 1431, \"txId\": \"blk-001431-0\", \"prevHash\": \"sm3:081f470e4521d…"
  },
  {
   "id": "API-EV-02",
@@ -1037,7 +1037,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：category String should match pattern '^(data|identity|permission|audit|algo)$'\", \"data\": null, \"traceId\": \"tr-20260823-24f76b66\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：category String should match pattern '^(data|identity|permission|audit|algo)$'\", \"data\": null, \"traceId\": \"tr-20260823-4af98355\"}"
  },
  {
   "id": "API-EV-03",
@@ -1047,7 +1047,7 @@
   "expect": "分页；items 全为 data",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"evidenceId\": \"ev-000767\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"evidenceId\": \"ev-001431\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd…"
  },
  {
   "id": "API-EV-04",
@@ -1057,7 +1057,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"from 格式非法，应为 ISO 8601：not-a-date\", \"data\": null, \"traceId\": \"tr-20260823-60c90393\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"from 格式非法，应为 ISO 8601：not-a-date\", \"data\": null, \"traceId\": \"tr-20260823-b54762d4\"}"
  },
  {
   "id": "API-EV-05",
@@ -1067,7 +1067,7 @@
   "expect": "evidenceId/category/refId/hash/blockHeight/prevHash/txId/timestamp 或 createdAt",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000767\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001431\", \"category\": \"data\", \"refId\": \"test-ref-1\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
  },
  {
   "id": "API-EV-06",
@@ -1077,7 +1077,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"存证 ev-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-a6eba43a\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"存证 ev-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-961d1783\"}"
  },
  {
   "id": "API-EV-07",
@@ -1087,7 +1087,7 @@
   "expect": "intact=true localHash==chainHash",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000767\", \"intact\": true, \"localHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7970f30d487e51ac8c30e021321c03\", \"chainHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001431\", \"intact\": true, \"localHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7970f30d487e51ac8c30e021321c03\", \"chainHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb79…"
  },
  {
   "id": "API-EV-08",
@@ -1097,7 +1097,7 @@
   "expect": "intact=false message 提示篡改",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000767\", \"intact\": false, \"localHash\": \"sm3:6b8b2fc639f437331cf41364b91ecb9c3e161e452b95a9e3eb25da87e6ee6755\", \"chainHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001431\", \"intact\": false, \"localHash\": \"sm3:6b8b2fc639f437331cf41364b91ecb9c3e161e452b95a9e3eb25da87e6ee6755\", \"chainHash\": \"sm3:3126411c76dcd2aa3665f7bfd21d860feb7…"
  },
  {
   "id": "API-EV-09",
@@ -1107,7 +1107,7 @@
   "expect": "height/lastHash/intact=true/brokenAt=null/totalRecords/byCategory(5 类)",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 768, \"lastHash\": \"sm3:ff00beaed5e6d79da212ae1b73c2926cde35f70f91aafb8bad720bcf7b7496a9\", \"intact\": true, \"brokenAt\": null, \"brokenAtEvidenceId\": null, \"totalRecords\": 768, …"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 1432, \"lastHash\": \"sm3:09915d34fc2c0231563e0c285c254504aea7f481e2527f4d1f75528a79b09125\", \"intact\": true, \"brokenAt\": null, \"brokenAtEvidenceId\": null, \"totalRecords\": 1432…"
  },
  {
   "id": "API-EV-10",
@@ -1117,7 +1117,7 @@
   "expect": "200 且含该存证",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-18015038\", \"total\": 1, \"steps\": [{\"evidenceId\": \"ev-000768\", \"category\": \"data\", \"refId\": \"test-trace\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-22780562\", \"total\": 1, \"steps\": [{\"evidenceId\": \"ev-001432\", \"category\": \"data\", \"refId\": \"test-trace\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103…"
  },
  {
   "id": "API-EV-11",
@@ -1127,7 +1127,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-2d8cacf3\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-4346a3c2\"}"
  },
  {
   "id": "API-EV-12",
@@ -1137,7 +1137,7 @@
   "expect": "tampered=true；verify intact=false；chain intact=false 且 brokenAtEvidenceId==evidenceId（B-017 后 brokenAt 是区块高度 int）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 771, \"lastHash\": \"sm3:68c843fafc83a8741559bde9b2922515ffd4faadc59b28d1c01db930501b8f32\", \"intact\": false, \"brokenAt\": 767, \"brokenAtEvidenceId\": \"ev-000767\", \"totalRecords\"…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 1435, \"lastHash\": \"sm3:a0e477cce908370446c9152e046bfb4905fc108bd21d1a4076d89bba837a3d59\", \"intact\": false, \"brokenAt\": 1431, \"brokenAtEvidenceId\": \"ev-001431\", \"totalRecord…"
  },
  {
   "id": "API-EV-13",
@@ -1147,7 +1147,7 @@
   "expect": "restored=true；链 intact=true",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 772, \"lastHash\": \"sm3:f785ec1c105a282f9316469b4e3c6d7de1ebb16d1b52b72621c0adbc30f371ec\", \"intact\": true, \"brokenAt\": null, \"brokenAtEvidenceId\": null, \"totalRecords\": 772, …"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"height\": 1436, \"lastHash\": \"sm3:d7a33500505838674749807f0c3346bfc7af717230a02664f8b1dcbfd37fb02e\", \"intact\": true, \"brokenAt\": null, \"brokenAtEvidenceId\": null, \"totalRecords\": 1436…"
  },
  {
   "id": "API-EV-14",
@@ -1157,7 +1157,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"存证 ev-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-6a51b2b9\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"存证 ev-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-6b3159a6\"}"
  },
  {
   "id": "API-EV-15",
@@ -1167,7 +1167,7 @@
   "expect": "含 chainProof 与 signature（SM2）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"certificateType\": \"EnergyTDS-Evidence-Certificate\", \"version\": \"1.0\", \"issuedAt\": \"2026-08-23T01:00:15+08:00\", \"evidence\": \"{'evidenceId': 'ev-000767', 'category': 'data', 'refId': 'test-ref-1', 'actorDid\", \"chainProof…"
+  "evidence": "HTTP 200 {\"certificateType\": \"EnergyTDS-Evidence-Certificate\", \"version\": \"1.0\", \"issuedAt\": \"2026-08-23T02:19:40+08:00\", \"evidence\": \"{'evidenceId': 'ev-001431', 'category': 'data', 'refId': 'test-ref-1', 'actorDid\", \"chainProof…"
  },
  {
   "id": "API-EV-16",
@@ -1177,7 +1177,7 @@
   "expect": "valid=true",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"algorithm\": \"SM2\", \"signerDid\": \"did:vpp:org:0xc383a2980017246306b257b8805675b0\", \"value\": \"2b984dd4ae1ac665436a1dfdd9a52ad8de728a7bda3c21f725ea994212d9f687b409c10c1327142fffc2b856436d9357118c1bdfbfef3f4c2219276160b3cc…"
+  "evidence": "{\"algorithm\": \"SM2\", \"signerDid\": \"did:vpp:org:0xc383a2980017246306b257b8805675b0\", \"value\": \"a456ea478143240ba062df9c8a85fa92c8421f91c7866a90749c949b6afc27eec0f4616c3224e2af8ea7c365a95875fe5b15af86e60e8895db19c1ef79ea11…"
  },
  {
   "id": "API-EV-17",
@@ -1187,7 +1187,7 @@
   "expect": "只返回 actorDid 为自己的存证",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 53}"
+  "evidence": "HTTP 200 {\"total\": 116}"
  },
  {
   "id": "API-EV-17b",
@@ -1197,7 +1197,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 evidence:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-eb1ec3fe\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 对该资源仅有自有数据范围的 evidence:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-a2ad95cb\"}"
  },
  {
   "id": "API-EV-18",
@@ -1207,7 +1207,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 edge_node 无 evidence:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-0374077f\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 edge_node 无 evidence:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-05fd4a31\"}"
  },
  {
   "id": "API-AUD-01",
@@ -1217,7 +1217,7 @@
   "expect": "命中 1 条 result=denied riskLevel=high",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1168, \"traceId\": \"tr-20260822-18015573\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"auth\", \"action\": \"auth:rea…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 2308, \"traceId\": \"tr-20260822-22781154\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"auth\", \"action\": \"auth:rea…"
  },
  {
   "id": "API-AUD-01b",
@@ -1227,7 +1227,7 @@
   "expect": "命中 1 条；字段 id/traceId/actorDid/actorName/action/resourceType/resourceId/result=denied/riskLevel=high/module/detail/ip/at/evidenceId/hash；actorName 为中文姓名；高危已上链",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1169, \"traceId\": \"tr-20260822-18015586\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 2309, \"traceId\": \"tr-20260822-22781167\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
  },
  {
   "id": "API-AUD-02",
@@ -1237,7 +1237,7 @@
   "expect": "全部 high/denied",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 1169, \"traceId\": \"tr-20260822-18015586\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [{\"id\": 2309, \"traceId\": \"tr-20260822-22781167\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"evidence\", \"action\": \"evid…"
  },
  {
   "id": "API-AUD-03",
@@ -1247,7 +1247,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：riskLevel String should match pattern '^(low|medium|high|critical)$'\", \"data\": null, \"traceId\": \"tr-20260823-1ef37a65\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：riskLevel String should match pattern '^(low|medium|high|critical)$'\", \"data\": null, \"traceId\": \"tr-20260823-84a839b6\"}"
  },
  {
   "id": "API-AUD-04",
@@ -1257,7 +1257,7 @@
   "expect": "200 正常结果或 400，不 500",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [], \"total\": 0, \"page\": 1, \"size\": 5}, \"traceId\": \"tr-20260823-c88f37e9\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"items\": [], \"total\": 0, \"page\": 1, \"size\": 5}, \"traceId\": \"tr-20260823-20111811\"}"
  },
  {
   "id": "API-AUD-05",
@@ -1267,7 +1267,7 @@
   "expect": "total ≥ audit_log_202607 行数，并 ≤ 07+08 两表之和",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 1169, \"db\": {\"a\": 0, \"b\": 1169}}"
+  "evidence": "HTTP 200 {\"total\": 2309, \"db\": {\"a\": 0, \"b\": 2309}}"
  },
  {
   "id": "API-AUD-06",
@@ -1277,7 +1277,7 @@
   "expect": "traceId/summary{startAt,endAt,durationMs,actorDid,result,riskLevel}/steps[seq,module,action,at,result]",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-18015586\", \"summary\": {\"startAt\": \"2026-08-23T01:00:15+08:00\", \"endAt\": \"2026-08-23T01:00:15+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x09019061e23e…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"traceId\": \"tr-20260822-22781167\", \"summary\": {\"startAt\": \"2026-08-23T02:19:41+08:00\", \"endAt\": \"2026-08-23T02:19:41+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x09019061e23e…"
  },
  {
   "id": "API-AUD-07",
@@ -1287,7 +1287,7 @@
   "expect": "404/1005（或空 steps）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"未找到 traceId tr-00000000-00000000 的记录\", \"data\": null, \"traceId\": \"tr-20260823-a71b7380\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"未找到 traceId tr-00000000-00000000 的记录\", \"data\": null, \"traceId\": \"tr-20260823-8e307f43\"}"
  },
  {
   "id": "API-AUD-08",
@@ -1297,7 +1297,7 @@
   "expect": "出现 R01_UNAUTHORIZED riskLevel=high 含 evidenceId；字段 id/ruleCode/riskLevel/message/actorDid/status",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 [{\"id\": 23, \"alertId\": \"al-000021\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/assets/1093/lineage（角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限）\", \"actorDid\"…"
+  "evidence": "HTTP 200 [{\"id\": 53, \"alertId\": \"al-000047\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/assets/1120（角色 energy_subject 对该资源仅有自有数据范围的 asset:read 权限）\", \"actorDid\": \"did:v…"
  },
  {
   "id": "API-AUD-09",
@@ -1307,7 +1307,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：status String should match pattern '^(open|acked)$'\", \"data\": null, \"traceId\": \"tr-20260823-243302f4\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：status String should match pattern '^(open|acked)$'\", \"data\": null, \"traceId\": \"tr-20260823-302e7772\"}"
  },
  {
   "id": "API-AUD-10",
@@ -1317,7 +1317,7 @@
   "expect": "首次 status=acked；重复 409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该告警已确认\", \"data\": null, \"traceId\": \"tr-20260823-792b2010\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该告警已确认\", \"data\": null, \"traceId\": \"tr-20260823-b6042538\"}"
  },
  {
   "id": "API-AUD-11",
@@ -1327,7 +1327,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"告警 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-2e32f7e7\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"告警 99999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-fe214770\"}"
  },
  {
   "id": "API-AUD-12",
@@ -1337,7 +1337,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-356d66ce\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-451d83cb\"}"
  },
  {
   "id": "API-AUD-13",
@@ -1357,7 +1357,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：period String should match pattern '^(day|week|month)$'\", \"data\": null, \"traceId\": \"tr-20260823-a1035122\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：period String should match pattern '^(day|week|month)$'\", \"data\": null, \"traceId\": \"tr-20260823-81dbb718\"}"
  },
  {
   "id": "API-AUD-15",
@@ -1367,7 +1367,7 @@
   "expect": "todayLogs/highRiskLogs/openAlerts/onChainLogs/byModule/byRisk/trend(7 天)",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"todayLogs\": 791, \"highRiskLogs\": 262, \"openAlerts\": 11, \"onChainLogs\": 302, \"byModule\": \"[9]\", \"byRisk\": \"[4]\", \"trend\": \"[7]\"}, \"traceId\": \"tr-20260823-f6b3944d\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"todayLogs\": 1931, \"highRiskLogs\": 568, \"openAlerts\": 25, \"onChainLogs\": 656, \"byModule\": \"[9]\", \"byRisk\": \"[4]\", \"trend\": \"[7]\"}, \"traceId\": \"tr-20260823-2f7f1bc1\"}"
  },
  {
   "id": "API-AUD-16",
@@ -1387,7 +1387,7 @@
   "expect": "content-type text/csv；X-Total-Rows；UTF-8 BOM 中文表头",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 ﻿日志ID,追踪ID,操作主体DID,主体名称,模块,操作,资源类型,资源ID,结果,风险等级,详情,IP,存证ID,摘要,时间\r\n1176,tr-20260823-356d66ce,did:vpp:user:0x09019061e23e7"
+  "evidence": "HTTP 200 ﻿日志ID,追踪ID,操作主体DID,主体名称,模块,操作,资源类型,资源ID,结果,风险等级,详情,IP,存证ID,摘要,时间\r\n2316,tr-20260823-451d83cb,did:vpp:user:0x09019061e23e7"
  },
  {
   "id": "API-AUD-18",
@@ -1397,7 +1397,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-a67ef821\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 vpp_operator\", \"data\": null, \"traceId\": \"tr-20260823-bbca8dd6\"}"
  },
  {
   "id": "API-AUD-19",
@@ -1407,7 +1407,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260823-f04da309\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"该操作仅限 sys_admin/regulator，当前角色 energy_subject\", \"data\": null, \"traceId\": \"tr-20260823-d8614dfb\"}"
  },
  {
   "id": "API-AUD-20",
@@ -1417,7 +1417,7 @@
   "expect": "200",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 1179}"
+  "evidence": "HTTP 200 {\"total\": 2319}"
  },
  {
   "id": "API-AUD-21",
@@ -1427,7 +1427,7 @@
   "expect": "hash 非空且 evidence_id 非空",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"id\": 1179, \"hash\": \"sm3:dfeda18da2a229d83fcad47ef4982927295bb1fe72d9846a05313f28605ddd0a\", \"evidence_id\": \"ev-000781\", \"risk_level\": \"high\"}, {\"id\": 1178, \"hash\": \"sm3:9e3d1416709042388d0515951568eb8552f9588eb407c784d…"
+  "evidence": "[{\"id\": 2319, \"hash\": \"sm3:11fe1f7fc304017238e121fbf7c66907dbb20f69fc156418776fcd727bfa24be\", \"evidence_id\": \"ev-001445\", \"risk_level\": \"high\"}, {\"id\": 2318, \"hash\": \"sm3:af204dd5691e49d9ce5283c0823eae5f1a1b93053b178b7e9…"
  },
  {
   "id": "API-AUD-22",
@@ -1437,7 +1437,7 @@
   "expect": "出现 R04_BULK_EXPORT 告警",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 [{\"id\": 20, \"alertId\": \"al-000018\", \"ruleCode\": \"R04_BULK_EXPORT\", \"ruleName\": \"批量数据导出\", \"riskLevel\": \"medium\", \"message\": \"10 分钟内多次导出数据，最近一次 504 条\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorN…"
+  "evidence": "HTTP 200 [{\"id\": 50, \"alertId\": \"al-000044\", \"ruleCode\": \"R04_BULK_EXPORT\", \"ruleName\": \"批量数据导出\", \"riskLevel\": \"medium\", \"message\": \"单次导出 2204 条数据，超过 1000 条阈值\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"acto…"
  },
  {
   "id": "API-AUD-23",
@@ -1477,7 +1477,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点 Node-Z 不存在\", \"data\": null, \"traceId\": \"tr-20260823-a7bb4598\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点 Node-Z 不存在\", \"data\": null, \"traceId\": \"tr-20260823-32febb60\"}"
  },
  {
   "id": "API-NODE-04",
@@ -1487,7 +1487,7 @@
   "expect": "total ≥100 点；truncated=false；点含 ts 与四指标",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 155, \"first\": {\"ts\": \"2026-08-16T02:00:00+08:00\", \"pvOutput\": 55.16, \"storageOutput\": 19.68, \"load\": 121.15, \"soc\": 20.0, \"price\": 0.62}}"
+  "evidence": "HTTP 200 {\"total\": 154, \"first\": {\"ts\": \"2026-08-16T03:00:00+08:00\", \"pvOutput\": 43.51, \"storageOutput\": 30.92, \"load\": 125.5, \"soc\": 20.0, \"price\": 0.62}}"
  },
  {
   "id": "API-NODE-05",
@@ -1497,7 +1497,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：interval String should match pattern '^(raw|hour|day)$'\", \"data\": null, \"traceId\": \"tr-20260823-cf16f8a5\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：interval String should match pattern '^(raw|hour|day)$'\", \"data\": null, \"traceId\": \"tr-20260823-be149e96\"}"
  },
  {
   "id": "API-NODE-06",
@@ -1507,7 +1507,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-27aea8be\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-49964bfd\"}"
  },
  {
   "id": "API-NODE-07a",
@@ -1517,7 +1517,7 @@
   "expect": "403/1004 message 说明绑定不符",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"节点 Node-A 已绑定身份 did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1，与请求身份不符\", \"data\": null, \"traceId\": \"tr-20260823-03fee2be\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"节点 Node-A 已绑定身份 did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1，与请求身份不符\", \"data\": null, \"traceId\": \"tr-20260823-0dacc770\"}"
  },
  {
   "id": "API-NODE-07",
@@ -1527,7 +1527,7 @@
   "expect": "accepted=true nodeId=Node-D sessionToken evidenceId",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"accepted\": true, \"nodeId\": \"Node-D\", \"sessionToken\": \"blk-000796-0\", \"evidenceId\": \"ev-000796\"}, \"traceId\": \"tr-20260823-336a2580\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"accepted\": true, \"nodeId\": \"Node-D\", \"sessionToken\": \"blk-001460-0\", \"evidenceId\": \"ev-001460\"}, \"traceId\": \"tr-20260823-f75c6fc0\"}"
  },
  {
   "id": "API-NODE-08",
@@ -1537,7 +1537,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"nonce 已被使用过，疑似重放攻击\", \"data\": null, \"traceId\": \"tr-20260823-90cdfc2f\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"nonce 已被使用过，疑似重放攻击\", \"data\": null, \"traceId\": \"tr-20260823-a7f4f569\"}"
  },
  {
   "id": "API-NODE-09",
@@ -1547,7 +1547,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-56264b2d\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-86d3157d\"}"
  },
  {
   "id": "API-NODE-10",
@@ -1557,7 +1557,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-8101a55c\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-ac662254\"}"
  },
  {
   "id": "API-NODE-11",
@@ -1567,7 +1567,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-66b76479\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-4206a6bd\"}"
  },
  {
   "id": "API-FL-01",
@@ -1577,7 +1577,7 @@
   "expect": "id=fl-xxxxxx status=created createdAt traceId",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000015\", \"status\": \"created\", \"createdAt\": \"2026-08-23T01:00:23+08:00\", \"traceId\": \"tr-20260823-0621be1d\"}, \"traceId\": \"tr-20260823-0621be1d\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000035\", \"status\": \"created\", \"createdAt\": \"2026-08-23T02:19:47+08:00\", \"traceId\": \"tr-20260823-9ec2b757\"}, \"traceId\": \"tr-20260823-9ec2b757\"}"
  },
  {
   "id": "API-FL-02",
@@ -1587,7 +1587,7 @@
   "expect": "404/1005 或 400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点不存在：Node-Z\", \"data\": null, \"traceId\": \"tr-20260823-09fa7c84\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点不存在：Node-Z\", \"data\": null, \"traceId\": \"tr-20260823-50e5b98e\"}"
  },
  {
   "id": "API-FL-03",
@@ -1597,7 +1597,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：rounds Input should be greater than or equal to 1\", \"data\": null, \"traceId\": \"tr-20260823-be66a262\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：rounds Input should be greater than or equal to 1\", \"data\": null, \"traceId\": \"tr-20260823-db2b0f85\"}"
  },
  {
   "id": "API-FL-04",
@@ -1607,7 +1607,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260823-10855a1d\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260823-ffe16144\"}"
  },
  {
   "id": "API-FL-05",
@@ -1617,7 +1617,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260823-d888003e\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260823-1136ba6e\"}"
  },
  {
   "id": "API-FL-06",
@@ -1627,7 +1627,7 @@
   "expect": "200 status=running",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000015\", \"status\": \"running\", \"traceId\": \"tr-20260823-0621be1d\"}, \"traceId\": \"tr-20260823-0621be1d\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000035\", \"status\": \"running\", \"traceId\": \"tr-20260823-9ec2b757\"}, \"traceId\": \"tr-20260823-9ec2b757\"}"
  },
  {
   "id": "API-FL-07",
@@ -1637,7 +1637,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"任务已在运行中\", \"data\": null, \"traceId\": \"tr-20260823-cb6efbd3\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"任务已在运行中\", \"data\": null, \"traceId\": \"tr-20260823-10681ed4\"}"
  },
  {
   "id": "API-FL-08",
@@ -1647,7 +1647,7 @@
   "expect": "status=success currentRound=3；nodes[nodeId,did,joined,samples]；dp.epsilonSpent 累加；rounds[round,loss,acc,compressionRatio,epsilonSpent,gradientHash,evidenceId]；每轮 evidenceId；modelVersion 非空",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"status\": \"success\", \"losses\": [0.045464, 0.006835, 0.008074], \"dp\": {\"enabled\": true, \"epsilon\": 1.0, \"delta\": 1e-05, \"epsilonSpent\": 1.0}, \"modelVersion\": \"v15\", \"round1\": [{\"round\": 1, \"loss\": 0.045464, \"acc\": 0.0575…"
+  "evidence": "HTTP 200 {\"status\": \"success\", \"losses\": [0.045464, 0.006835, 0.008074], \"dp\": {\"enabled\": true, \"epsilon\": 1.0, \"delta\": 1e-05, \"epsilonSpent\": 1.0}, \"modelVersion\": \"v35\", \"round1\": [{\"round\": 1, \"loss\": 0.045464, \"acc\": 0.0575…"
  },
  {
   "id": "API-FL-09",
@@ -1657,7 +1657,7 @@
   "expect": "3 行，evidence_id 非空",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"id\": 59, \"task_id\": \"fl-000015\", \"round\": 1, \"loss\": \"0.045464\", \"acc\": \"0.0575\", \"compression_ratio\": \"90.06\", \"epsilon_spent\": \"0.5774\", \"gradient_hash\": \"62097cf50900a16b3778b8963c5fc84dd39ebca4d2aeac2dd1f5fc638d9a…"
+  "evidence": "[{\"id\": 111, \"task_id\": \"fl-000035\", \"round\": 1, \"loss\": \"0.045464\", \"acc\": \"0.0575\", \"compression_ratio\": \"90.06\", \"epsilon_spent\": \"0.5774\", \"gradient_hash\": \"62097cf50900a16b3778b8963c5fc84dd39ebca4d2aeac2dd1f5fc638d9…"
  },
  {
   "id": "API-FL-10",
@@ -1667,7 +1667,7 @@
   "expect": "存在该版本",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"id\": \"11\", \"version\": \"v15\", \"task_id\": \"fl-000015\", \"name\": \"test-fl-18023146 产出模型 v15\", \"metrics\": \"{\\\"loss\\\": 0.008074, \\\"acc\\\": 0.3975, \\\"round\", \"status\": \"draft\", \"publisher_did\": \"None\", \"published_at\": \"None\", …"
+  "evidence": "{\"id\": \"26\", \"version\": \"v35\", \"task_id\": \"fl-000035\", \"name\": \"test-fl-22787976 产出模型 v35\", \"metrics\": \"{\\\"loss\\\": 0.008074, \\\"acc\\\": 0.3975, \\\"round\", \"status\": \"draft\", \"publisher_did\": \"None\", \"published_at\": \"None\", …"
  },
  {
   "id": "API-FL-11",
@@ -1677,7 +1677,7 @@
   "expect": "含 gradientHash，不含原始梯度数组",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "\"{\\\"action\\\": \\\"fl:round\\\", \\\"taskId\\\": \\\"fl-000015\\\", \\\"round\\\": 3, \\\"loss\\\": 0.008074, \\\"acc\\\": 0.3975, \\\"gradientHash\\\": \\\"9cde53a0c219f9221e072337"
+  "evidence": "\"{\\\"action\\\": \\\"fl:round\\\", \\\"taskId\\\": \\\"fl-000035\\\", \\\"round\\\": 3, \\\"loss\\\": 0.008074, \\\"acc\\\": 0.3975, \\\"gradientHash\\\": \\\"9cde53a0c219f9221e072337"
  },
  {
   "id": "API-FL-12",
@@ -1697,7 +1697,7 @@
   "expect": "分页；含该任务",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 15}"
+  "evidence": "HTTP 200 {\"total\": 35}"
  },
  {
   "id": "API-FL-14",
@@ -1707,7 +1707,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"联邦学习任务 fl-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-d7719dd5\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"联邦学习任务 fl-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-9474c6d4\"}"
  },
  {
   "id": "API-FL-15",
@@ -1717,7 +1717,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"任务状态为 success，不可取消\", \"data\": null, \"traceId\": \"tr-20260823-398257b3\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"任务状态为 success，不可取消\", \"data\": null, \"traceId\": \"tr-20260823-4c01654e\"}"
  },
  {
   "id": "API-FL-16",
@@ -1727,7 +1727,7 @@
   "expect": "status=cancelled",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000016\", \"status\": \"cancelled\"}, \"traceId\": \"tr-20260823-147b1e2d\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"fl-000036\", \"status\": \"cancelled\"}, \"traceId\": \"tr-20260823-1a5bad65\"}"
  },
  {
   "id": "API-FL-17",
@@ -1737,7 +1737,7 @@
   "expect": "含本次 modelVersion",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"n\": 11}"
+  "evidence": "HTTP 200 {\"n\": 20}"
  },
  {
   "id": "API-FL-18",
@@ -1747,7 +1747,7 @@
   "expect": "首次 200；重复 409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该模型版本已发布\", \"data\": null, \"traceId\": \"tr-20260823-528fa0f2\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该模型版本已发布\", \"data\": null, \"traceId\": \"tr-20260823-27cf30a2\"}"
  },
  {
   "id": "API-FL-19",
@@ -1757,7 +1757,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"模型版本 v-none 不存在\", \"data\": null, \"traceId\": \"tr-20260823-5d4a4f1a\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"模型版本 v-none 不存在\", \"data\": null, \"traceId\": \"tr-20260823-ecb1d880\"}"
  },
  {
   "id": "API-FL-20",
@@ -1767,7 +1767,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 无 model:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-4dcbd4b3\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 无 model:read 权限\", \"data\": null, \"traceId\": \"tr-20260823-b23c7e0a\"}"
  },
  {
   "id": "API-DP-01",
@@ -1777,7 +1777,7 @@
   "expect": "id=dp-xxxxxx status=created",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"dp-000020\", \"status\": \"created\", \"timeWindow\": \"2026-08-22T19:00~20:00+08:00\", \"createdAt\": \"2026-08-23T01:00:28+08:00\", \"traceId\": \"tr-20260823-8b94888f\"}, \"traceId\": \"tr-202…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": \"dp-000036\", \"status\": \"created\", \"timeWindow\": \"2026-08-22T19:00~20:00+08:00\", \"createdAt\": \"2026-08-23T02:19:53+08:00\", \"traceId\": \"tr-20260823-1857f674\"}, \"traceId\": \"tr-202…"
  },
  {
   "id": "API-DP-02",
@@ -1787,7 +1787,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：nodeIds List should have at least 1 item after validation, not 0\", \"data\": null, \"traceId\": \"tr-20260823-0649f160\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：nodeIds List should have at least 1 item after validation, not 0\", \"data\": null, \"traceId\": \"tr-20260823-0c6badae\"}"
  },
  {
   "id": "API-DP-03",
@@ -1797,7 +1797,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"请先运行 DQN 生成策略，再下发指令\", \"data\": null, \"traceId\": \"tr-20260823-8b94888f\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"请先运行 DQN 生成策略，再下发指令\", \"data\": null, \"traceId\": \"tr-20260823-1857f674\"}"
  },
  {
   "id": "API-DP-04",
@@ -1807,7 +1807,7 @@
   "expect": "403/1003",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260823-8d56eb8c\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 energy_subject 无 algo:execute 权限\", \"data\": null, \"traceId\": \"tr-20260823-85925ad2\"}"
  },
  {
   "id": "API-DP-05",
@@ -1817,7 +1817,7 @@
   "expect": "status=success；strategy.actions[nodeId,action∈charge|idle|discharge,powerKw,qValue,reason] 每节点一条；totalReward/timeWindow；explanation 中文；explanationSource∈live|cache|rule；evidenceId/traceId；signPayload",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"actions\": [[\"Node-A\", \"discharge\", 18.0], [\"Node-C\", \"charge\", 16.1], [\"Node-D\", \"discharge\", 17.0]], \"explanationSource\": \"live\", \"signPayload\": \"dispatch:issue:dp-000020:sm3:d8fd3fd768d79373db33bc162d136ae9bd2f2f620f…"
+  "evidence": "HTTP 200 {\"actions\": [[\"Node-A\", \"discharge\", 18.1], [\"Node-C\", \"charge\", 16.9], [\"Node-D\", \"discharge\", 17.2]], \"explanationSource\": \"live\", \"signPayload\": \"dispatch:issue:dp-000036:sm3:075a124241e801707e64e366dc814576eadce5b99f…"
  },
  {
   "id": "API-DP-06",
@@ -1827,7 +1827,7 @@
   "expect": "403/1003 message 含 dispatch:issue",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"data\": null, \"traceId\": \"tr-20260823-c1536944\"}"
+  "evidence": "HTTP 403 {\"code\": 1003, \"message\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"data\": null, \"traceId\": \"tr-20260823-83938e63\"}"
  },
  {
   "id": "API-DP-07",
@@ -1837,7 +1837,7 @@
   "expect": "result=denied riskLevel=high evidenceId 非空 action=dispatch:issue",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"id\": 1226, \"traceId\": \"tr-20260823-c1536944\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"algo\", \"action\": \"dispatch:issue\", \"resourceType\": \"dispatch\", \"resourceId…"
+  "evidence": "HTTP 200 {\"id\": 2366, \"traceId\": \"tr-20260823-83938e63\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"module\": \"algo\", \"action\": \"dispatch:issue\", \"resourceType\": \"dispatch\", \"resourceId…"
  },
  {
   "id": "API-DP-08",
@@ -1847,7 +1847,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-0d16acdd\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-acbd385d\"}"
  },
  {
   "id": "API-DP-09",
@@ -1857,7 +1857,7 @@
   "expect": "403/1004",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-11fb3582\"}"
+  "evidence": "HTTP 403 {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260823-5c84217b\"}"
  },
  {
   "id": "API-DP-10",
@@ -1867,7 +1867,7 @@
   "expect": "issued=true commandId/signerDid=admin did/evidenceId/targets",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"issued\": true, \"commandId\": \"cmd-000020\", \"signerDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-000821\", \"targets\": [\"Node-A\", \"Node-C\", \"Node-D\"]}, \"tra…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"issued\": true, \"commandId\": \"cmd-000036\", \"signerDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-001485\", \"targets\": [\"Node-A\", \"Node-C\", \"Node-D\"]}, \"tra…"
  },
  {
   "id": "API-DP-11",
@@ -1877,7 +1877,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该任务已下发，不能重复下发\", \"data\": null, \"traceId\": \"tr-20260823-8b94888f\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该任务已下发，不能重复下发\", \"data\": null, \"traceId\": \"tr-20260823-1857f674\"}"
  },
  {
   "id": "API-DP-12",
@@ -1887,7 +1887,7 @@
   "expect": "409/1006",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该任务已下发，不能重新生成策略\", \"data\": null, \"traceId\": \"tr-20260823-fa12e1b0\"}"
+  "evidence": "HTTP 409 {\"code\": 1006, \"message\": \"该任务已下发，不能重新生成策略\", \"data\": null, \"traceId\": \"tr-20260823-8deb40ff\"}"
  },
  {
   "id": "API-DP-13",
@@ -1897,7 +1897,7 @@
   "expect": "200 ackStatus",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"taskId\": \"dp-000020\", \"nodeId\": \"Node-C\", \"ackStatus\": \"partial\", \"acked\": 1, \"total\": 3, \"evidenceId\": \"ev-000824\"}, \"traceId\": \"tr-20260823-8b94888f\"}"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"taskId\": \"dp-000036\", \"nodeId\": \"Node-C\", \"ackStatus\": \"partial\", \"acked\": 1, \"total\": 3, \"evidenceId\": \"ev-001488\"}, \"traceId\": \"tr-20260823-1857f674\"}"
  },
  {
   "id": "API-DP-14",
@@ -1907,7 +1907,7 @@
   "expect": "400/1001 或 404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"节点 Node-Z 不在本次下发的目标节点内（Node-A、Node-C、Node-D），拒绝回执\", \"data\": null, \"traceId\": \"tr-20260823-8b94888f\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"节点 Node-Z 不在本次下发的目标节点内（Node-A、Node-C、Node-D），拒绝回执\", \"data\": null, \"traceId\": \"tr-20260823-1857f674\"}"
  },
  {
   "id": "API-DP-15",
@@ -1917,7 +1917,7 @@
   "expect": "status=issued 或含 strategy",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"id\": \"dp-000020\", \"status\": \"success\", \"ackStatus\": \"partial\"}"
+  "evidence": "HTTP 200 {\"id\": \"dp-000036\", \"status\": \"success\", \"ackStatus\": \"partial\"}"
  },
  {
   "id": "API-DP-16",
@@ -1927,7 +1927,7 @@
   "expect": "分页",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 20}"
+  "evidence": "HTTP 200 {\"total\": 36}"
  },
  {
   "id": "API-DP-17",
@@ -1937,7 +1937,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"调度任务 dp-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-782a9a4a\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"调度任务 dp-999999 不存在\", \"data\": null, \"traceId\": \"tr-20260823-cb9eaf8e\"}"
  },
  {
   "id": "API-DP-18",
@@ -1947,7 +1947,7 @@
   "expect": "issued=1 command_id/signer_did/evidence_id 非空",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"task_id\": \"dp-000020\", \"status\": \"success\", \"issued\": \"1\", \"command_id\": \"cmd-000020\", \"signer_did\": \"did:vpp:user:0x34ba9ca061137b9\", \"signature\": \"6bfb3ceb81b8594fc473c00d808861\", \"evidence_id\": \"ev-000817\"}"
+  "evidence": "{\"task_id\": \"dp-000036\", \"status\": \"success\", \"issued\": \"1\", \"command_id\": \"cmd-000036\", \"signer_did\": \"did:vpp:user:0x34ba9ca061137b9\", \"signature\": \"cda69559fa9fd15132a8b6b204604d\", \"evidence_id\": \"ev-001481\"}"
  },
  {
   "id": "API-DP-18b",
@@ -1957,7 +1957,7 @@
   "expect": "托管代签的签名也应落库（非 NULL），便于事后核验",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"signature\": \"6bfb3ceb81b8594fc473c00d808861\"}"
+  "evidence": "{\"signature\": \"cda69559fa9fd15132a8b6b204604d\"}"
  },
  {
   "id": "API-DP-19",
@@ -1967,7 +1967,7 @@
   "expect": "issued=true 或 1004（grid 无托管密钥时）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"issued\": true, \"commandId\": \"cmd-000021\", \"signerDid\": \"did:vpp:user:0x2172d3cb56d265400c8c33afc963b727\", \"evidenceId\": \"ev-000826\", \"targets\": [\"Node-B\"]}, \"traceId\": \"tr-20260823-…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"issued\": true, \"commandId\": \"cmd-000037\", \"signerDid\": \"did:vpp:user:0x2172d3cb56d265400c8c33afc963b727\", \"evidenceId\": \"ev-001490\", \"targets\": [\"Node-B\"]}, \"traceId\": \"tr-20260823-…"
  },
  {
   "id": "API-AI-01",
@@ -1977,7 +1977,7 @@
   "expect": "answer/reasoning[]/source∈live|cache|rule/latencyMs/evidenceId/traceId",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 20, \"answer\": \"节点C被选择放电，是因为在当前调度任务（dp-000020）中，其放电策略在满足电网约束的同时，实现\", \"reasoning\": [\"调度任务ID明确指向特定虚拟电厂运行场景，节点C的放电决策必然基于该任务下的负荷平衡、电价或碳排放等目标函数优化结果。\", \"选择放电节点需同时满足安全约束（如电压、容量）和隐私合规要求…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"id\": 48, \"answer\": \"节点C被选择放电，是因为在当前调度任务（dp-000036）中，其放电策略在满足电网负荷需求的同时，\", \"reasoning\": [\"调度任务dp-000036的上下文表明，该决策是基于该任务特定的负荷预测和资源状态，节点C的可用容量和响应速度使其成为最优候选。\", \"在虚拟电厂调度中，选择放电节点需综合评估储能健康度…"
  },
  {
   "id": "API-AI-02",
@@ -1987,7 +1987,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：scene String should match pattern '^(dispatch|risk|data|qa|audit)$'\", \"data\": null, \"traceId\": \"tr-20260823-6d843682\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：scene String should match pattern '^(dispatch|risk|data|qa|audit)$'\", \"data\": null, \"traceId\": \"tr-20260823-927c9212\"}"
  },
  {
   "id": "API-AI-03",
@@ -2007,7 +2007,7 @@
   "expect": "分页且含刚才记录",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 21}"
+  "evidence": "HTTP 200 {\"total\": 49}"
  },
  {
   "id": "API-AI-05",
@@ -2017,7 +2017,7 @@
   "expect": "≥2 条",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "[{\"n\": 14}]"
+  "evidence": "[{\"n\": 42}]"
  },
  {
   "id": "API-RISK-01",
@@ -2037,7 +2037,7 @@
   "expect": "404/1005",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点 Node-Z 不存在\", \"data\": null, \"traceId\": \"tr-20260823-6bab5485\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"节点 Node-Z 不存在\", \"data\": null, \"traceId\": \"tr-20260823-7fc978d9\"}"
  },
  {
   "id": "API-RISK-03",
@@ -2047,7 +2047,7 @@
   "expect": "分页",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 13}"
+  "evidence": "HTTP 200 {\"total\": 30}"
  },
  {
   "id": "API-RISK-04",
@@ -2057,7 +2057,7 @@
   "expect": "401/1002",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-e1512969\"}"
+  "evidence": "HTTP 401 {\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260823-40b890ce\"}"
  },
  {
   "id": "API-SEC-01",
@@ -2067,7 +2067,7 @@
   "expect": "404/1005 统一包裹",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"接口或资源不存在\", \"data\": null, \"traceId\": \"tr-20260823-865275d5\"}"
+  "evidence": "HTTP 404 {\"code\": 1005, \"message\": \"接口或资源不存在\", \"data\": null, \"traceId\": \"tr-20260823-578743c2\"}"
  },
  {
   "id": "API-SEC-02",
@@ -2077,7 +2077,7 @@
   "expect": "统一包裹，code≠0，不裸 FastAPI",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 405 {\"code\": 1001, \"message\": \"请求方法不被允许\", \"data\": null, \"traceId\": \"tr-20260823-34d22c83\"}"
+  "evidence": "HTTP 405 {\"code\": 1001, \"message\": \"请求方法不被允许\", \"data\": null, \"traceId\": \"tr-20260823-5dfcc89e\"}"
  },
  {
   "id": "API-SEC-03",
@@ -2087,7 +2087,7 @@
   "expect": "400/1001 统一包裹",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：1 JSON decode error\", \"data\": null, \"traceId\": \"tr-20260823-dcf127de\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：1 JSON decode error\", \"data\": null, \"traceId\": \"tr-20260823-4f998dd0\"}"
  },
  {
   "id": "API-SEC-04",
@@ -2107,7 +2107,7 @@
   "expect": "只能看到自己的申请",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"total\": 30}"
+  "evidence": "HTTP 200 {\"total\": 58}"
  },
  {
   "id": "API-SEC-06",
@@ -2117,7 +2117,7 @@
   "expect": "非 200 且统一包裹（实际 405→1001，契约无 405 码，记录）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 405 {\"code\": 1001, \"message\": \"请求方法不被允许\", \"data\": null, \"traceId\": \"tr-20260823-1eb7d2fb\"}"
+  "evidence": "HTTP 405 {\"code\": 1001, \"message\": \"请求方法不被允许\", \"data\": null, \"traceId\": \"tr-20260823-af085eac\"}"
  },
  {
   "id": "API-SEC-07",
@@ -2127,7 +2127,7 @@
   "expect": "400/1001 或 404/1005，不 500",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：asset_id Input should be a valid integer, unable to parse string as an integer\", \"data\": null, \"traceId\": \"tr-20260823-de3eb53e\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：asset_id Input should be a valid integer, unable to parse string as an integer\", \"data\": null, \"traceId\": \"tr-20260823-234a624a\"}"
  },
  {
   "id": "API-SEC-08",
@@ -2147,7 +2147,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"from 格式非法，应为 ISO 8601：2026-08-01' OR 1=1 --\", \"data\": null, \"traceId\": \"tr-20260823-a8784b0a\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"from 格式非法，应为 ISO 8601：2026-08-01' OR 1=1 --\", \"data\": null, \"traceId\": \"tr-20260823-68454403\"}"
  },
  {
   "id": "API-SEC-10",
@@ -2157,7 +2157,7 @@
   "expect": "接口 200；JSON 原样/转义返回（前端负责转义），content-type application/json",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"ct\": \"application/json\", \"hit\": 3}"
+  "evidence": "HTTP 200 {\"ct\": \"application/json\", \"hit\": 4}"
  },
  {
   "id": "API-SEC-11",
@@ -2167,7 +2167,7 @@
   "expect": "400/1001",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：subjectName String should have at most 128 characters\", \"data\": null, \"traceId\": \"tr-20260823-0b7c18be\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：subjectName String should have at most 128 characters\", \"data\": null, \"traceId\": \"tr-20260823-e4dfaf4c\"}"
  },
  {
   "id": "API-SEC-12",
@@ -2177,7 +2177,7 @@
   "expect": "400/1001 或归一化为 page=1",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：page Input should be greater than or equal to 1\", \"data\": null, \"traceId\": \"tr-20260823-7e694b5b\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：page Input should be greater than or equal to 1\", \"data\": null, \"traceId\": \"tr-20260823-8c166890\"}"
  },
  {
   "id": "API-SEC-13",
@@ -2207,7 +2207,7 @@
   "expect": "400/1001，message 不含 Traceback/File",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password Input should be a valid string\", \"data\": null, \"traceId\": \"tr-20260823-a609f282\"}"
+  "evidence": "HTTP 400 {\"code\": 1001, \"message\": \"参数错误：password Input should be a valid string\", \"data\": null, \"traceId\": \"tr-20260823-b717d292\"}"
  },
  {
   "id": "API-SEC-16",
@@ -2227,7 +2227,7 @@
   "expect": "响应无 Access-Control-Allow-Origin:*（同源经 nginx 反代）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"date\": \"Sat, 22 Aug 2026 17:00:41 GMT\", \"server\": \"uvicorn\", \"content-length\": \"450\", \"content-type\": \"application/json\", \"x-trace-id\": \"tr-20260823-e41a5959\"}"
+  "evidence": "HTTP 200 {\"date\": \"Sat, 22 Aug 2026 18:20:06 GMT\", \"server\": \"uvicorn\", \"content-length\": \"450\", \"content-type\": \"application/json\", \"x-trace-id\": \"tr-20260823-a01ea77a\"}"
  },
  {
   "id": "API-SEC-18",
@@ -2247,7 +2247,7 @@
   "expect": "含 X-Trace-Id；Server 头为 uvicorn（记录，生产由 nginx 前置）",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"server\": \"uvicorn\", \"content-type\": \"application/json\", \"x-trace-id\": \"tr-20260823-e41a5959\"}"
+  "evidence": "{\"server\": \"uvicorn\", \"content-type\": \"application/json\", \"x-trace-id\": \"tr-20260823-a01ea77a\"}"
  },
  {
   "id": "API-SEC-20",
@@ -2257,7 +2257,7 @@
   "expect": "intact=false",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000840\", \"intact\": false, \"localHash\": \"sm3:421f1cc1b1a5bcaec6305f279a21fcc80051f23dd266fbf4be4bbb4365f52669\", \"chainHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e90…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001504\", \"intact\": false, \"localHash\": \"sm3:421f1cc1b1a5bcaec6305f279a21fcc80051f23dd266fbf4be4bbb4365f52669\", \"chainHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e90…"
  },
  {
   "id": "API-SEC-21",
@@ -2267,7 +2267,7 @@
   "expect": "intact=true",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-000840\", \"intact\": true, \"localHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e908b616229bee35429f670370b47063\", \"chainHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e908…"
+  "evidence": "HTTP 200 {\"code\": 0, \"message\": \"ok\", \"data\": {\"evidenceId\": \"ev-001504\", \"intact\": true, \"localHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e908b616229bee35429f670370b47063\", \"chainHash\": \"sm3:d2ad0378fc1872adf1a5e303bcad7853e908…"
  },
  {
   "id": "API-SEC-22",
@@ -2343,17 +2343,17 @@
   "id": "API-DB-07",
   "module": "DB",
   "basis": "文档(二) 存证链 SM3 重算 / DB-SCHEMA block_hash=SM3(prev+payload_hash+ts)",
-  "step": "Python 逐条重算 841 条：prev_hash 衔接 + block_hash 重算",
+  "step": "Python 逐条重算 1505 条：prev_hash 衔接 + block_hash 重算",
   "expect": "断链 0；高度 0..N-1 连续",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"total\": 841, \"broken\": [], \"last\": \"sm3:77d641d4452d43f99690\"}"
+  "evidence": "{\"total\": 1505, \"broken\": [], \"last\": \"sm3:770f5294e7855d1cebb8\"}"
  },
  {
   "id": "API-DB-07b",
   "module": "DB",
   "basis": "文档(二)4 payload_snapshot 重算 SM3 与 payload_hash 比对",
-  "step": "Python 逐条 canonical_json+SM3 重算 841 条",
+  "step": "Python 逐条 canonical_json+SM3 重算 1505 条",
   "expect": "不一致 0（其他 Agent 未还原的 tamper 演示会在此出现，均带 pvOutput=999.9 标记）",
   "actual": "与预期一致",
   "verdict": "通过",
@@ -2397,7 +2397,7 @@
   "expect": "托管行为密文（非 64hex 裸私钥），非托管行为 NULL",
   "actual": "与预期一致",
   "verdict": "通过",
-  "evidence": "{\"n\": 63, \"nulls\": \"9\", \"cust\": \"54\", \"hex64_rows\": 0}"
+  "evidence": "{\"n\": 108, \"nulls\": \"13\", \"cust\": \"95\", \"hex64_rows\": 0}"
  },
  {
   "id": "API-DB-12",

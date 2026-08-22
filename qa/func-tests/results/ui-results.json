@@ -1,6 +1,6 @@
 {
  "summary": {
-  "tag": "test-08221703",
+  "tag": "test-08221822",
   "total": 16,
   "pass": 16,
   "fail": 0,
@@ -37,7 +37,7 @@
     "docs/test-evidence/03-home-trustflow.jpg",
     "docs/test-evidence/04-home-node-task.jpg"
    ],
-   "evidence": "counts=54/100/19/24/25/993; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 17:03:58\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
+   "evidence": "counts=81/127/31/43/40/1,654; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 18:22:55\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
    "verdict": "通过",
    "note": ""
   },
@@ -54,7 +54,7 @@
     "docs/test-evidence/07-identity-key-created.jpg"
    ],
    "rotateInfo": "v2",
-   "evidence": "did=did:vpp:device:0x2d0ee7b7b63f1c7387a5e014bffb62a0; 文档含 @context=true; 验签 ok/bad 均符合",
+   "evidence": "did=did:vpp:device:0xef15cfe13bc292aaf9cfbfeaf5c8063b; 文档含 @context=true; 验签 ok/bad 均符合",
    "verdict": "通过",
    "note": ""
   },
@@ -70,7 +70,7 @@
     "docs/test-evidence/09-assets-registered.jpg",
     "docs/test-evidence/10-assets-lineage.jpg"
    ],
-   "evidence": "登记成功 · 已写入存证链 资产 ID 1101 敏感等级 L2 SM3 摘要 sm3:9a3f53ab3123f0b4b5e40707caba6164bdb02000bf572b17fa032a68c9b40f4b 链上交易 blk-001002-0 存证 ID ev-001002 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
+   "evidence": "登记成功 · 已写入存证链 资产 ID 1128 敏感等级 L2 SM3 摘要 sm3:d07405a4fce5be44caf33993e82f0a4bbb6943bc623c8b66ca42351ed83804a4 链上交易 blk-001663-0 存证 ID ev-001663 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
    "verdict": "通过",
    "note": ""
   },
@@ -101,7 +101,7 @@
    "shots": [
     "docs/test-evidence/35-permission-roles.jpg"
    ],
-   "evidence": "角色卡片数=10；顶部「角色数」=👥 10 角色数；GET /roles 接口本身返回 6 角色（接口层 TC-31-11 通过）",
+   "evidence": "角色卡片数=12；顶部「角色数」=👥 12 角色数；GET /roles 接口本身返回 6 角色（接口层 TC-31-11 通过）",
    "verdict": "通过",
    "note": ""
   },
@@ -150,8 +150,8 @@
     "docs/test-evidence/23-audit-high-logs.jpg",
     "docs/test-evidence/24-audit-trace.jpg"
    ],
-   "evidence": "铃铛计数=0; audit_alert WS 帧 0→0; 弹层含 R01=false",
-   "note": "铃铛弹层未出现 R01（同一主体 5 分钟窗口内 R01 只告警一次，接口层 TC-37-05 已验证规则本身）",
+   "evidence": "铃铛计数=1; audit_alert WS 帧 0→1; 弹层含 R01=true",
+   "note": "",
    "verdict": "通过"
   },
   {
@@ -167,8 +167,8 @@
     "docs/test-evidence/27-evidence-chain-broken.jpg",
     "docs/test-evidence/28-evidence-trace.jpg"
    ],
-   "tamperedEvidenceId": "ev-001002",
-   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:0b8a12b; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-001016.json; 追踪链路按钮=1; 已还原 ev-001002 → code=0",
+   "tamperedEvidenceId": "ev-001663",
+   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:dd685cf; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-001678.json; 追踪链路按钮=1; 已还原 ev-001663 → code=0",
    "verdict": "通过",
    "note": ""
   },
@@ -224,7 +224,7 @@
    "expect": "收到 ≥1 条 node_status",
    "impl": "ws/manager.py / stores/ws",
    "shots": [],
-   "evidence": "16s 内收到的 WS 帧：{\"log\":1,\"node_status\":16}",
+   "evidence": "16s 内收到的 WS 帧：{\"log\":1,\"node_status\":12}",
    "verdict": "通过",
    "note": ""
   },
