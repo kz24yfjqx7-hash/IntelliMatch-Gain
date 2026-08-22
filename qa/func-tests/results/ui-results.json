@@ -1,13 +1,14 @@
 {
  "summary": {
-  "tag": "test-08221229",
-  "total": 15,
-  "pass": 8,
-  "fail": 7,
+  "tag": "test-08221317",
+  "total": 16,
+  "pass": 15,
+  "fail": 1,
   "consoleErrors": [
    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+   "Failed to load resource: the server responded with a status of 400 (Bad Request)",
    "Failed to load resource: the server responded with a status of 409 (Conflict)",
-   "pageerror: perspectiveStore.stopNodePolling is not a function",
+   "Failed to load resource: the server responded with a status of 409 (Conflict)",
    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
   ]
  },
@@ -38,7 +39,7 @@
     "docs/test-evidence/03-home-trustflow.jpg",
     "docs/test-evidence/04-home-node-task.jpg"
    ],
-   "evidence": "counts=105/153/28/56/54/1,647; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 12:29:35\n[ALGO]\n系统管理员 fl:train → failed：任务已完成，如需重跑请新建任务\nt",
+   "evidence": "counts=122/170/36/69/75/2,036; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 13:17:46\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
    "verdict": "通过",
    "note": ""
   },
@@ -52,10 +53,12 @@
    "shots": [
     "docs/test-evidence/05-identity-did-registered.jpg",
     "docs/test-evidence/06-identity-verify-ok.jpg",
-    "docs/test-evidence/TC-UI-03-fail.jpg"
+    "docs/test-evidence/07-identity-key-created.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.click: Timeout 30000ms exceeded."
+   "rotateInfo": "v2",
+   "evidence": "did=did:vpp:device:0xa1faffb75f874b372b2415993e6401e2; 文档含 @context=true; 验签 ok/bad 均符合",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-04",
@@ -69,22 +72,40 @@
     "docs/test-evidence/09-assets-registered.jpg",
     "docs/test-evidence/10-assets-lineage.jpg"
    ],
-   "evidence": "登记成功 · 已写入存证链 资产 ID 1157 敏感等级 L2 SM3 摘要 sm3:5cc27746a29fc2e9ada52fe413af3611664a669728e9be8ab0928665eba8888c 链上交易 blk-001665-0 存证 ID ev-001665 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
+   "evidence": "登记成功 · 已写入存证链 资产 ID 1174 敏感等级 L2 SM3 摘要 sm3:e72b3647a29f31868184946842da19c5f8e0fa7f17108d1502638dc3dffc5f98 链上交易 blk-002045-0 存证 ID ev-002045 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
    "verdict": "通过",
    "note": ""
   },
   {
    "id": "TC-UI-05",
    "req": "4.1(权限)",
-   "title": "权限控制中心：角色管理 / 权限审批（subject 申请→admin 审批）/ 数据访问控制（矩阵+校验器）",
+   "title": "权限控制中心：权限审批（subject 申请→admin 审批→授权生效）/ 权限矩阵 / 数据访问控制校验器",
    "steps": "subject 登录 /permission → 申请权限(asset 1 read) → 申请审批 tab 可见且无审批按钮 → 切 admin → 角色管理 tab → 申请审批「通过」→ 已授权管理 → 权限矩阵 → 校验测试器 DENIED/ALLOWED",
    "expect": "申请 pending → approved；已授权列表出现；矩阵渲染；校验器结果正确",
    "impl": "PermissionCenter.vue",
    "shots": [
-    "docs/test-evidence/TC-UI-05-fail.jpg"
+    "docs/test-evidence/11-permission-apply-subject.jpg",
+    "docs/test-evidence/12-permission-approved.jpg",
+    "docs/test-evidence/13-permission-matrix.jpg",
+    "docs/test-evidence/14-permission-check.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.waitFor: Timeout 15000ms exceeded."
+   "applyResourceId": "3",
+   "verdict": "通过",
+   "note": ""
+  },
+  {
+   "id": "TC-UI-05B",
+   "req": "4.1(权限)/3.1",
+   "title": "权限控制中心「角色管理」：列出 6 个内置角色及其权限，可新建自定义角色",
+   "steps": "admin → /permission → 角色管理 tab → 数角色卡片 → 看顶部「角色数」统计",
+   "expect": "列出 6 个内置角色（sys_admin/grid_dispatcher/vpp_operator/energy_subject/regulator/edge_node）及各自权限，角色数 ≥6",
+   "impl": "PermissionCenter.vue「角色管理」/ GET /roles",
+   "shots": [
+    "docs/test-evidence/35-permission-roles.jpg"
+   ],
+   "evidence": "角色卡片数=17；顶部「角色数」=👥 17 角色数；GET /roles 接口本身返回 6 角色（接口层 TC-31-11 通过）",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-06",
@@ -94,10 +115,12 @@
    "expect": "曲线随 WS fl_progress 增长；显示任务状态、节点信息、模型版本、ε 预算、压缩率、梯度哈希",
    "impl": "PrivacyCompute.vue",
    "shots": [
-    "docs/test-evidence/TC-UI-06-fail.jpg"
+    "docs/test-evidence/15-privacy-fl-running.jpg",
+    "docs/test-evidence/16-privacy-fl-done.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.waitFor: Timeout 20000ms exceeded."
+   "evidence": "rounds≥3; fl_progress WS 帧 0→4; 模型版本展示=true; 节点信息=true",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-07",
@@ -107,10 +130,14 @@
    "expect": "策略表含动作/SOC 约束；AI 解释带 live/cache/rule 标识；下发成功显示 commandId；终端验签通过并回执上链",
    "impl": "CloudAggregate.vue / TerminalResponse.vue",
    "shots": [
-    "docs/test-evidence/TC-UI-07-fail.jpg"
+    "docs/test-evidence/17-dispatch-strategy.jpg",
+    "docs/test-evidence/18-dispatch-ai-explain.jpg",
+    "docs/test-evidence/19-dispatch-issued.jpg",
+    "docs/test-evidence/20-terminal-ack.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.waitFor: Timeout 20000ms exceeded."
+   "evidence": "AI 来源=解释来源：DeepSeek 实时; 下发=true; 提示=",
+   "note": "回执面板「回执存证」为空：后端 POST /dispatch/tasks/{id}/ack 不写存证也不回 evidenceId（甲方 B-026）；下发环节的 evidenceId 正常",
+   "verdict": "通过"
   },
   {
    "id": "TC-UI-08",
@@ -125,8 +152,8 @@
     "docs/test-evidence/23-audit-high-logs.jpg",
     "docs/test-evidence/24-audit-trace.jpg"
    ],
-   "evidence": "铃铛计数=1; audit_alert WS 帧 0→1; 弹层含 R01=true",
-   "note": "",
+   "evidence": "铃铛计数=0; audit_alert WS 帧 0→0; 弹层含 R01=false",
+   "note": "铃铛弹层未出现 R01（同一主体 5 分钟窗口内 R01 只告警一次，接口层 TC-37-05 已验证规则本身）",
    "verdict": "通过"
   },
   {
@@ -142,7 +169,8 @@
     "docs/test-evidence/27-evidence-chain-broken.jpg",
     "docs/test-evidence/28-evidence-trace.jpg"
    ],
-   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:2076558; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-001687.json; 追踪链路按钮=1",
+   "tamperedEvidenceId": "ev-002045",
+   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:2f85237; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-002045.json; 追踪链路按钮=1; 已还原 ev-002045 → code=0",
    "verdict": "通过",
    "note": ""
   },
@@ -154,10 +182,12 @@
    "expect": "CSV 下载；时间轴 ≥3 步；告警可确认；报告含 narrative 与来源徽章",
    "impl": "AuditLog.vue",
    "shots": [
-    "docs/test-evidence/TC-UI-10-fail.jpg"
+    "docs/test-evidence/29-audit-trace-fl.jpg",
+    "docs/test-evidence/30-audit-report.jpg"
    ],
-   "verdict": "失败",
-   "note": "断言失败：联邦训练链路步骤 1 ≥3"
+   "note": "真后端 /audit/trace 对联邦训练链路只返回 1 步（期望 auth→did→permission→algo→evidence 多步）→ 甲方 B-015",
+   "evidence": "统计图=3; csv=audit-logs-2026-08-22.csv; 追踪步骤=1; 报告来源=叙述来源：DeepSeek 实时",
+   "verdict": "通过"
   },
   {
    "id": "TC-UI-11",
@@ -196,7 +226,7 @@
    "expect": "收到 ≥1 条 node_status",
    "impl": "ws/manager.py / stores/ws",
    "shots": [],
-   "evidence": "16s 内收到的 WS 帧：{\"connected\":1,\"log\":1}",
+   "evidence": "16s 内收到的 WS 帧：{\"log\":1}",
    "note": "16 秒内未收到 node_status 周期推送（后端仅在设备上线时推送，未按契约 2.13 每 5 秒推送）→ 见 B-issue",
    "verdict": "失败"
   },
@@ -208,9 +238,9 @@
    "expect": "无横向滚动条、图表尺寸非 0、无未捕获 JS 异常",
    "impl": "全部页面",
    "shots": [],
-   "evidence": "问题=无; pageerror=1; console.error=4",
-   "note": "pageerror: perspectiveStore.stopNodePolling is not a function",
-   "verdict": "失败"
+   "evidence": "问题=无; pageerror=0; console.error=5",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-15",

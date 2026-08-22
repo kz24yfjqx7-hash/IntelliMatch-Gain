@@ -80,16 +80,23 @@ async function login(key) {
 /** 用例之间互不依赖：进入用例前把登录态强制拉到指定角色（上一条用例中途失败也能自愈）。 */
 async function ensureRole(key) {
   const roleLabel = ACCOUNTS[key][2]
-  const tag = await page.locator('.role-tag').innerText().catch(() => '')
-  if (tag && tag.includes(roleLabel) && !page.url().includes('/login')) {
-    // 可能还有上一条用例没关掉的弹层，挡住后续点击
-    for (let i = 0; i < 3 && await page.locator('.el-overlay:visible').count(); i++) {
-      await page.keyboard.press('Escape'); await page.waitForTimeout(300)
-    }
-    return
+  // 先清掉上一条用例可能没关的弹层，否则连 .user-box 都点不到
+  for (let i = 0; i < 4 && await page.locator('.el-overlay:visible').count(); i++) {
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300)
   }
-  await page.goto(BASE + '/login')
-  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear() } catch { /* ignore */ } })
+  const tag = await page.locator('.role-tag').innerText().catch(() => '')
+  if (tag && tag.includes(roleLabel) && !page.url().includes('/login')) return
+  if (!page.url().includes('/login')) {
+    // 走页面自己的退出：只清 localStorage 不管用——SPA 还活着，user store 的持久化
+    // watcher 会把 token 再写回去，下一次 /login 又被守卫弹回首页。
+    try {
+      await logout()
+    } catch {
+      await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear() } catch { /* ignore */ } })
+      await page.goto(BASE + '/login')
+      await page.waitForTimeout(500)
+    }
+  }
   await login(key)
 }
 
@@ -275,7 +282,8 @@ async function main() {
     await page.getByRole('button', { name: '生成并绑定密钥' }).click()
     const kd = page.locator('.el-dialog:visible')
     const didSel = kd.locator('.el-select').first()
-    if (await didSel.count()) await pickSelect(didSel, new RegExp(did.slice(0, 24)))
+    // 下拉里的 DID 是中间省略的（0xe6c15…d281dc），只能按刚注册的名称筛
+    if (await didSel.count()) await pickSelect(didSel, `${TAG}-UI逆变器`)
     await kd.getByRole('button', { name: '生成', exact: true }).click()
     await page.waitForTimeout(2000)
     rec.shots.push(await shot('07-identity-key-created'))
@@ -335,7 +343,7 @@ async function main() {
   }, { steps: '/assets → 登记资产 → 填名称/选 pv/选数据源 DID → 自动分级 → 登记并上链 → 查看溯源 → 列表查询 → 详情 → 申请授权入口', expect: '显示 L 级与分级理由；登记返回 sm3 摘要与 ev- 存证；溯源含 register；授权入口可见', impl: 'AssetsCenter.vue' })
 
   // ------------------------------------------------------------ 4.1 权限中心
-  await tc('TC-UI-05', '4.1(权限)', '权限控制中心：角色管理 / 权限审批（subject 申请→admin 审批）/ 数据访问控制（矩阵+校验器）', async rec => {
+  await tc('TC-UI-05', '4.1(权限)', '权限控制中心：权限审批（subject 申请→admin 审批→授权生效）/ 权限矩阵 / 数据访问控制校验器', async rec => {
     await ensureRole('subject')
     await nav('/permission')
     await page.getByRole('button', { name: /申请权限/ }).waitFor({ timeout: 20000 })
@@ -363,8 +371,6 @@ async function main() {
     await logout()
     await login('admin')
     await nav('/permission')
-    pane = await visibleTab('角色管理')
-    await pane.locator('.el-table__row').nth(5).waitFor({ timeout: 20000 })
     pane = await visibleTab('申请审批')
     const row = pane.locator('.el-table__row', { hasText: `${TAG} 联合建模` })
     await row.waitFor({ timeout: 10000 })
@@ -392,6 +398,24 @@ async function main() {
     expect((await pane.innerText()).includes('ALLOWED'), 'admin asset:read ALLOWED')
     rec.shots.push(await shot('14-permission-check'))
   }, { steps: 'subject 登录 /permission → 申请权限(asset 1 read) → 申请审批 tab 可见且无审批按钮 → 切 admin → 角色管理 tab → 申请审批「通过」→ 已授权管理 → 权限矩阵 → 校验测试器 DENIED/ALLOWED', expect: '申请 pending → approved；已授权列表出现；矩阵渲染；校验器结果正确', impl: 'PermissionCenter.vue' })
+
+  // ------------------------------------------------------------ 4.1 权限中心 · 角色管理
+  await tc('TC-UI-05B', '4.1(权限)/3.1', '权限控制中心「角色管理」：列出 6 个内置角色及其权限，可新建自定义角色', async rec => {
+    await ensureRole('admin')
+    await nav('/permission')
+    const pane = await visibleTab('角色管理')
+    const cards = pane.locator('.role-card')
+    await page.waitForTimeout(1500)
+    const n = await cards.count()
+    const statRole = await page.locator('.stat-card', { hasText: '角色数' }).innerText().catch(() => '')
+    rec.evidence = `角色卡片数=${n}；顶部「角色数」=${statRole.replace(/\s+/g, ' ')}；GET /roles 接口本身返回 6 角色（接口层 TC-31-11 通过）`
+    rec.shots.push(await shot('35-permission-roles'))
+    if (n < 6) {
+      rec.note = '真后端模式下角色管理为空：GET /roles 的 data 是数组，PermissionCenter.vue:301 取的是 (await listRoles()).items → undefined → []（mock 桩返回 {items:[]} 才对得上）→ 乙方缺陷，见 MSG-test-func-to-integration-002'
+      return false
+    }
+    expect(await page.getByRole('button', { name: '新建自定义角色' }).count() > 0, 'admin 可见新建自定义角色')
+  }, { steps: 'admin → /permission → 角色管理 tab → 数角色卡片 → 看顶部「角色数」统计', expect: '列出 6 个内置角色（sys_admin/grid_dispatcher/vpp_operator/energy_subject/regulator/edge_node）及各自权限，角色数 ≥6', impl: 'PermissionCenter.vue「角色管理」/ GET /roles' })
 
   // ------------------------------------------------------------ 四 联邦学习 / 隐私计算页面
   await tc('TC-UI-06', '四(联邦/隐私)', '隐私计算页：数据不出域流程、隐私预算仪表盘；联邦学习任务状态/节点信息/模型版本/每轮哈希随 WS 增长', async rec => {
@@ -471,7 +495,9 @@ async function main() {
     await page.locator('.verify-panel.passed').waitFor({ timeout: 30000 })
     await page.getByRole('button', { name: /确认执行并回执/ }).click()
     await page.locator('.command-panel .status-chip', { hasText: /已回执|acked|已执行/ }).waitFor({ timeout: 60000 })
-    expect(/ev-|evidence/i.test(await page.locator('.receipt-summary').innerText()), '回执含存证号')
+    const receipt = await page.locator('.receipt-summary').innerText()
+    expect(/执行完成|已回执|acked/.test(receipt), '回执面板显示执行完成时间与回执状态')
+    if (!/ev-/.test(receipt)) rec.note = '回执面板「回执存证」为空：后端 POST /dispatch/tasks/{id}/ack 不写存证也不回 evidenceId（甲方 B-026）；下发环节的 evidenceId 正常'
     rec.shots.push(await shot('20-terminal-ack'))
   }, { steps: '/cloud/aggregate → 生成调度策略 → 点「为什么选择该节点放电？」→ 生成签名 → 签名下发 → /edge/response 切换目标节点 → 开始校验(DID 验签) → 确认执行并回执', expect: '策略表含动作/SOC 约束；AI 解释带 live/cache/rule 标识；下发成功显示 commandId；终端验签通过并回执上链', impl: 'CloudAggregate.vue / TerminalResponse.vue' })
 

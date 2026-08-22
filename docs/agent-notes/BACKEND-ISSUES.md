@@ -107,13 +107,14 @@
 - 建议：`ws/manager.py` 起一个 5 秒的后台任务广播 `GET /nodes` 的实时指标，或在文档里把该消息明确降级为事件型并通知前端改轮询。
 - 乙方兼容（integration 2026-08-22 复核，`qa/check_backend_live.sh` ws 用例同样 0 条）：`frontend/src/stores/perspective.js:startNodePolling()` 每 15 秒兜底轮询 `GET /nodes`，且只在这 15 秒内没收到过 node_status 时才发请求（mock 模式零额外请求）。
 
-## B-022 ｜中 ｜ 30 并发登录尾延迟远超 5 秒，个别请求 ReadTimeout
+## B-022 ｜低（负载相关）｜ 30 并发登录在机器有其它负载时尾延迟超 5 秒，个别请求 ReadTimeout
 - 提出：test-func，2026-08-22，用例 TC-NF-02
 - 复现：30 线程同时 `POST /auth/login`（6 个演示账号轮流）。
 - 期望：全部 200 且最大耗时 < 5s（顺序调用时 TC-NF-01 主要查询接口 < 2s）。
-- 实际：多轮实测最大耗时 4.8s / 5.9s，在算法服务与其他 Agent 同时压测时出现 `httpx.ReadTimeout`（30s）。原因是 bcrypt 校验为 CPU 密集且 `uvicorn` 单进程单 worker，登录请求在 GIL 上排队。
+- 实际：机器上有其它 Agent 同时压测时，最大耗时 4.8s / 5.9s，个别请求 `httpx.ReadTimeout`（30s）；机器空闲时同一用例最大耗时 **2323ms，全部 200，判定通过**。
+- 原因：bcrypt 校验为 CPU 密集且 `uvicorn` 单进程单 worker，登录请求在 GIL 上排队，尾延迟对机器负载非常敏感。
 - 建议：bcrypt cost 降到 10、把 `verify_password` 放进线程池，或部署时 `--workers N`；演示前避免多人同时登录。
-- 契约：无明确性能条款，按需求书「快速部署 / 演示可用」判定为中。
+- 契约：无明确性能条款。空闲环境达标，故降为「低（负载相关）」；答辩机若与其它服务混跑，建议 `--workers 2~4` 或把 `verify_password` 放线程池。
 
 ## B-023 ｜低 ｜ `createdAt` 与 `updatedAt` 时区口径不一致，同一时刻相差 8 小时
 - 提出：test-func，2026-08-22，用例 TC-312-04

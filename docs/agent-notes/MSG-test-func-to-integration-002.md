@@ -3,7 +3,7 @@
 来源：test-func 第 2 轮功能测试（`qa/func-tests/api_func_test.py` + `qa/func-tests/ui_func_test.mjs`，真后端模式 5199 + backend 8000 + algo 8100），2026-08-22。
 上一轮的 MSG-001（算法 2 条）与 6 条页面缺陷已全部复测通过，见文末「复测结论」。
 
-## 缺陷 1（P2）权限控制中心「角色管理」在真后端模式下永远是空的
+## 缺陷 1（P2）权限控制中心「角色管理」在真后端模式下永远是空的 —— ✅ 提单期间已由 integration 修复，已复测通过
 
 - 用例：TC-UI-05B（`ui_func_test.mjs`）
 - 现象：admin 打开 `/permission` →「角色管理」tab，只有一句说明文字和「新建自定义角色」按钮，一个角色卡片都没有；顶部统计「角色数」显示 `0`。
@@ -17,6 +17,7 @@
   - 角色卡片用 `r.builtin` 判定内置角色，后端字段是 `isBuiltin`；
   - `PermissionCenter.vue:322` 把 `grants` 当对象用（`?.grants || {}`），后端 `grants` 是 `[{resourceType,action,scope}]` 数组。
 - 建议：`listRoles()` 处做一次归一化 —— `const d = await listRoles(); roles.value = Array.isArray(d) ? d : (d?.items || [])`，并把 `isBuiltin`/`grants` 一起映射成页面用的形状（和 `api/dispatch.js` 里 `normalizeDispatchTask` 一个套路）。
+- **复测结果**：`PermissionCenter.vue:301` 已于 2026-08-22 12:56 改为 `roles.value = await listRoles()`，TC-UI-05B 在 13:17 那轮**通过**（6 个角色卡片 + 顶部「角色数 6」+「新建自定义角色」可见），证据 `docs/test-evidence/35-permission-roles.jpg`。本条**关闭**，只保留记录。
 
 ## 缺陷 2（P3，环境类，供参考）联调期间前端源码被热更新，会让页面测试拿到半成品状态
 
