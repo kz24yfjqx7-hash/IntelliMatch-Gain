@@ -76,3 +76,12 @@
 - **完整可用**：`/login`（6 账号 + 错误密码）、`/cloud/topology`（拓扑 + 流程横幅六项计数，指标靠轮询兜底刷新）、`/cloud/aggregate`（DQN 生成 → AI 解释 → 托管代签下发 → 越权 1003 演示）、`/edge/classification`、`/edge/privacy`（FL 创建/启动/收敛曲线/预算环）、`/edge/response`（验签步骤 + 回执）、`/identity`（注册/文档/冻结解冻/轮换/密钥/用户管理）、`/assets`（登记/分级/详情/溯源/统计）、`/permission`（申请→审批→授权→矩阵→校验器）、`/evidence`（检索/校验/篡改演示/断裂点/凭证/追踪）、`/audit`（统计图/检索/CSV/追踪/告警 ack/日报）。
 - **受后端问题影响但不阻塞演示**：拓扑实时性（B-021，已轮询兜底）；`/audit` 全流程追踪对 FL 链路只有 1 步（B-015）；边端「验签」在真后端只能按 DID 文档状态判定（B-016，界面已如实标注）；并发高峰下资产登记/风险评估偶发 500（B-014）。
 - **仅 mock 模式可演示**：梯度投毒检测（后端未透传 `simulatePoison`）。
+
+### 6. 第二轮补充（权限中心角色管理）
+test-func 第 2 轮工单 MSG-002 报「角色管理在真后端为空」，已在 API 层修复并回复（见该文件 `## 回复`）：
+`frontend/src/api/permission.js` 新增 `normalizeRole()`，`listRoles()` 返回数组并把真后端的
+`grants:[{resourceType,action,scope}]`、`isBuiltin` 归一化成页面用的 `grants{资源:[动作]}`/`permissions`/`builtin`/`scope`；
+写路径 `createRole/updateRole` 按契约 §2.5 发数组（页面此前发对象，真后端会 1001），MSW 桩同时接受两种形状。
+实测真后端角色卡片 15 个、权限标签与 own 作用域正确，新建/编辑授权均 `code 0`。
+
+**收尾回归（含本次修复）**：真后端 E2E 28/28、mock E2E 28/28、`check_backend_live.sh` 120/123（3 条为 B-021/B-024 已备案偏差）、vitest 137/137、algo pytest 315/315、contract_audit 阻断 0 警告 0、selfcheck 12/12、deploy-sandbox 39/39、check_deploy ALL PASS。临时 5300 已杀，5199/8000/8100 保持运行。
