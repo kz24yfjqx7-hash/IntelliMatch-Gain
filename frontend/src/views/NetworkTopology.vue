@@ -287,8 +287,9 @@ const selectedNode = computed(() => nodes.value.find(n => n.id === selectedNodeI
 const nodePositions = [
   { top: '1%', left: '3%' },
   { top: '1%', right: '15%' },
-  { top: '53%', left: '15%' },
-  { top: '53%', right: '3%' }
+  // 下排卡片用 bottom 锚定，保证在低分辨率下不会溢出到统计条上（原 top:53% 会遮挡总负荷/告警节点）
+  { bottom: '1%', left: '15%' },
+  { bottom: '1%', right: '3%' }
 ]
 function getNodeStyle(index) {
   return nodePositions[index % nodePositions.length]
@@ -534,7 +535,8 @@ onUnmounted(() => {
 .topology-wrapper {
   flex: 1;
   position: relative;
-  min-height: 25vh;
+  /* 至少容纳上下两排节点卡片（每排约 130px）+ 中心云图标，避免卡片压到下方统计条 */
+  min-height: max(25vh, 380px);
 }
 
 .chart-container {
@@ -556,7 +558,7 @@ onUnmounted(() => {
 
 .node-card {
   position: absolute;
-  width: clamp(100px, 11vw, 140px);
+  width: clamp(120px, 12vw, 160px);
   background: linear-gradient(135deg, rgba(27, 40, 56, 0.95) 0%, rgba(13, 27, 42, 0.95) 100%);
   border-radius: clamp(6px, 0.6vw, 10px);
   border: 2px solid var(--bg-tertiary);
@@ -581,7 +583,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5vw;
-  padding: 0.8vw 1vw;
+  padding: 0.5vw 0.8vw;
   background: var(--bg-tertiary);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -598,6 +600,7 @@ onUnmounted(() => {
 .node-status-indicator.offline { background: var(--color-danger); }
 
 .node-id {
+  white-space: nowrap;
   font-size: clamp(10px, 1.1vw, 13px);
   font-weight: 600;
   color: var(--color-text);
@@ -627,14 +630,14 @@ onUnmounted(() => {
 }
 
 .card-body {
-  padding: 0.8vw 1vw;
+  padding: 0.4vw 0.8vw;
 }
 
 .data-row {
   display: flex;
   align-items: center;
   gap: 0.5vw;
-  padding: 0.4vw 0;
+  padding: 0.25vw 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -656,6 +659,7 @@ onUnmounted(() => {
 
 .data-value {
   margin-left: auto;
+  white-space: nowrap;
   font-size: clamp(9px, 1vw, 12px);
   font-weight: 600;
   color: var(--color-text);
@@ -667,7 +671,7 @@ onUnmounted(() => {
 }
 
 .card-footer {
-  padding: 0.6vw 1vw;
+  padding: 0.3vw 0.8vw;
   background: rgba(0, 180, 216, 0.05);
   border-top: 1px solid rgba(255, 255, 255, 0.03);
 }
@@ -711,6 +715,10 @@ onUnmounted(() => {
   display: flex;
   gap: 1vw;
   padding-top: 1vw;
+  margin-top: 0.5vw;
+  position: relative;
+  z-index: 2; /* 统计条始终位于节点卡片之上 */
+  background: var(--bg-secondary, #0d1b2a);
   border-top: 1px solid var(--bg-tertiary);
 }
 
