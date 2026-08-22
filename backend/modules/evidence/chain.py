@@ -12,14 +12,20 @@ LocalHashChain 保留了区块链在本场景下真正被考核的性质：
 
 它不具备的是分布式共识——单机演示场景下本来也只有一个节点，这一点在答辩时如实说明。
 """
+import hashlib
 import logging
+import random
+import threading
+import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.orm import Session
 
 from core.gm_crypto import block_hash as calc_block_hash
+from core.gm_crypto import canonical_json
 from core.gm_crypto import payload_hash as calc_payload_hash
 from core.response import iso, now_cst
 from modules.evidence.model import ChainEvidence
@@ -27,6 +33,134 @@ from modules.evidence.model import ChainEvidence
 logger = logging.getLogger(__name__)
 
 GENESIS_PREV_HASH = "sm3:" + "0" * 64
+
+# ---------------------------------------------------------------- 并发写链（B-010）
+# 尾块 `SELECT … FOR UPDATE` 的行锁 + uk_height 唯一索引，在多线程并发上链时
+# 会互相死锁（联调日志里 132 次 1213 Deadlock、2 次 1205 Lock wait timeout），
+# 而失败只被 write_evidence 吞掉 ⇒ 存证被静默丢弃，高危审计日志没有 evidence_id。
+#
+# 两道防线：
+# 1. 进程内串行化：同一进程里同一时刻只有一个线程处于「取尾块 → 插入新块」之间，
+#    把并发退化成排队，从源头消掉绝大部分锁竞争（uvicorn 单进程多线程正是这个场景）；
+# 2. 死锁 / 锁超时重试：跨进程或跨连接仍可能撞上，捕获后回滚重试，带指数退避 + 抖动。
+_WRITE_LOCK = threading.Lock()
+_RETRY_SQLSTATES = ("40001", "HY000")
+# MySQL 1213=Deadlock found、1205=Lock wait timeout；SQLite 5/6=database is locked/busy
+_RETRY_KEYWORDS = ("deadlock", "lock wait timeout", "database is locked",
+                   "database table is locked", "database is busy")
+MAX_WRITE_RETRY = 3
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """判断一次落库失败是不是「重试就能过去」的锁冲突。"""
+    if not isinstance(exc, (OperationalError, DBAPIError)):
+        return False
+    orig = getattr(exc, "orig", None)
+    code = None
+    args = getattr(orig, "args", ())
+    if args and isinstance(args[0], int):
+        code = args[0]
+    if code in (1213, 1205):
+        return True
+    return any(k in str(exc).lower() for k in _RETRY_KEYWORDS)
+
+
+# -------------------------------------------------- 链校验的增量化（API-PERF-04）
+# 原来每次 GET /evidence/chain/status 都要把全表拉出来重算 2×N 次 SM3。
+# SM3 是纯 Python 实现（见 core/gm_crypto.py 的取舍说明），600 条时 P95 已经 2.4s，
+# 且随链长线性增长，1700+ 条时体验不可接受。
+#
+# 两级优化，**都不降低检出能力**：
+#
+# 1. 结果级：先用一条纯 SQL 聚合算出全表指纹（行数 + 最大高度 + 逐行 CRC32 的
+#    普通和与按高度加权和）。指纹由数据库端计算，覆盖 payload_snapshot 与三个哈希列，
+#    只要有任何一行被改动（篡改演示正是直接改库）指纹必变，缓存立即失效并回到全量校验。
+#    加权和让「两行互换」也能被发现。指纹只做「要不要重算」的判断，
+#    真正判定完整性的仍然是下面的 SM3 全量重算。
+# 2. 逐块级：记住「高度 H 的这组 (payload 摘要, payload_hash, prev_hash, block_hash, ts)
+#    已经通过 SM3 校验」。重算时只要这五元组完全一致就跳过两次 SM3。
+#    payload 摘要用 SHA-256（C 实现，微秒级），只作为「这一行有没有变过」的记忆键，
+#    内容一变摘要必变 ⇒ 篡改的那一行必然 memo miss，必然重新走完整 SM3 校验。
+#
+# 净效果：新增一个块 → 只对新块做 SM3；链未变 → 一条聚合 SQL 直接返回；
+# 任何一行被改 → 指纹变 + 该行 memo miss → 照旧被 status 精确定位到断裂高度。
+# 另外单条 /evidence/verify 永远不走任何缓存，答辩现场的「单条标红」是硬校验。
+_VERIFIED_BLOCKS: dict[int, tuple] = {}
+_VERIFIED_MAX = 500_000
+
+_FINGERPRINT_SQL = text(
+    "SELECT COUNT(*), COALESCE(MAX(block_height), -1),"
+    " COALESCE(SUM(CRC32(CONCAT_WS('|', payload_hash, prev_hash, block_hash,"
+    " created_at, payload_snapshot))), 0),"
+    " COALESCE(SUM(CRC32(CONCAT_WS('|', payload_hash, prev_hash, block_hash,"
+    " created_at, payload_snapshot)) * (block_height + 1)), 0)"
+    " FROM chain_evidence"
+)
+
+
+def _table_fingerprint(db: Session) -> tuple | None:
+    """全表指纹。只有 MySQL/MariaDB 支持，其它方言返回 None ⇒ 永远走全量校验。"""
+    try:
+        if db.bind is None or db.bind.dialect.name != "mysql":
+            return None
+        row = db.execute(_FINGERPRINT_SQL).first()
+    except Exception as exc:  # noqa: BLE001  指纹只是加速手段，算不出来就老老实实全量重算
+        logger.debug("计算链指纹失败，回退全量校验：%s", exc)
+        return None
+    return tuple(row) if row is not None else None
+
+
+def _payload_digest(payload) -> str:
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def _block_intact(rec: ChainEvidence, expected_prev_hash: str) -> bool:
+    """单块三重校验：链接指向 → payload 摘要 → 区块哈希。命中记忆时跳过 SM3。"""
+    if rec.prev_hash != expected_prev_hash:
+        return False
+    ts = iso(rec.created_at)
+    memo_key = (_payload_digest(rec.payload_snapshot), rec.payload_hash,
+                rec.prev_hash, rec.block_hash, ts)
+    if _VERIFIED_BLOCKS.get(rec.block_height) == memo_key:
+        return True
+    if calc_payload_hash(rec.payload_snapshot) != rec.payload_hash:
+        return False
+    if calc_block_hash(rec.prev_hash, rec.payload_hash, ts) != rec.block_hash:
+        return False
+    if len(_VERIFIED_BLOCKS) < _VERIFIED_MAX:
+        _VERIFIED_BLOCKS[rec.block_height] = memo_key
+    return True
+
+
+class _StatusResultCache:
+    """只缓存「指纹 → 上一次全量校验结论」这一对，不缓存任何未经校验的结论。"""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._fingerprint: tuple | None = None
+        self._result: dict | None = None
+
+    def get(self, fingerprint: tuple) -> dict | None:
+        with self._lock:
+            if self._result is not None and fingerprint == self._fingerprint:
+                return self._result
+        return None
+
+    def put(self, fingerprint: tuple, result: dict) -> None:
+        with self._lock:
+            self._fingerprint, self._result = fingerprint, dict(result)
+
+    def invalidate(self) -> None:
+        with self._lock:
+            self._fingerprint, self._result = None, None
+
+
+_STATUS_CACHE = _StatusResultCache()
+
+
+def invalidate_status_cache() -> None:
+    """篡改 / 还原演示后主动作废缓存。指纹本来就会变，这里是双保险。"""
+    _STATUS_CACHE.invalidate()
 
 
 class EvidenceChain(ABC):
@@ -55,6 +189,32 @@ class LocalHashChain(EvidenceChain):
 
     def write(self, db: Session, *, category: str, ref_id: str, payload: dict,
               actor_did: str | None = None, trace_id: str | None = None) -> dict:
+        """写一个新块。并发下的锁冲突会自动重试（B-010），重试用尽才抛出。"""
+        last_exc: BaseException | None = None
+        for attempt in range(1, MAX_WRITE_RETRY + 1):
+            try:
+                with _WRITE_LOCK:
+                    return self._write_once(db, category=category, ref_id=ref_id,
+                                            payload=payload, actor_did=actor_did,
+                                            trace_id=trace_id)
+            except Exception as exc:  # noqa: BLE001
+                if not _is_retryable(exc) or attempt == MAX_WRITE_RETRY:
+                    raise
+                last_exc = exc
+                # 冲突方必须先回滚——MySQL 死锁时被选中的事务已经整个回滚了，
+                # 不 rollback 的话这条会话后面每一条 SQL 都会报 "transaction has been rolled back"
+                try:
+                    db.rollback()
+                except Exception:  # noqa: BLE001
+                    pass
+                backoff = 0.05 * (2 ** (attempt - 1)) + random.uniform(0, 0.05)
+                logger.warning("存证上链锁冲突，第 %s/%s 次重试（%.0fms 后）：%s",
+                               attempt, MAX_WRITE_RETRY, backoff * 1000, exc)
+                time.sleep(backoff)
+        raise last_exc  # pragma: no cover  循环里一定会 return 或 raise
+
+    def _write_once(self, db: Session, *, category: str, ref_id: str, payload: dict,
+                    actor_did: str | None, trace_id: str | None) -> dict:
         # 取链尾。MySQL 下加 FOR UPDATE 行锁，避免并发写入导致高度重复；
         # SQLite 会忽略 FOR UPDATE，单测无并发也不受影响。
         stmt = select(ChainEvidence).order_by(ChainEvidence.block_height.desc()).limit(1)
@@ -126,6 +286,22 @@ class LocalHashChain(EvidenceChain):
         }
 
     def status(self, db: Session) -> dict:
+        """链状态。先看指纹能不能免掉全量重算，不能就走带记忆的全量校验。
+
+        性能取舍见本文件顶部 _STATUS_CACHE 的说明——**任何一次篡改都仍然要被检出**。
+        """
+        fingerprint = _table_fingerprint(db)
+        if fingerprint is not None:
+            cached = _STATUS_CACHE.get(fingerprint)
+            if cached is not None:
+                return dict(cached)
+
+        result = self._status_full(db)
+        if fingerprint is not None:
+            _STATUS_CACHE.put(fingerprint, result)
+        return dict(result)
+
+    def _status_full(self, db: Session) -> dict:
         """顺序遍历整条链。分批读取，避免树莓派上一次性把全表拉进内存。"""
         total = db.execute(select(func.count()).select_from(ChainEvidence)).scalar_one()
         by_category = dict(
@@ -135,6 +311,7 @@ class LocalHashChain(EvidenceChain):
         )
 
         broken_at = None
+        broken_at_id = None
         prev_hash = GENESIS_PREV_HASH
         last_hash = None
         height = -1
@@ -148,14 +325,9 @@ class LocalHashChain(EvidenceChain):
             if not batch:
                 break
             for rec in batch:
-                if broken_at is None:
-                    if rec.prev_hash != prev_hash:
-                        broken_at = rec.evidence_id
-                    elif calc_payload_hash(rec.payload_snapshot) != rec.payload_hash:
-                        broken_at = rec.evidence_id
-                    elif calc_block_hash(rec.prev_hash, rec.payload_hash,
-                                         iso(rec.created_at)) != rec.block_hash:
-                        broken_at = rec.evidence_id
+                if broken_at is None and not _block_intact(rec, prev_hash):
+                    broken_at = rec.block_height
+                    broken_at_id = rec.evidence_id
                 prev_hash = rec.block_hash
                 last_hash = rec.block_hash
                 height = rec.block_height
@@ -165,10 +337,14 @@ class LocalHashChain(EvidenceChain):
             "height": height + 1,
             "lastHash": last_hash,
             "intact": broken_at is None,
+            # 契约 2.6：brokenAt 与 height 同名词义，是**区块高度**或 null（B-017）。
+            # evidenceId 另放 brokenAtEvidenceId，前端两个都能用。
             "brokenAt": broken_at,
+            "brokenAtEvidenceId": broken_at_id,
             "totalRecords": total,
             "byCategory": by_category,
             "chainType": "LocalHashChain",
+            "verifiedAt": iso(now_cst()),
         }
 
     def trace(self, db: Session, trace_id: str) -> list[dict]:

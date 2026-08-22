@@ -264,6 +264,18 @@ CREATE TABLE IF NOT EXISTS chain_evidence (
   INDEX idx_ref (ref_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='存证记录（本地哈希链）';
 
+-- B-001 / B-025：篡改演示的原始快照。原来只存 Redis（按 key 覆盖 + TTL），
+-- 连续演示两次或 Redis 一清就再也还原不了，链永久停在 broken。
+-- 落库后：同一条存证已有备份则不覆盖，restore 成功后删除该行。
+CREATE TABLE IF NOT EXISTS chain_evidence_backup (
+  id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+  evidence_id   VARCHAR(64) NOT NULL UNIQUE COMMENT '被篡改的存证 ID',
+  payload_snapshot JSON NOT NULL COMMENT '篡改前的原始快照',
+  payload_hash  VARCHAR(80) NOT NULL COMMENT '篡改前的 payload_hash',
+  block_hash    VARCHAR(80) NOT NULL COMMENT '篡改前的 block_hash',
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='篡改演示的原始快照备份，restore 后删除';
+
 -- ----------------------------------------------------------------------------
 -- 六、安全审计（需求 3.7）—— 按月分表
 -- 表名规则 audit_log_YYYYMM，后端写入前自动建当月表，跨月查询用 UNION ALL 合并

@@ -12,6 +12,7 @@ from core.middleware import Principal, audited, require_permission
 from core.response import PageQuery, ok, page
 from modules.evidence import service
 from modules.evidence.chain import get_chain
+from modules.permission.service import has_own_scope_only
 
 router = APIRouter(tags=["可信存证"])
 
@@ -60,10 +61,13 @@ def search(
     from_: str | None = Query(None, alias="from"),
     to: str | None = Query(None),
     db: Session = Depends(get_db),
-    _p: Principal = Depends(current_user),
+    principal: Principal = Depends(current_user),
 ):
+    # scope='own' 的角色（能源主体）只能看到 actorDid 是自己的存证
+    owner_only = principal.did if has_own_scope_only(principal, "evidence", "read") else None
     items, total = service.search(db, pg.page, pg.size, category=category, did=did,
-                                  data_type=dataType, from_=from_, to=to)
+                                  data_type=dataType, from_=from_, to=to,
+                                  owner_only=owner_only)
     return ok(page(items, total, pg.page, pg.size))
 
 
@@ -119,17 +123,35 @@ def restore(
     return ok(service.restore(db, body.evidenceId))
 
 
+@router.post("/evidence/demo/restore-all", summary="【演示专用】一键还原全部被篡改的存证")
+@audited(module="evidence", action="evidence:restore-all", risk="high",
+         resource_type="evidence")
+def restore_all(
+    db: Session = Depends(get_db),
+    _admin: Principal = Depends(require_roles("sys_admin")),
+):
+    """契约外补充接口（路径不与契约 2.6 冲突）。
+
+    彩排收尾用：把 chain_evidence_backup 里所有原始快照一次性写回，链恢复 intact。
+    """
+    return ok(service.restore_all(db))
+
+
 @router.get("/evidence/{evidence_id}/certificate", summary="导出存证凭证")
 @audited(module="evidence", action="evidence:certificate", risk="low",
          resource_type="evidence", resource_id_arg="evidence_id")
-@require_permission("evidence", "read")
+@require_permission("evidence", "read", resource_id_arg="evidence_id")
 def certificate(evidence_id: str, db: Session = Depends(get_db),
                 _p: Principal = Depends(current_user)):
     return ok(service.certificate(db, evidence_id))
 
 
 @router.get("/evidence/{evidence_id}", summary="存证详情")
-@require_permission("evidence", "read")
+@audited(module="evidence", action="evidence:read", risk="low",
+         resource_type="evidence", resource_id_arg="evidence_id")
+# resource_id_arg 一定要传：scope='own' 的角色要靠它解析出这条存证的 actorDid
+# 再判属主，否则能源主体能读到别人的存证（B-002 / 用例 API-EV-17b）
+@require_permission("evidence", "read", resource_id_arg="evidence_id")
 def get_evidence(evidence_id: str, db: Session = Depends(get_db),
                  _p: Principal = Depends(current_user)):
     return ok(service.get_evidence(db, evidence_id))

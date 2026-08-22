@@ -906,7 +906,9 @@ def test_绕过应用层改数据库会被链校验抓出来(client, login, Sess
     try:
         after = client.get("/api/v1/evidence/chain/status", headers=admin).json()["data"]
         assert after["intact"] is False
-        assert after["brokenAt"] == evidence_id or after["brokenAt"] == str(height)
+        # B-017：brokenAt 现在是区块高度，evidenceId 走 brokenAtEvidenceId
+        assert after["brokenAt"] == height
+        assert after["brokenAtEvidenceId"] == evidence_id
 
         single = client.post("/api/v1/evidence/verify", headers=admin,
                              json={"evidenceId": evidence_id}).json()["data"]

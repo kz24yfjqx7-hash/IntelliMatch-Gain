@@ -80,7 +80,9 @@ def test_篡改快照会被抓出来(db):
 
     status = chain.status(db)
     assert status["intact"] is False
-    assert status["brokenAt"] == target      # 断裂点精确定位到被改的那一块
+    # B-017：brokenAt 是区块高度（与 height 同名词义），evidenceId 另放 brokenAtEvidenceId
+    assert status["brokenAt"] == blocks[2]["blockHeight"]
+    assert status["brokenAtEvidenceId"] == target      # 断裂点精确定位到被改的那一块
 
 
 def test_改payload_hash也逃不掉(db):
@@ -100,7 +102,8 @@ def test_改payload_hash也逃不掉(db):
     db.commit()
 
     assert chain.verify(db, target)["intact"] is False
-    assert chain.status(db)["brokenAt"] == target
+    assert chain.status(db)["brokenAt"] == blocks[1]["blockHeight"]
+    assert chain.status(db)["brokenAtEvidenceId"] == target
 
 
 def test_按traceid取出完整链路(db):

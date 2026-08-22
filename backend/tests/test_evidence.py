@@ -66,10 +66,11 @@ def test_篡改演示三连(client, login, evidence_id, SessionFactory):
     assert after["localHash"] != after["chainHash"]
     assert "篡改" in after["message"]
 
-    # 链状态精确定位断裂点
+    # 链状态精确定位断裂点。B-017：brokenAt 是区块高度，evidenceId 走 brokenAtEvidenceId
     status = client.get("/api/v1/evidence/chain/status", headers=admin).json()["data"]
     assert status["intact"] is False
-    assert status["brokenAt"] == evidence_id
+    assert status["brokenAt"] == tampered["blockHeight"]
+    assert status["brokenAtEvidenceId"] == evidence_id
 
     # 用例之间不能互相污染：把快照写回去，让后面的用例仍然面对一条完整的链
     _restore_snapshot(SessionFactory, evidence_id, tampered["originalPayload"])

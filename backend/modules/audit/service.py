@@ -54,6 +54,37 @@ def write_audit_log(payload: dict, to_chain: bool | None = None) -> str | None:
         return None
 
 
+def report_chain_write_failure(category: str, ref_id, exc: BaseException) -> None:
+    """存证上链彻底失败时的告警出口（B-010）。
+
+    由 modules/evidence/service.write_evidence 在重试用尽后调用。
+    以前那条存证就这么被丢掉了，谁也不知道——高危审计日志因此缺 evidence_id，
+    「日志防篡改」这条硬要求出现空洞。现在补一条 critical 审计日志 + 一条
+    WebSocket 日志，审计中心和前端日志栏立刻可见。
+
+    **必须 to_chain=False**：链都写不动了，这条日志再去上链只会又失败一次。
+    """
+    from core.middleware import current_principal, current_trace_id
+
+    principal = current_principal.get()
+    trace_id = current_trace_id.get()
+    detail = f"存证上链失败（已重试仍失败）category={category} ref={ref_id}：{exc}"
+    write_audit_log({
+        "traceId": trace_id,
+        "actorDid": principal.did if principal else None,
+        "actorName": (principal.real_name or principal.username) if principal else None,
+        "module": "evidence", "action": "evidence:write",
+        "resourceType": "evidence", "resourceId": str(ref_id),
+        "result": "failed", "riskLevel": "critical", "detail": detail,
+        "ip": principal.ip if principal else None, "costMs": 0,
+    }, to_chain=False)
+
+    from ws import manager as ws_manager
+
+    ws_manager.push("log", {"level": "error", "module": "evidence",
+                            "content": detail, "traceId": trace_id}, trace_id)
+
+
 def _write(payload: dict, to_chain: bool | None) -> str | None:
     risk = payload.get("riskLevel", "low")
     # 默认策略：高危及以上自动上链。显式传 to_chain 可以覆盖
@@ -72,7 +103,9 @@ def _write(payload: dict, to_chain: bool | None) -> str | None:
         "risk_level": risk,
         "detail": payload.get("detail"),
         "ip": payload.get("ip"),
-        "evidence_id": None,
+        # 调用方（比如 FL 每轮上链）已经拿到 evidenceId 就直接沿用，
+        # 让 /audit/trace 的 steps[].evidenceId 非空（契约 2.7 示例，B-015）
+        "evidence_id": payload.get("evidenceId"),
         "hash": None,
         "created_at": now.replace(tzinfo=None),
     }
@@ -83,7 +116,7 @@ def _write(payload: dict, to_chain: bool | None) -> str | None:
     ))
 
     with SessionLocal() as db:
-        if should_chain:
+        if should_chain and not row["evidence_id"]:
             from modules.evidence.service import write_evidence
 
             evidence = write_evidence(db, category="audit",
