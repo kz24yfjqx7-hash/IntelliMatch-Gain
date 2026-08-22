@@ -67,6 +67,17 @@ echo "== 5. Dockerfile / nginx =="
 [ -f frontend/nginx.conf ] && grep -q 'backend:8000' frontend/nginx.conf && grep -q 'Upgrade' frontend/nginx.conf && grep -q 'try_files' frontend/nginx.conf && ok "nginx.conf /api /ws SPA 齐全" || bad "nginx.conf 缺 /api 或 /ws Upgrade 或 try_files"
 grep -q 'location = /health ' deploy/nginx.conf && grep -qE 'proxy_pass +\$backend_upstream/health;' deploy/nginx.conf && ok "deploy/nginx.conf /health 反代到 backend /health" || bad "deploy/nginx.conf 缺 location = /health 反代"
 grep -q 'location = /healthz' deploy/nginx.conf && ok "deploy/nginx.conf /healthz 仍为 nginx 自身" || bad "deploy/nginx.conf 缺 /healthz"
+# 传输与部署安全头（测试文档-接口与安全 §6）
+for f in deploy/nginx.conf frontend/nginx.conf; do
+  grep -qE '^\s*server_tokens\s+off;' "$f" && ok "$f server_tokens off" || bad "$f 缺 server_tokens off"
+  grep -q 'Content-Security-Policy' "$f" && ok "$f 有 CSP" || bad "$f 缺 Content-Security-Policy"
+  grep -q 'map \$scheme \$hsts_header' "$f" && grep -q 'Strict-Transport-Security \$hsts_header' "$f" \
+    && ok "$f HSTS 按 \$scheme 条件化（仅 https 下发）" || bad "$f 缺条件化 HSTS"
+  grep -qE "connect-src 'self'" "$f" && ok "$f CSP 放行同源 /api 与 /ws" || bad "$f CSP 缺 connect-src 'self'"
+  grep 'add_header Content-Security-Policy' "$f" | grep -qE "script-src[^;]*unsafe-(inline|eval)" && bad "$f CSP 的 script-src 放开了 unsafe-inline/eval" || ok "$f CSP script-src 未放开 unsafe-*"
+  # SPA 回退不能带 $uri/：/assets 路由会被 301 进静态目录再 404
+  grep -q 'try_files \$uri \$uri/ /index.html' "$f" && bad "$f SPA try_files 带了 \$uri/，/assets 路由会 404" || ok "$f SPA try_files 未带 \$uri/"
+done
 if diff -q deploy/nginx.conf frontend/nginx.conf >/dev/null 2>&1; then ok "frontend/nginx.conf 与 deploy/nginx.conf 一致"; else echo "WARN frontend/nginx.conf 与 deploy/nginx.conf 不一致（frontend 镜像 COPY 的是 frontend/nginx.conf，需 frontend Agent 同步：cp deploy/nginx.conf frontend/nginx.conf）"; fi
 grep -q "/health'" docker-compose.yml && ! grep -q "api/v1/health'" docker-compose.yml && ok "backend healthcheck 探根路径 /health" || bad "backend healthcheck 未探根路径 /health"
 for v in REDIS_DB JWT_ALGORITHM KEY_CUSTODY_SECRET ALGO_TIMEOUT DEBUG DB_WAIT_TIMEOUT; do grep -qE "^\s+$v: " docker-compose.yml && grep -qE "^$v=" .env.example && ok "backend 非契约变量 $v 已传递（compose + .env.example）" || bad "backend 非契约变量 $v 未传递"; done

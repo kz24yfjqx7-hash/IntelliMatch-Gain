@@ -5,6 +5,7 @@ pvOutput / storageOutput / load / soc，一个字母都不能改，
 否则乙那边七个存量页面全部要返工。
 """
 import logging
+import random
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -187,9 +188,66 @@ def node_online(db: Session, node_id: str, did: str, nonce: str) -> dict:
 
 
 def snapshot_for_ws(db: Session) -> list[dict]:
-    """给 WebSocket 定时广播用的节点快照。"""
+    """给 WebSocket 定时广播用的节点快照。契约 2.13 payload：{nodeId, status, metrics}。"""
     nodes = db.execute(select(NodeInfo).order_by(NodeInfo.id)).scalars().all()
-    return [
-        {"nodeId": n.id, "status": n.status, "metrics": _to_item(n)["metrics"]}
-        for n in nodes
-    ]
+    return [_ws_payload(n) for n in nodes]
+
+
+def _ws_payload(node: NodeInfo) -> dict:
+    return {"nodeId": node.id, "status": node.status, "metrics": _to_item(node)["metrics"]}
+
+
+# ---------------------------------------------------------------- 实时指标步进（WS 5 秒广播用）
+# 演示环境里没有真实光伏/储能硬件在往上报数据，node_info 的四个指标如果不动，
+# 每 5 秒推出去的就是同一串常数，前端曲线是一条直线，等于没有"实时"。
+# 这里的做法是**在库里的真实值上做有界随机游走并落库**：
+#   - 推出去的值 == 数据库里真正存着的值 == GET /nodes 读到的值，三者永远一致，不是凭空编的展示数据；
+#   - soc 与 storageOutput 的符号耦合（放电 soc 降、充电 soc 升），不会出现放电还涨电量的物理谬误；
+#   - offline 节点不动（离线设备本来就不该有新数据）；
+#   - 只在有 WebSocket 客户端连着时才被调用，没人看时既不打库也不改数。
+_WALK_RATIO = 0.03          # 每次步进最多波动额定容量的 3%
+_LOAD_HEADROOM = 1.5        # 负荷允许到额定容量的 1.5 倍
+_SOC_MIN, _SOC_MAX = 5.0, 100.0
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def _walk(node: NodeInfo) -> None:
+    capacity = float(node.capacity_kw or 100) or 100.0
+    step = capacity * _WALK_RATIO
+    pv = _clamp(float(node.pv_output or 0) + random.uniform(-step, step), 0.0, capacity)
+    storage = _clamp(float(node.storage_output or 0) + random.uniform(-step, step),
+                     -capacity, capacity)
+    load = _clamp(float(node.load_kw or 0) + random.uniform(-step, step),
+                  0.0, capacity * _LOAD_HEADROOM)
+    # storageOutput > 0 表示放电（soc 下降），< 0 表示充电（soc 上升）
+    soc = _clamp(float(node.soc or 0) - storage / capacity * 1.0, _SOC_MIN, _SOC_MAX)
+
+    node.pv_output = Decimal(f"{pv:.2f}")
+    node.storage_output = Decimal(f"{storage:.2f}")
+    node.load_kw = Decimal(f"{load:.2f}")
+    node.soc = Decimal(f"{soc:.2f}")
+    node.last_seen_at = now_cst().replace(tzinfo=None)
+
+
+def tick_node_metrics(db: Session) -> list[dict]:
+    """步进一次实时指标并返回全部节点的 node_status payload。
+
+    返回值直接就是契约 2.13 `node_status` 的 payload 列表，一个节点一条消息。
+    """
+    nodes = db.execute(select(NodeInfo).order_by(NodeInfo.id)).scalars().all()
+    moved = False
+    for node in nodes:
+        if node.status == "offline":
+            continue
+        _walk(node)
+        moved = True
+    if moved:
+        try:
+            db.commit()
+        except Exception as exc:  # noqa: BLE001  落库失败不能让广播线程死掉
+            db.rollback()
+            logger.warning("实时指标落库失败：%s", exc)
+    return [_ws_payload(n) for n in nodes]

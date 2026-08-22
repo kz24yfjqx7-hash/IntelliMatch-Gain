@@ -9,7 +9,13 @@ from core.config import settings
 from core.exceptions import UnauthorizedError
 from core.response import now_cst
 
-_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt 代价因子（B-022）。sql/02_seed.sql 里的六个演示账号哈希是 cost=10 生成的，
+# 而 passlib 的默认值是 12——不显式钉住的话，新建用户的哈希比演示账号贵 4 倍，
+# 同样一次登录耗时从 ~63ms 涨到 ~253ms（本机实测）。这里统一到 10：
+# 校验时代价因子是从哈希串自身（`$2b$NN$`）读出来的，所以老哈希照样验得过，只影响新生成的。
+BCRYPT_ROUNDS = 10
+
+_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=BCRYPT_ROUNDS)
 
 
 # ---------------------------------------------------------------- 密码
@@ -19,10 +25,29 @@ def hash_password(plain: str) -> str:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    """校验密码。
+
+    这是 CPU 密集操作，但**不需要**再往线程池里塞一层：
+    /auth/login 是同步路由（`def`，不是 `async def`），FastAPI 已经把它整个丢进
+    anyio 的工作线程里跑，事件循环不会被 bcrypt 堵住；且 bcrypt 4.x 是 Rust 实现，
+    计算期间释放 GIL——本机 30 个线程并发校验总墙钟 340ms，没有排队现象。
+    30 并发登录的尾延迟真正卡在数据库连接池上，见 core/database.py 的说明。
+    """
     try:
         return _pwd_ctx.verify(plain, hashed)
     except Exception:  # noqa: BLE001  哈希串损坏时按验证失败处理
         return False
+
+
+async def verify_password_async(plain: str, hashed: str) -> bool:
+    """给异步调用方用的版本：把 bcrypt 挪进线程池，别在事件循环里算。
+
+    目前登录走的是同步路由，用不到这个入口；留给以后可能出现的 `async def` 鉴权路径，
+    免得有人在协程里直接调 verify_password 把整个循环堵死。
+    """
+    import anyio.to_thread
+
+    return await anyio.to_thread.run_sync(verify_password, plain, hashed)
 
 
 # ---------------------------------------------------------------- traceId

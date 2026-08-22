@@ -131,14 +131,32 @@ grep -qE 'location /api/ \{' "$NC" && grep -qE 'proxy_pass +\$backend_upstream;'
 grep -qE 'proxy_pass +http://backend:8000/' "$NC" && fail "/api/ proxy_pass 带尾部 / 会剥掉前缀"
 awk '/location \/ws/,/\}/' "$NC" | grep -q 'Upgrade *\$http_upgrade' || fail "/ws 缺 Upgrade 头"
 awk '/location \/ws/,/\}/' "$NC" | grep -q 'Connection *\$connection_upgrade' || fail "/ws 缺 Connection upgrade 头"
-grep -q 'try_files \$uri \$uri/ /index.html' "$NC" || fail "缺 SPA try_files"
+grep -q 'try_files \$uri /index.html' "$NC" || fail "缺 SPA try_files"
+# $uri/ 会让 /assets（资产中心路由）301 到 /assets/ 再撞上静态目录 location 的 =404，实测页面打不开
+grep -q 'try_files \$uri \$uri/ /index.html' "$NC" && fail "SPA try_files 不应带 \$uri/：会把 /assets 路由 301 进静态目录导致 404"
 grep -q 'gzip_types' "$NC" && grep -q 'application/javascript' "$NC" && grep -q 'application/json' "$NC" || fail "gzip_types 不含 js/json"
 # 安全头必须在每个自己写了 add_header 的 location 里重复（nginx add_header 不继承）
 loc_block() { awk -v pat="$1" 'index($0,pat){f=1} f{print} f&&/^    \}/{f=0}' "$NC"; }
 for loc in 'location / {' 'location /assets/ {' 'location = /mockServiceWorker.js {'; do
   loc_block "$loc" | grep -q 'X-Frame-Options' || fail "${loc} 内缺 X-Frame-Options（add_header 不跨层继承）"
   loc_block "$loc" | grep -q 'X-Content-Type-Options' || fail "${loc} 内缺 X-Content-Type-Options"
+  loc_block "$loc" | grep -q 'Referrer-Policy' || fail "${loc} 内缺 Referrer-Policy"
+  loc_block "$loc" | grep -q 'Content-Security-Policy' || fail "${loc} 内缺 Content-Security-Policy"
+  loc_block "$loc" | grep -q 'Strict-Transport-Security' || fail "${loc} 内缺 Strict-Transport-Security"
 done
+# 传输与部署安全（测试文档-接口与安全 §6）
+grep -qE '^\s*server_tokens\s+off;' "$NC" || fail "缺 server_tokens off（响应头会回显 nginx 版本号）"
+grep -q 'Content-Security-Policy' "$NC" || fail "缺 Content-Security-Policy"
+grep -qE "connect-src 'self'" "$NC" || fail "CSP 缺 connect-src（/api 与 /ws 会被拦）"
+grep -qE "style-src 'self' 'unsafe-inline'" "$NC" || fail "CSP 的 style-src 缺 'unsafe-inline'（Element Plus 行内样式会被拦，页面白屏）"
+grep -qE "script-src 'self'" "$NC" || fail "CSP 缺 script-src"
+grep 'add_header Content-Security-Policy' "$NC" | grep -qE "script-src[^;]*unsafe-(inline|eval)" && fail "CSP 的 script-src 不应放开 unsafe-inline/unsafe-eval"
+grep -qE "object-src 'none'" "$NC" || fail "CSP 缺 object-src 'none'"
+grep -qE "frame-ancestors 'self'" "$NC" || fail "CSP 缺 frame-ancestors"
+# HSTS 必须条件化：http 上不发（浏览器忽略且无意义），https 才发
+grep -q 'map \$scheme \$hsts_header' "$NC" || fail "HSTS 未按 \$scheme 条件化（应通过 map \$scheme \$hsts_header 实现）"
+awk '/map \$scheme \$hsts_header/,/^\}/' "$NC" | grep -q 'max-age=31536000' || fail "HSTS max-age 应为 31536000"
+grep -q 'Strict-Transport-Security \$hsts_header' "$NC" || fail "HSTS 头未使用 \$hsts_header 变量"
 diff -q "${ROOT_DIR}/frontend/nginx.conf" "${ROOT_DIR}/deploy/nginx.conf" >/dev/null \
   || echo "WARN deploy/nginx.conf 与 frontend/nginx.conf 不一致：frontend 镜像 COPY 的是 frontend/nginx.conf，需前端 Agent 执行 cp deploy/nginx.conf frontend/nginx.conf" | tee -a "${CUR_OUT}"
 finish

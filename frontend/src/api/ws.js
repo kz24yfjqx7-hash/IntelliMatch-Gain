@@ -1,6 +1,7 @@
 /**
  * WebSocket 客户端（契约 §2.13）。
  * - connect(token)：连接 `${VITE_WS_BASE||'/ws'}?token=...`；30s 心跳 ping；指数退避重连 1s→30s
+ * - close code 4001（鉴权失败）不重连：清会话 + 跳 /login，与 request.js 收到 code 1002 的处理一致
  * - on(type, handler) → 返回取消函数；off(type, handler)；send(obj)
  * - VITE_USE_MOCK==='true' 时不建真实连接，直接订阅 mocks/wsMock.js 的事件总线
  * - status 为 Vue ref，可直接在组件中显示连接状态灯
@@ -30,6 +31,24 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const HEARTBEAT_MS = 30000
 const BACKOFF_MIN = 1000
 const BACKOFF_MAX = 30000
+/** 契约 §2.13：鉴权失败服务端立即以 4001 关闭。重连再多次也没用，token 本身失效了 */
+export const WS_CLOSE_AUTH_FAILED = 4001
+
+/** 鉴权失败：清登录态并跳登录页。惰性 import 避免与 stores/user、router 循环依赖 */
+async function forceLogout() {
+  try {
+    const { useUserStore } = await import('@/stores/user')
+    useUserStore().clearSession()
+  } catch {
+    try { localStorage.removeItem('energy-tds-token') } catch { /* 忽略 */ }
+  }
+  try {
+    const { default: router } = await import('@/router')
+    if (router.currentRoute.value.path !== '/login') {
+      router.replace({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+    }
+  } catch { /* 路由不可用（例如单测环境）时忽略 */ }
+}
 
 export function createWsClient() {
   const handlers = new Map() // type -> Set<fn>
@@ -104,9 +123,20 @@ export function createWsClient() {
       }
     }
     socket.onerror = () => { /* 交给 onclose 处理 */ }
-    socket.onclose = () => {
+    socket.onclose = evt => {
       stopHeartbeat()
       socket = null
+      // 4001 = 服务端明确告知鉴权失败（token 过期/被登出/伪造）。
+      // 这类关闭退避重连只会用同一个坏 token 反复敲门，直接清会话跳登录。
+      if (evt && evt.code === WS_CLOSE_AUTH_FAILED) {
+        manualClose = true
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
+        backoff = BACKOFF_MIN
+        status.value = WS_STATUS.CLOSED
+        console.warn('[ws] 鉴权失败（4001），清理会话并跳转登录')
+        forceLogout()
+        return
+      }
       if (manualClose) {
         status.value = WS_STATUS.CLOSED
       } else {

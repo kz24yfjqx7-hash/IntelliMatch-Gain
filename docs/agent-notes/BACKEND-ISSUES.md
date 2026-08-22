@@ -17,6 +17,9 @@
 - 实际：`restored:true` 但 `verification.intact:false`（备份里已是第一次篡改后的 `pvOutput:999.9`），链永久断裂；只能手工把原始 payload 写回 Redis key `evidence:tamper:backup:ev-X` 后再 restore（本次联调即如此恢复 ev-000203 / ev-000272）。
 - 建议：备份用 `SET NX`（已存在则不覆盖），或 tamper 前先检查 verify 结果为 intact 才写备份；restore 成功后再删除 key。
 - 契约：2.6 `/evidence/demo/tamper`（restore 为契约外补充接口）。
+- **✅ 已修复（fix-evidence，2026-08-22）**：原始快照改为落库到 `chain_evidence_backup`，**已存在的备份一律不覆盖**（保住最初那份），restore 成功后删除备份行；Redis 仅作为「表不存在」时的降级，同样遵守「不覆盖」。
+  `backend/modules/evidence/model.py:30`（新 `ChainEvidenceBackup`）、`service.py:_save_backup/_load_backup/_drop_backup/tamper/restore`、`sql/01_schema.sql` + `sql/03_migrate_20260822.sql`。
+  表不存在时会自动建表（同审计按月分表的 `ensure_table` 路子），没有建表权限才降级 Redis，任何情况都不 500。回归：`backend/tests/test_evidence_fixes.py::test_B001_连续篡改两次仍能还原到最初状态` 等 4 条。
 
 ## B-002 备注（非缺陷）后端探活端点为根路径 `GET /health`
 
@@ -26,6 +29,9 @@
 - 复现：多个 Agent 并发调用（FL 轮次上链 + 审计上链 + 业务上链）时，`scratchpad/backend.log` 出现 `存证上链失败 …(1213, 'Deadlock found')` 132 次、`(1205, 'Lock wait timeout')` 2 次；`audit_log_202608` 中 `id>160` 的 406 条 high 日志有 6 条 `evidence_id IS NULL`（如 id 1609/1610 login failed）。
 - 期望：文档(四)5「审计日志摘要自动推送至存证模块上链，避免删除篡改」为硬要求；`chain.write` 的 `SELECT … FOR UPDATE` 尾块行锁与 `uk_height` 在并发下应重试（死锁/锁超时重试 2~3 次）或串行化写链队列，失败应告警而非仅打日志。
 - 用例：API-AUD-01b / API-AUD-21 在并发高峰期间间歇失败（单独运行通过）。
+- **✅ 已修复（fix-evidence，2026-08-22）**：`chain.write` 两道防线——① 进程内 `_WRITE_LOCK` 把「取尾块→插入」串行化；② 死锁(1213)/锁超时(1205)/SQLite locked 自动回滚重试 3 次（0.05s 起指数退避 + 抖动）。重试用尽不再静默丢弃：`write_evidence` 返回 `chainError` 让调用方可感知，并经 `modules/audit/service.report_chain_write_failure()` 写一条 `to_chain=False` 的 critical 审计日志 + WebSocket 错误日志。
+  `backend/modules/evidence/chain.py:38-90,120-160`、`modules/evidence/service.py:write_evidence`、`modules/audit/service.py:report_chain_write_failure`。
+  回归：`tests/test_evidence_fixes.py` 的 B-010 五条（含 4 线程 × 3 次的并发写单测）；真机 30 并发越权请求 → 30 条 high 审计日志 `evidence_id` 全部非空，后端日志 0 次锁冲突。
 
 ## B-011 ｜中 ｜ `algo_fl_round.loss` 为 `DECIMAL(10,6)`，算法返回 loss ≥ 10000 时整轮落库与上链失败
 - 复现：日志 `落库联邦学习进度失败 fl-000011：(1264, "Out of range value for column 'loss'")` 562 次，同一任务每轮重复报错；对应 `存证上链失败 category=algo`。乙方 algo-service 的负荷预测 loss 为 kW² 量级的 MSE，可能超过 9999.999999。
@@ -35,6 +41,7 @@
 ## B-012 ｜低 ｜ 并发审批/驳回同一申请时 500（StaleDataError）
 - 复现：日志 6 次 `sqlalchemy.orm.exc.StaleDataError: UPDATE statement on table 'perm_application' expected to update 1 row(s); 0 were matched.`，由两个客户端几乎同时 approve/reject 同一 pending 申请触发，响应为 500/5000。
 - 期望：加行锁或 `WHERE status='pending'` 的条件更新，后到者返回 409/1006。
+- **✅ 已修复（fix-algo，2026-08-22）**：`modules/permission/service.py` 新增 `_claim_pending()`（条件更新 `WHERE id=:id AND status='pending'`，rowcount=0 即 1006），approve/reject 都改走它；`revoke_grant` 同样用 `WHERE status='active'` 占位；四个写接口统一套 `core/retry.py::run_with_retry`（死锁/锁等待重试 3 次，仍冲突返回 1006）。回归：`tests/test_fix_algo.py::test_B012_并发审批同一申请只有一个成功`、`::test_B012_并发审批与驳回不产生500`（多线程 + 真实会话 + 文件版 SQLite）。
 
 ## B-013 P2 `POST /did/{did}/rotate-key` 强制要求请求体，契约未定义该接口的 body
 
@@ -55,6 +62,9 @@
 - 实际：`{"code":5000,"message":"服务器内部错误","data":null,"traceId":"tr-00000000-00000000"}`；该 traceId 无法用于 `/audit/trace/{traceId}` 追踪，违背「任务级全流程追踪」
 - 影响页面：`/assets`（登记）、`/edge/risk`、`/edge/privacy`
 - 建议：与 B-010/B-012 同源（乐观锁/行锁冲突），统一加重试或条件更新；异常处理分支里沿用请求入口生成的 traceId，不要回落到全零串
+- **✅ 已修复（fix-algo，2026-08-22）**：
+  1) 根因是「`db.flush()` 插入 → `write_evidence` 撞死锁被 MySQL 整事务回滚（异常被存证层吞掉）→ 紧接着的 `UPDATE ... SET evidence_id` 匹配 0 行 → StaleDataError」。新增 `backend/core/retry.py::run_with_retry`（把整段写事务当可重放单元，命中死锁 1213 / 锁等待 1205 / 唯一键 1062 / StaleDataError 就 rollback 重放，3 次仍冲突按契约返回 1006），已接到 `modules/algo/analysis.py:assess/analyze`、`modules/asset/service.py:create_asset`、`modules/algo/service.py` 的建任务/run/issue/ack、`modules/permission/service.py` 四个写接口。
+  2) traceId 全零：未捕获异常冒泡到 Starlette 最外层 `ServerErrorMiddleware`，那里已在 `TraceMiddleware.finally` 之外，contextvar 被 reset 成默认值。`core/middleware.py:105-133` 改为把 traceId 挂 `request.state.trace_id` 且异常分支不 reset，`main.py:41-48` 的 `_envelope` 优先取 `request.state.trace_id`。回归：`tests/test_fix_algo.py::test_B014_*`（6 线程并发风险评估/资产登记无 5000、500 响应 traceId 与请求头一致）。
 
 ## B-015 P2 `/audit/trace/{traceId}` 对 FL / 调度链路只返回 1 步，缺少 login→did:verify→permission:check→evidence:write 的完整链
 
@@ -64,12 +74,14 @@
 - 实际：`steps` 仅 1 条 `{module:"algo",action:"fl:train",evidenceId:null}`，`summary.durationMs=0`
 - 影响页面：`/audit` 全流程追踪时间轴（演示第 10 步说服力下降）；乙方 E2E 已把断言从 ≥3 步放宽到 ≥1 步（`frontend/e2e/10-audit.spec.js:31`），后端修复后可改回
 - 建议：登录、权限校验、每轮上链的审计记录复用同一 traceId（契约 1.2「该请求产生的所有审计日志、存证记录共用同一 traceId」）
+- **✅ 已修复（fix-algo，2026-08-22）**：`core/middleware.py` 新增 `adopt_trace()`（接口拿到任务后把上下文 traceId 换成任务创建时的 traceId）与 `audit_step()`（给后台协程这类挂不上装饰器的步骤补埋点）；`modules/algo/service.py` 的 `start_fl_task/cancel/publish_model/run_dispatch/issue_dispatch/ack_dispatch` 与 `router.py:start_fl_task` 全部沿用任务 traceId，`persist_fl_progress` 每轮补 `fl:round`、结束补 `fl:finish`。实测（8013 实例 + 真库 + algo@8100）：FL `tr-20260822-1ffa7909` 从 1 步变 6 步（fl:create→fl:train→fl:round×3→fl:finish，durationMs=2000），调度 `tr-20260822-0c8ae17f` 4 步（create→run→issue→ack）。`steps[].evidenceId` 由 fix-evidence 按 `MSG-fix-algo-to-fix-evidence-001.md` 在 `modules/audit/service.py:108` 做了透传，复测已非空（`fl:round` 三步分别是 ev-000267/268/269）。另：`adopt_trace` 会把任务 traceId 同步写回 `request.state`，被拒绝的步骤（如非目标节点回执）也落在同一条链上（实测调度链 5 步，含一条 `dispatch:ack / failed`）。回归：`tests/test_fix_algo.py::test_B015_*`。
 
 ## B-016 P3（说明，非缺陷）调度任务下发/回执后 `status` 仍为 `success`，且详情不回传原始签名
 
 - 后端用 `issued/commandId/issuedAt/ackStatus/ackDetail[]` 表达下发与回执，`status` 保持契约 1.6 的 `taskStatus` 枚举——**符合契约**，是 MSW 桩多造了 `issued`/`acked` 两个非契约状态。
 - 乙方已在 `frontend/src/api/dispatch.js:normalizeDispatchTask` 做归一化，两种模式都可用。
 - 另：`GET /dispatch/tasks/{id}` 回传 `signPayload` 但不回传 `signature`，边端「DID 签名校验」无法复核签名字节，前端已降级为「按 DID 文档状态判定」并如实标注（`frontend/src/views/TerminalResponse.vue:254-268`）。如后端能回传 `signature`（脱敏无碍，它本就是公开可验证数据），边端即可做真验签，建议补上。
+- **✅ 已补上（fix-algo，2026-08-22）**：`modules/algo/service.py::_dispatch_to_item` 增加 `signature` 字段；配合 B-004 的托管代签落库，`GET /dispatch/tasks/{id}` 现在同时返回 `signPayload` + `signature`，边端可做真验签（`status` 枚举保持不变，仍按契约）。
 
 ## B-017 P3 `/evidence/chain/status` 的 `brokenAt` 返回 evidenceId 字符串，契约示例为高度/`null`
 
@@ -78,6 +90,8 @@
 - 实际：字符串 evidenceId；前端按高度比较「受影响区块」会失效
 - 影响页面：`/evidence`（断裂点标红 / 受影响块）。乙方已兼容：拿到字符串时回查该存证的 `blockHeight`（`frontend/src/views/EvidenceCenter.vue:normalizeChain`），并保留 `brokenAtId` 展示
 - 建议：`brokenAt` 用高度，另加 `brokenAtEvidenceId` 字符串字段
+- **✅ 已修复（fix-evidence，2026-08-22）**：`backend/modules/evidence/chain.py::_status_full` 现在返回 `brokenAt`=区块高度（int 或 null）、`brokenAtEvidenceId`=存证 ID（str 或 null），另加 `verifiedAt`。真机实测 `{"height":235,"intact":false,"brokenAt":42,"brokenAtEvidenceId":"ev-000042"}`。
+  提醒前端：`EvidenceCenter.vue::normalizeChain` 现在拿到 int 会走 `brokenAtId=null` 分支，断裂块的标红要改读 `brokenAtEvidenceId`（详见 `MSG-fix-evidence-to-fix-ws-001.md`）。
 
 ## B-018 P3（说明）`/audit/*` 仅 sys_admin/regulator 可读，其它角色的读操作会计入 R01 风控
 
@@ -157,6 +171,7 @@
 - 影响：答辩现场若连续演示两次篡改，链会永久停在 broken 状态，`/evidence/chain/status` 一直显示不完整，只能重置数据库恢复。
 - 建议：把原始快照写进 MySQL（例如 `chain_evidence.payload_snapshot` 之外单独一列或一张 `chain_evidence_backup` 表），restore 后删除备份；或提供 `POST /evidence/demo/restore-all`。
 - 乙方临时对策：演示前用 `DROP DATABASE energy_tds` + 重导 `backend/sql/01_schema.sql`、`02_seed.sql`（约 1 秒）恢复干净且 intact 的链。
+- **✅ 已修复（fix-evidence，2026-08-22）**：与 B-001 同一处修复（快照落库 + 不覆盖 + 用后即删）。另补契约外的一键还原 `POST /evidence/demo/restore-all`（`backend/modules/evidence/router.py:119`、`service.py::restore_all`，仅 sys_admin），返回 `{restored,restoredCount,failed,chain{intact,brokenAt,brokenAtEvidenceId}}`。真机实测：同一条存证连续篡改 2 次 → restore → `verification.intact:true`、链 `intact:true / brokenAt:null`；再也不需要重建库。
 
 ## B-026 ｜低 ｜ `POST /dispatch/tasks/{id}/ack` 不写存证、不返回 evidenceId
 - 提出：test-func，2026-08-22，用例 TC-UI-07 / TC-39-07
@@ -165,3 +180,43 @@
 - 期望：需求 3.6「实现数据接入、授权、联邦任务、模型版本、**调度结果**存证」。下发（issue）已回 `evidenceId`，回执作为调度闭环的最后一环也应上链，前端「回执存证」才有内容；契约 2.10 未定义 ack 响应体，建议补 `evidenceId`。
 - 影响：终端响应页的「回执存证」永远为空；调度链路在存证中心查不到 ack 环节。
 - 严重度低：不影响下发与执行本身，仅影响存证完整性与演示效果。
+
+## 补记：`docs/测试文档-接口与安全.md` §4 独立编号的三条（本文件原先没有条目）
+
+> 该文档的 §4 缺陷表用了自己的号段，与本文件不连号。这里补三条对应记录，避免查不到修复情况。
+
+### §4 B-001（中）`require_roles` 路径的 1003 拒绝不写审计日志，仅计 R01 —— 用例 API-AUD-01
+
+- 现象：`GET /users`、`/audit/*` 这类用 `require_roles(...)` 保护的接口越权被拒时，按 traceId 查 `/audit/logs` 为空；用权限串（`@require_permission`）保护的接口是写的。违反需求(四)1「所有访问与操作留痕」。
+- 根因：`require_roles` 是 FastAPI **依赖**，在被 `@audited` 装饰的业务函数**之前**执行，装饰器根本没机会跑。
+- **✅ 已修复（fix-evidence，2026-08-22）**：`backend/core/deps.py::_audit_role_denial()` 在拒绝分支补写审计，字段口径与 `@audited` 的 denied 分支完全一致（`result=denied`、`riskLevel` 经 `_escalate` 抬到 high、高危自动上链），module 由请求路径首段映射（`/users`→auth、`/audit/*`→audit…），action 为 `<module>:<read|write|update|delete>`。依赖先于业务函数执行 ⇒ 同一次拒绝只记一条，不会和 `@audited` 重复。
+  真机实测：`vpp GET /users` → 403/1003，`/audit/logs?traceId=…` 命中 1 条 `module=auth, action=auth:read, result=denied, riskLevel=high, actorName=虚拟电厂运营商, evidenceId=ev-000229`。
+  回归：`backend/tests/test_evidence_fixes.py::test_B001_require_roles拒绝也写审计日志` / `test_B001_audit接口的越权也留痕` / `test_B001_同一次拒绝只记一条不重复`。
+
+### §4 B-002（中）`energy_subject` 的 `evidence:read` scope=own 未落实 —— 用例 API-EV-17 / 17b
+
+- 现象：能源主体 `GET /evidence` 返回全部 985 条（含他人存证），`GET /evidence/{id}` 能读到 admin 写的存证。DB-SCHEMA 权限矩阵规定该角色是「仅自有」。
+- **✅ 已修复（fix-evidence，2026-08-22）**：照搬资产那边已经正确的写法——列表在 SQL 层按 `actor_did` 过滤（`backend/modules/evidence/router.py::search` 用 `has_own_scope_only(principal,"evidence","read")` + `service.search(owner_only=…)`），详情与凭证导出给 `@require_permission` 补上 `resource_id_arg="evidence_id"`，让权限中心用 `_OWNER_SQL["evidence"]` 解析属主。`sys_admin/grid_dispatcher/vpp_operator/regulator`（scope=all）不受影响。
+  真机实测：subject 列表 `total=6`，actorDid 全是自己；读 admin 的 `ev-000219` 详情与凭证均 403/1003；admin / regulator 仍是 `total=220`。
+  回归：`tests/test_evidence_fixes.py` 的 5 条 B-002 用例（含 4 个 scope=all 角色的参数化反证）。
+
+### §4 B-007（低）`/evidence/chain/status` 全链重算，600 条 P95 2.4s —— 用例 API-PERF-04
+
+- **✅ 已修复（fix-evidence，2026-08-22）**：两级增量校验，**检出能力不打折**。
+  ① 结果级：一条纯 SQL 聚合算全表指纹（行数 + 最大高度 + 逐行 `CRC32(payload_hash|prev_hash|block_hash|created_at|payload_snapshot)` 的普通和与按高度加权和），指纹没变才复用上次的**全量校验结论**；任何一行被改（篡改演示就是直接改库）指纹必变，立刻回到全量校验。
+  ② 逐块级：记住「高度 H 的这组 (payload 的 SHA-256 摘要, payload_hash, prev_hash, block_hash, ts) 已通过 SM3 校验」，五元组完全一致才跳过两次 SM3；篡改的那一行必然 memo miss，必然重新走完整校验。
+  单条 `/evidence/verify` 永不走缓存。`backend/modules/evidence/chain.py:93-190`。
+  真机实测（链长 236）：全量重算 470ms → 链未变 **0.7ms**、链有变（新块/篡改）**12.3ms**，指纹 SQL 单次 0.65ms；不再随链长线性增长。
+  回归：`tests/test_evidence_fixes.py::test_PERF04_*` 三条（含「篡改照样被检出并定位到高度」）。
+- **✅ 已修复（fix-algo，2026-08-22）**：`modules/algo/service.py::ack_dispatch` 补 `write_evidence(category="algo", action="dispatch:ack")` 并在响应里返回 `evidenceId`，WS 的 `dispatch_progress` 也带上；同时补了目标节点校验（见 B-008）。实测 `POST /dispatch/tasks/dp-000004/ack {"nodeId":"Node-A"}` → `{"ackStatus":"partial","acked":1,"total":3,"evidenceId":"ev-000226"}`。回归：`tests/test_fix_algo.py::test_B026_回执上链并返回evidenceId`。
+
+---
+
+## 本轮由 fix-algo 一并修复的、原记录在《测试文档-接口与安全》§4 的三条
+
+- **B-003 `POST /permissions/apply` 接受过去的 expireAt（用例 API-PERM-13）**
+  **✅ 已修复（fix-algo，2026-08-22）**：`modules/permission/service.py::_parse_expire` 增加「必须晚于当前时间」校验，返回 1001。实测 `expireAt=2020-01-01T00:00:00+08:00` → `{"code":1001,"message":"expireAt 必须晚于当前时间：2020-01-01T00:00:00+08:00"}`。回归：`test_B003_申请过去的expireAt返回1001` / `test_B003_合法的将来expireAt正常受理`。
+- **B-004 托管代签时 `algo_dispatch_task.signature` 为 NULL（用例 API-DP-18b）**
+  **✅ 已修复（fix-algo，2026-08-22）**：`core/middleware.py::_verify_signature` 把托管私钥代签出来的签名回写进请求体（新增 `_write_back`），`issue_dispatch` 照常落库；`_dispatch_to_item` 增加 `signature` 字段回传（B-016 的建议一并落地，前端 `TerminalResponse.vue:254-268` 的真验签分支现在能跑通）。实测 dp-000004 详情返回 64 字节 SM2 签名 `245c3b59…fee522`，与 `signPayload` 离线验签通过。回归：`test_B004_托管代签的签名落库且详情回传`。
+- **B-008 `/dispatch/tasks/{id}/ack` 接受非目标节点回执（用例 API-DP-14）**
+  **✅ 已修复（fix-algo，2026-08-22）**：`ack_dispatch` 先按策略 actions（退化时按 nodeIds）算出本次下发的目标集合，不在集合内返回 1001（与用例期望的「400/1001 或 404/1005」一致；语义上是请求参数不合法，故选 1001）。实测 `nodeId=Node-Z` → `{"code":1001,"message":"节点 Node-Z 不在本次下发的目标节点内（Node-A、Node-C、Node-D），拒绝回执"}`，且该拒绝同样落在任务的 traceId 链上。回归：`test_B008_非目标节点回执被拒`。

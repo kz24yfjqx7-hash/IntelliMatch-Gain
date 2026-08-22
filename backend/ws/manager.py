@@ -24,7 +24,11 @@ MESSAGE_TYPES = frozenset({
     "node_status", "fl_progress", "dispatch_progress", "audit_alert", "log", "evidence_written",
 })
 
+# 契约 2.13：node_status「节点状态与实时指标，每 5 秒推送」
+NODE_STATUS_INTERVAL = 5.0
+
 _loop: asyncio.AbstractEventLoop | None = None
+_node_task: asyncio.Task | None = None
 
 
 class ConnectionManager:
@@ -121,12 +125,92 @@ def push(message_type: str, payload: dict, trace_id: str | None = None) -> None:
         logger.warning("WebSocket 推送失败 type=%s：%s", message_type, exc)
 
 
+# ---------------------------------------------------------------- node_status 周期广播（契约 2.13）
+
+def _collect_node_status() -> list[dict]:
+    """在工作线程里跑：步进一次实时指标并取回全部节点的 payload。
+
+    SessionLocal 必须在函数内取——测试夹具会把 core.database.SessionLocal 换成 SQLite 工厂，
+    模块级 import 会把旧对象钉死。
+    """
+    from core.database import SessionLocal
+    from modules.node.service import tick_node_metrics
+
+    with SessionLocal() as db:
+        return tick_node_metrics(db)
+
+
+async def broadcast_node_status_once() -> int:
+    """广播一轮 node_status，返回推出去的消息条数。
+
+    没有客户端连着时直接返回 0：**不开数据库连接、不改数据**，避免空转打库。
+    """
+    if manager.count == 0:
+        return 0
+    payloads = await asyncio.to_thread(_collect_node_status)
+    for payload in payloads:
+        await manager.broadcast({
+            "type": "node_status",
+            "ts": iso(now_cst()),
+            "traceId": None,
+            "payload": payload,
+        })
+    return len(payloads)
+
+
+async def _node_status_loop() -> None:
+    logger.info("node_status 周期广播已启动，间隔 %.1f 秒", NODE_STATUS_INTERVAL)
+    try:
+        while True:
+            await asyncio.sleep(NODE_STATUS_INTERVAL)
+            try:
+                await broadcast_node_status_once()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:  # noqa: BLE001  单次失败不能让整个任务退出
+                logger.warning("node_status 广播失败：%s", exc)
+    except asyncio.CancelledError:
+        logger.info("node_status 周期广播已停止")
+        raise
+
+
+def start_node_status_task() -> asyncio.Task | None:
+    """应用启动时调用。已经在跑就不重复起。"""
+    global _node_task
+    if _node_task is not None and not _node_task.done():
+        return _node_task
+    try:
+        _node_task = asyncio.get_running_loop().create_task(_node_status_loop())
+    except RuntimeError:       # 没有事件循环（例如同步脚本里 import），静默跳过
+        _node_task = None
+    return _node_task
+
+
+async def stop_node_status_task() -> None:
+    """应用关闭时调用，等任务真正结束再返回。"""
+    global _node_task
+    task, _node_task = _node_task, None
+    if task is None or task.done():
+        return
+    task.cancel()
+    try:
+        await task
+    except (asyncio.CancelledError, Exception):  # noqa: BLE001
+        pass
+
+
 def register_ws_endpoint(app: FastAPI) -> None:
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
-        """契约 2.13：token 走 query 参数，鉴权失败立即以 4001 关闭。"""
+        """契约 2.13：token 走 query 参数，鉴权失败立即以 4001 关闭。
+
+        注意必须**先 accept 再 close(4001)**：在 accept 之前 close，ASGI 服务器
+        （uvicorn/hypercorn）只能把它降级成 HTTP 403 握手拒绝，浏览器端拿不到 4001，
+        没法区分「token 失效」和「网络不可达」。多一次握手换客户端一个明确的关闭码。
+        """
         token = websocket.query_params.get("token")
         if not token:
+            await websocket.accept()
             await websocket.close(code=4001, reason="缺少 token")
             return
         try:
@@ -134,6 +218,7 @@ def register_ws_endpoint(app: FastAPI) -> None:
             if is_revoked(claims):
                 raise ValueError("token 已失效")
         except Exception:  # noqa: BLE001
+            await websocket.accept()
             await websocket.close(code=4001, reason="鉴权失败")
             return
 
@@ -167,3 +252,14 @@ def register_ws_endpoint(app: FastAPI) -> None:
         except Exception as exc:  # noqa: BLE001
             logger.warning("WebSocket 异常断开：%s", exc)
             await manager.disconnect(websocket)
+
+    # 周期广播任务挂在应用生命周期上。写在这里而不是 main.py，
+    # 是为了让 WebSocket 的全部逻辑（含后台任务）留在本模块内，main.py 只管注册。
+    @app.on_event("startup")
+    async def _ws_startup():           # pragma: no cover - 由 uvicorn 触发
+        set_loop()
+        start_node_status_task()
+
+    @app.on_event("shutdown")
+    async def _ws_shutdown():          # pragma: no cover - 由 uvicorn 触发
+        await stop_node_status_task()

@@ -31,8 +31,9 @@ test('审计中心：统计图 / 日志检索 / traceId 时间轴 / 告警 ack /
   await expect(page.locator('.el-timeline-item').first()).toBeVisible()
   // 候选「联邦训练链路」= 种子 DEMO_TRACE（login→verify→check→fl:train→evidence 完整链）
   await page.getByRole('button', { name: '联邦训练链路' }).click()
-  // mock 种子 DEMO_TRACE 有 5 步；真后端 fl:train 链路目前仅 1 步（BACKEND-ISSUES B-004），两种模式都成立：≥1
-  await expect.poll(() => page.locator('.el-timeline-item').count()).toBeGreaterThanOrEqual(1)
+  // mock 种子 DEMO_TRACE 有 5 步；真后端修复 B-015 后 fl:train 链路应回到
+  // login→did:verify→permission:check→algo→evidence 的多步链，两种模式都应 ≥3
+  await expect.poll(() => page.locator('.el-timeline-item').count()).toBeGreaterThanOrEqual(3)
   await expect(page.locator('.trace-summary')).toContainText(/traceId/)
   await shot(page, 'audit-trace')
 
