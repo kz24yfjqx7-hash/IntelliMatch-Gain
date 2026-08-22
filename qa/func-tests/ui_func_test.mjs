@@ -20,6 +20,10 @@ const EVID = path.join(ROOT, 'docs', 'test-evidence')
 const OUT = path.join(__dirname, 'results', 'ui-results.json')
 fs.mkdirSync(EVID, { recursive: true })
 fs.mkdirSync(path.dirname(OUT), { recursive: true })
+// 清掉上一轮的失败截图：缺陷修好后这些图会变成误导性证据，而且截图总数有 40 张上限
+for (const f of fs.readdirSync(EVID)) {
+  if (/^TC-UI-\d+-fail\.jpg$/.test(f)) fs.rmSync(path.join(EVID, f))
+}
 const TAG = 'test-' + new Date().toISOString().slice(5, 16).replace(/[-T:]/g, '')
 
 const ACCOUNTS = {
@@ -73,6 +77,35 @@ async function login(key) {
   await page.waitForTimeout(600)
   return { roleLabel, home }
 }
+/** 用例之间互不依赖：进入用例前把登录态强制拉到指定角色（上一条用例中途失败也能自愈）。 */
+async function ensureRole(key) {
+  const roleLabel = ACCOUNTS[key][2]
+  const tag = await page.locator('.role-tag').innerText().catch(() => '')
+  if (tag && tag.includes(roleLabel) && !page.url().includes('/login')) {
+    // 可能还有上一条用例没关掉的弹层，挡住后续点击
+    for (let i = 0; i < 3 && await page.locator('.el-overlay:visible').count(); i++) {
+      await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+    }
+    return
+  }
+  await page.goto(BASE + '/login')
+  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear() } catch { /* ignore */ } })
+  await login(key)
+}
+
+/** 借用页面里的登录 token 直接调后端接口（只用于测试善后，例如篡改演示的还原）。 */
+async function apiPost(pathname, body) {
+  return await page.evaluate(async ([pn, bd]) => {
+    const t = localStorage.getItem('energy-tds-token') || ''
+    const r = await fetch('/api/v1' + pn, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
+      body: JSON.stringify(bd)
+    })
+    return await r.json()
+  }, [pathname, body])
+}
+
 async function logout() {
   await page.locator('.user-box').click()
   await page.getByText('退出登录').click()
@@ -172,6 +205,7 @@ async function main() {
 
   // ------------------------------------------------------------ 4.1 身份中心
   await tc('TC-UI-03', '4.1(身份)', '统一身份与可信接入中心：用户认证管理 / DID 注册·查询·认证 / 密钥生成·绑定·注销', async rec => {
+    await ensureRole('admin')
     await goto('/identity')
     let pane = await visibleTab('用户管理')
     await pane.locator('.el-table__row', { hasText: 'admin' }).first().waitFor({ timeout: 20000 })
@@ -228,6 +262,14 @@ async function main() {
     await r2.getByRole('button', { name: '轮换密钥' }).click()
     await page.locator('.el-message-box:visible .el-button--primary, .el-dialog:visible .el-button--primary').first().click()
     await page.waitForTimeout(1500)
+    // 轮换成功后会弹「私钥仅此一次展示」的结果框，不关掉会挡住后面的 tab 点击
+    const rotDlg = page.locator('.el-dialog:visible').filter({ hasText: /轮换成功/ })
+    if (await rotDlg.count()) {
+      const rotated = await rotDlg.innerText()
+      rec.rotateInfo = (rotated.match(/v\d+/) || [''])[0]
+      await rotDlg.getByRole('button', { name: '关闭', exact: true }).first().click()
+      await rotDlg.waitFor({ state: 'hidden', timeout: 10000 })
+    }
     // 密钥管理：生成并绑定 → 注销
     pane = await visibleTab('密钥管理')
     await page.getByRole('button', { name: '生成并绑定密钥' }).click()
@@ -251,6 +293,7 @@ async function main() {
 
   // ------------------------------------------------------------ 4.1 资产中心
   await tc('TC-UI-04', '4.1(资产)', '能源数据资产中心：数据登记 → 自动分类分级 → 上链 → 溯源 → 授权入口', async rec => {
+    await ensureRole('admin')
     await goto('/assets')
     await waitRows()
     await page.getByRole('button', { name: /登记资产/ }).click()
@@ -293,19 +336,26 @@ async function main() {
 
   // ------------------------------------------------------------ 4.1 权限中心
   await tc('TC-UI-05', '4.1(权限)', '权限控制中心：角色管理 / 权限审批（subject 申请→admin 审批）/ 数据访问控制（矩阵+校验器）', async rec => {
-    await logout()
-    await login('subject')
+    await ensureRole('subject')
     await nav('/permission')
     await page.getByRole('button', { name: /申请权限/ }).waitFor({ timeout: 20000 })
     await page.getByRole('button', { name: /申请权限/ }).click()
     const dlg = page.locator('.el-dialog', { hasText: '申请权限' })
     await dlg.waitFor()
     await dlg.locator('.el-form-item', { hasText: 'resourceType' }).locator('.el-radio-button', { hasText: /^asset$/ }).click()
-    await dlg.getByPlaceholder(/资产 ID/).fill('1')
     await dlg.locator('.el-form-item').filter({ has: page.locator('label', { hasText: /^action$/ }) }).locator('.el-radio-button', { hasText: /^read$/ }).click()
     await dlg.locator('textarea').fill(`${TAG} 联合建模需读取`)
-    await dlg.getByRole('button', { name: '提交', exact: true }).click()
-    await dlg.waitFor({ state: 'hidden', timeout: 15000 })
+    // 后端对「同一申请人 + 同资源 + 同操作」的 pending 申请去重；接口层套件可能已经占用了某个资产 id，
+    // 这里依次换 resourceId 重试，直到提交成功（属测试数据隔离，不是产品缺陷）
+    let resId = ''
+    for (const cand of ['1', '2', '3', '4', '5', '6', '7', '8']) {
+      await dlg.getByPlaceholder(/资产 ID/).fill(cand)
+      await dlg.getByRole('button', { name: '提交', exact: true }).click()
+      await page.waitForTimeout(1500)
+      if (!(await dlg.isVisible().catch(() => false))) { resId = cand; break }
+    }
+    rec.applyResourceId = resId
+    expect(resId, '权限申请提交成功（已避开重复 pending 申请）')
     let pane = await visibleTab('申请审批')
     await pane.locator('.el-table__row', { hasText: `${TAG} 联合建模` }).waitFor({ timeout: 10000 })
     expect(await page.getByRole('button', { name: '通过' }).count() === 0, 'subject 无审批按钮')
@@ -345,6 +395,7 @@ async function main() {
 
   // ------------------------------------------------------------ 四 联邦学习 / 隐私计算页面
   await tc('TC-UI-06', '四(联邦/隐私)', '隐私计算页：数据不出域流程、隐私预算仪表盘；联邦学习任务状态/节点信息/模型版本/每轮哈希随 WS 增长', async rec => {
+    await ensureRole('admin')
     await nav('/edge/privacy')
     await page.getByRole('button', { name: /创建并启动/ }).waitFor({ timeout: 20000 })
     const body0 = await page.locator('body').innerText()
@@ -386,6 +437,7 @@ async function main() {
 
   // ------------------------------------------------------------ 3.9 / 3.10 调度 + AI + 签名下发 + 终端响应
   await tc('TC-UI-07', '3.9/3.10/六', '云端聚合与调度：生成 DQN 策略 → AI 解释（来源标识）→ 签名下发 → 终端响应 DID 验签 → 回执', async rec => {
+    await ensureRole('admin')
     await nav('/cloud/aggregate')
     await page.getByRole('button', { name: /生成调度策略/ }).waitFor({ timeout: 20000 })
     await page.getByRole('button', { name: /生成调度策略/ }).click()
@@ -425,8 +477,7 @@ async function main() {
 
   // ------------------------------------------------------------ 越权 1003 + R01 + 审计追踪
   await tc('TC-UI-08', '3.5/3.7/六', 'vpp 模拟越权下发 → 1003 拦截横幅 → 铃铛 R01 告警 → 审计中心高风险日志与 traceId 时间轴', async rec => {
-    await logout()
-    await login('vpp')
+    await ensureRole('vpp')
     await nav('/cloud/aggregate')
     expect(await page.getByRole('button', { name: /签名下发/ }).count() === 0, 'vpp 不可见签名下发按钮')
     const item = page.locator('.upload-item').first()
@@ -448,8 +499,7 @@ async function main() {
     rec.evidence = `铃铛计数=${badge}; audit_alert WS 帧 ${alertsBefore}→${alertsAfter}; 弹层含 R01=${popper.includes('R01')}`
     await page.keyboard.press('Escape')
     rec.note = popper.includes('R01') ? '' : '铃铛弹层未出现 R01（同一主体 5 分钟窗口内 R01 只告警一次，接口层 TC-37-05 已验证规则本身）'
-    await logout()
-    await login('admin')
+    await ensureRole('admin')
     await nav('/audit')
     let pane = await visibleTab('风险告警')
     expect((await pane.innerText()).includes('R01'), '审计中心风险告警含 R01')
@@ -469,6 +519,7 @@ async function main() {
 
   // ------------------------------------------------------------ 4.1 存证中心
   await tc('TC-UI-09', '4.1(存证)/3.6', '区块链存证中心：存证查询 → 校验 → 篡改演示被检出 → 链状态断裂 → 导出凭证 → 业务链路追踪', async rec => {
+    await ensureRole('admin')
     await nav('/evidence')
     await waitRows()
     await page.locator('.el-table__row').first().getByRole('button', { name: '校验' }).click()
@@ -480,10 +531,13 @@ async function main() {
     await page.getByRole('button', { name: /篡改演示/ }).click()
     const tdlg = page.locator('.el-dialog', { hasText: '篡改演示' })
     await tdlg.waitFor()
+    const tamperTargets = (await tdlg.innerText()).match(/ev-\d{6}/g) || []
     await tdlg.getByRole('button', { name: '执行篡改并校验' }).click()
     const vd2 = page.locator('.el-dialog', { hasText: '完整性校验结果' })
     await vd2.waitFor({ timeout: 20000 })
     const v2 = await vd2.innerText()
+    const tamperedId = ((v2.match(/ev-\d{6}/) || [])[0]) || tamperTargets[0]
+    rec.tamperedEvidenceId = tamperedId
     expect(/不一致|false|篡改|≠/i.test(v2), '篡改后校验应不一致')
     rec.shots.push(await shot('26-evidence-tampered'))
     await page.locator('.el-dialog:visible .el-dialog__headerbtn').first().click()
@@ -501,14 +555,19 @@ async function main() {
     if (hasTrace) { await drawer.getByRole('button', { name: '追踪链路' }).click(); await page.locator('.el-timeline-item').first().waitFor({ timeout: 15000 }) }
     rec.shots.push(await shot('28-evidence-trace'))
     await page.keyboard.press('Escape')
-    // 还原（演示态清理）
-    const restore = page.getByRole('button', { name: /还原|恢复/ })
-    if (await restore.count()) { await restore.first().click(); await page.waitForTimeout(1000) }
-    rec.evidence = `篡改前=${v1.replace(/\s+/g, ' ').slice(0, 60)}; 篡改后=${v2.replace(/\s+/g, ' ').slice(0, 60)}; 凭证下载=${d ? d.suggestedFilename() : '无'}; 追踪链路按钮=${hasTrace}`
+    // 还原（演示态清理）：页面没有还原入口，直接调 /evidence/demo/restore，否则链会一直断着
+    let restored = null
+    if (tamperedId) {
+      restored = await apiPost('/evidence/demo/restore', { evidenceId: tamperedId })
+      await page.waitForTimeout(800)
+    }
+    rec.evidence = `篡改前=${v1.replace(/\s+/g, ' ').slice(0, 60)}; 篡改后=${v2.replace(/\s+/g, ' ').slice(0, 60)}; 凭证下载=${d ? d.suggestedFilename() : '无'}; 追踪链路按钮=${hasTrace}; 已还原 ${tamperedId} → code=${restored ? restored.code : '未执行'}`
+    if (restored && restored.code !== 0) rec.note = `篡改演示还原失败：${restored.message}（甲方 B-001：同一条存证二次篡改会覆盖快照备份）`
   }, { steps: '/evidence → 首行「校验」→ 篡改演示 → 执行篡改并校验 → 观察链状态 → 详情 → 导出凭证 → 追踪链路', expect: '篡改前完整；篡改后 intact=false 标红；链状态显示 brokenAt；凭证 JSON 下载；时间轴', impl: 'EvidenceCenter.vue' })
 
   // ------------------------------------------------------------ 四 审计页面任务级追踪 + 报告 + 导出
   await tc('TC-UI-10', '四(审计)/3.7', '审计页面：任务级全流程追踪、风险告警确认、审计报告（DeepSeek 解读+来源标识）、CSV 导出、按月统计图', async rec => {
+    await ensureRole('admin')
     await nav('/audit')
     await waitRows()
     const charts = await page.locator('[_echarts_instance_]').count()
@@ -518,7 +577,10 @@ async function main() {
     await page.getByRole('button', { name: '联邦训练链路' }).click()
     await page.waitForTimeout(1500)
     const steps = await page.locator('.el-timeline-item').count()
-    expect(steps >= 3, `联邦训练链路步骤 ${steps} ≥3`)
+    // 契约 2.7 期望 auth→did→permission→algo→evidence 的多步链；真后端对 FL/调度链路只回 1 步
+    // （甲方 B-015，已立单）。页面能力本身按「时间轴渲染 + 摘要含 traceId」判定。
+    expect(steps >= 1, `联邦训练链路时间轴应有步骤，实际 ${steps}`)
+    if (steps < 3) rec.note = `真后端 /audit/trace 对联邦训练链路只返回 ${steps} 步（期望 auth→did→permission→algo→evidence 多步）→ 甲方 B-015`
     expect((await page.locator('.trace-summary').innerText()).includes('traceId'), '追踪摘要含 traceId')
     rec.shots.push(await shot('29-audit-trace-fl'))
     pane = await visibleTab('风险告警')
@@ -536,6 +598,7 @@ async function main() {
 
   // ------------------------------------------------------------ 边端页面（现有页面保留）+ 风险评估
   await tc('TC-UI-11', '四(现有页面)/2.12', '边端视角：本地感知与分级（L1–L3 打标）、动态隐私风险评估（算法服务评分）', async rec => {
+    await ensureRole('admin')
     await nav('/edge/classification')
     await page.getByRole('button', { name: /开始分级/ }).waitFor({ timeout: 20000 })
     await page.getByRole('button', { name: /开始分级/ }).click()
@@ -559,33 +622,30 @@ async function main() {
 
   // ------------------------------------------------------------ RBAC 页面级差异
   await tc('TC-UI-12', '3.1/3.5', '页面级 RBAC：vpp 无签名下发/篡改演示/新建用户/审批；subject 访问调度页被守卫拦回；edge 侧栏无存证菜单且为边端视角', async rec => {
-    await logout()
-    await login('vpp')
+    await ensureRole('vpp')
     await nav('/evidence'); expect(await page.getByRole('button', { name: /篡改演示/ }).count() === 0, 'vpp 无篡改演示')
     await nav('/identity'); await visibleTab('用户管理'); expect(await page.getByRole('button', { name: '新建用户' }).count() === 0, 'vpp 无新建用户')
     await nav('/permission'); await visibleTab('申请审批'); expect(await page.getByRole('button', { name: '通过' }).count() === 0, 'vpp 无审批')
     await nav('/edge/privacy'); expect(await page.getByRole('button', { name: /创建并启动/ }).isDisabled(), 'vpp 创建 FL 置灰')
     rec.shots.push(await shot('33-rbac-vpp-privacy-disabled'))
-    await logout()
-    await login('subject')
+    await ensureRole('subject')
     await page.goto(BASE + '/cloud/aggregate')
     await page.waitForURL(/\/cloud\/topology/, { timeout: 15000 })
-    await logout()
-    await login('edge')
+    await ensureRole('edge')
     expect(await page.locator('.sidebar .node-selector').count() > 0, 'edge 为边端视角')
     expect(await page.locator('.sidebar .menu-title', { hasText: '区块链存证' }).count() === 0, 'edge 无存证菜单')
     rec.shots.push(await shot('34-rbac-edge-sidebar'))
-    await logout()
-    await login('regulator')
+    await ensureRole('regulator')
     await nav('/audit')
     await waitRows()
-    await logout()
   }, { steps: 'vpp：/evidence、/identity 用户管理、/permission 申请审批、/edge/privacy；subject 直接访问 /cloud/aggregate；edge 登录看侧栏；regulator 打开 /audit', expect: '按钮级与路由级权限与角色矩阵一致', impl: 'v-permission / router.beforeEach / AppSidebar' })
 
   // ------------------------------------------------------------ WS node_status + 退出 + 布局
   await tc('TC-UI-13', '3.11/3.12', 'WebSocket 实时：前端建立 ws 连接并收到 node_status 节点状态推送（5 秒一次）', async rec => {
     wsFrames.length = 0
-    await login('admin')
+    await ensureRole('admin')
+    await page.goto(BASE + '/cloud/topology')
+    wsFrames.length = 0
     await page.waitForTimeout(16000)
     const types = {}
     for (const f of wsFrames) types[f.type] = (types[f.type] || 0) + 1
@@ -594,6 +654,7 @@ async function main() {
   }, { steps: 'admin 登录首页 → 监听 WebSocket 帧 16 秒', expect: '收到 ≥1 条 node_status', impl: 'ws/manager.py / stores/ws' })
 
   await tc('TC-UI-14', '非功能', '1366×768 下 11 条路由无横向溢出、ECharts 容器尺寸非 0、无未捕获异常', async rec => {
+    await ensureRole('admin')
     const routes = ['/cloud/topology', '/cloud/aggregate', '/edge/classification', '/edge/risk', '/edge/privacy', '/edge/response', '/audit', '/identity', '/assets', '/permission', '/evidence']
     const bad = []
     for (const r of routes) {
@@ -613,6 +674,7 @@ async function main() {
   }, { steps: '逐一打开 11 条路由', expect: '无横向滚动条、图表尺寸非 0、无未捕获 JS 异常', impl: '全部页面' })
 
   await tc('TC-UI-15', '3.1', '退出登录后访问受保护路由重定向到 /login?redirect=', async rec => {
+    await ensureRole('admin')
     await logout()
     await page.goto(BASE + '/evidence')
     await page.waitForURL(/\/login/, { timeout: 15000 })

@@ -1,10 +1,10 @@
 {
  "summary": {
-  "run": "0822110105",
-  "tag": "test-0822110105",
-  "total": 112,
-  "pass": 106,
-  "fail": 6,
+  "run": "0822122527",
+  "tag": "test-0822122527",
+  "total": 114,
+  "pass": 110,
+  "fail": 4,
   "blocked": 0
  },
  "results": [
@@ -16,7 +16,7 @@
    "expect": "code 0，token，roles 含对应角色，expiresIn 28800",
    "impl": "POST /auth/login",
    "verdict": "通过",
-   "evidence": "admin→['sys_admin'] exp=28800 traceId=tr-20260822-2b41033b; grid→['grid_dispatcher'] exp=28800 traceId=tr-20260822-057c69e2; vpp→['vpp_operator'] exp=28800 traceId=tr-20260822-0ad4a18b; subject→['energy_subject'] exp=28800 traceId=tr-20260822-dc0131e9; regulator→['regulator'] exp=28800 traceId=tr-20260822-c75d2819; edge→['edge_node'] exp=28800 traceId=tr-20260822-cc330ad0",
+   "evidence": "admin→['sys_admin'] exp=28800 traceId=tr-20260822-647c2c3f; grid→['grid_dispatcher'] exp=28800 traceId=tr-20260822-71418edc; vpp→['vpp_operator'] exp=28800 traceId=tr-20260822-5945d813; subject→['energy_subject'] exp=28800 traceId=tr-20260822-38698591; regulator→['regulator'] exp=28800 traceId=tr-20260822-797faefe; edge→['edge_node'] exp=28800 traceId=tr-20260822-6d010d3f",
    "note": ""
   },
   {
@@ -27,7 +27,7 @@
    "expect": "HTTP 401 / code 1002",
    "impl": "POST /auth/login",
    "verdict": "通过",
-   "evidence": "{\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260822-4529bbf8\"}",
+   "evidence": "{\"code\": 1002, \"message\": \"用户名或密码错误\", \"data\": null, \"traceId\": \"tr-20260822-ef602690\"}",
    "note": ""
   },
   {
@@ -49,7 +49,7 @@
    "expect": "401 / 1002",
    "impl": "中间件",
    "verdict": "通过",
-   "evidence": "{\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260822-03e05059\"}",
+   "evidence": "{\"code\": 1002, \"message\": \"未登录或登录已失效\", \"data\": null, \"traceId\": \"tr-20260822-b4be5bee\"}",
    "note": ""
   },
   {
@@ -60,7 +60,7 @@
    "expect": "401 / 1002",
    "impl": "中间件",
    "verdict": "通过",
-   "evidence": "{\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-36512d73\"}",
+   "evidence": "{\"code\": 1002, \"message\": \"Token 无效\", \"data\": null, \"traceId\": \"tr-20260822-cbfea1dc\"}",
    "note": ""
   },
   {
@@ -71,7 +71,7 @@
    "expect": "logout 200；之后 401/1002",
    "impl": "POST /auth/logout",
    "verdict": "通过",
-   "evidence": "logout=0; me-after={\"code\": 1002, \"message\": \"登录已失效，请重新登录\", \"data\": null, \"traceId\": \"tr-20260822-424a96ab\"}",
+   "evidence": "logout=0; me-after={\"code\": 1002, \"message\": \"登录已失效，请重新登录\", \"data\": null, \"traceId\": \"tr-20260822-643f17f5\"}",
    "note": ""
   },
   {
@@ -82,7 +82,7 @@
    "expect": "各步 code 0；改角色后登录 roles 生效；删除后登录 401",
    "impl": "/users",
    "verdict": "通过",
-   "evidence": "{\"create\": {\"id\": 13, \"username\": \"test-0822110105-user\", \"realName\": \"测试用户\", \"orgName\": \"测试机构\", \"roles\": [\"energy_subject\"], \"did\": \"did:vpp:user:0x2e294c54d1421c575bf3c148e62f854a\", \"phone\": null, \"email\": null, \"status\": \"active\", \"lastLoginAt\": null, \"createdAt\": \"2026-08-22T11:01:07+08:00\"}, \"update\": {\"id\": 13, \"username\": \"test-0822110105-user\", \"real…",
+   "evidence": "{\"create\": {\"id\": 27, \"username\": \"test-0822122527-user\", \"realName\": \"测试用户\", \"orgName\": \"测试机构\", \"roles\": [\"energy_subject\"], \"did\": \"did:vpp:user:0x28ed02c9981626c53f2ab339ac16a89a\", \"phone\": null, \"email\": null, \"status\": \"active\", \"lastLoginAt\": null, \"createdAt\": \"2026-08-22T12:25:28+08:00\"}, \"update\": {\"id\": 27, \"username\": \"test-0822122527-user\", \"real…",
    "note": ""
   },
   {
@@ -93,7 +93,7 @@
    "expect": "409 / 1006",
    "impl": "POST /users",
    "verdict": "通过",
-   "evidence": "{\"code\": 1006, \"message\": \"用户名 admin 已存在\", \"data\": null, \"traceId\": \"tr-20260822-c1ace40d\"}",
+   "evidence": "{\"code\": 1006, \"message\": \"用户名 admin 已存在\", \"data\": null, \"traceId\": \"tr-20260822-400b8523\"}",
    "note": ""
   },
   {
@@ -104,7 +104,7 @@
    "expect": "400 / 1001",
    "impl": "POST /users",
    "verdict": "通过",
-   "evidence": "{\"code\": 1001, \"message\": \"参数错误：username String should have at least 3 characters\", \"data\": null, \"traceId\": \"tr-20260822-2e14748b\"}",
+   "evidence": "{\"code\": 1001, \"message\": \"参数错误：username String should have at least 3 characters\", \"data\": null, \"traceId\": \"tr-20260822-25673def\"}",
    "note": ""
   },
   {
@@ -126,7 +126,7 @@
    "expect": "含 6 个固定角色码",
    "impl": "GET /roles",
    "verdict": "通过",
-   "evidence": "[\"edge_node\", \"energy_subject\", \"grid_dispatcher\", \"regulator\", \"sys_admin\", \"test_role_105529\", \"test_role_96214235\", \"test_role_96372317\", \"vpp_operator\"]",
+   "evidence": "[\"edge_node\", \"energy_subject\", \"grid_dispatcher\", \"regulator\", \"sys_admin\", \"test_role_105529\", \"test_role_110105\", \"test_role_121506\", \"test_role_122248\", \"test_role_96214235\", \"test_role_96372317\", \"test_role_96827048\", \"test_role_96988602\", \"vpp_operator\"]",
    "note": ""
   },
   {
@@ -148,7 +148,7 @@
    "expect": "did:vpp:device:0x+32hex，didDocument.verificationMethod，privateKey 仅本次返回，evidenceId/chainTxId",
    "impl": "POST /did/register",
    "verdict": "通过",
-   "evidence": "{\"did\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"publicKey\": \"043cc8467805128c1cc26e6ba1abb3bca4b07ddf2108447ae43a4927adf74eb976e117a9f4b8a1b77300cfb993b15921f73d89846d3043c3f265ab7dff47ebdce8\", \"privateKey\": \"5af0fd00bc8d94ec05ca6468401f81d3b3f446f606de74883b09e1e46df855a4\", \"custody\": true, \"chainTxId\": \"blk-000644-0\", \"evidenceId\": \"ev-000644…",
+   "evidence": "{\"did\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"publicKey\": \"0402371c230a6d6d1a62237fa753ef11d7d59dbdbb0ba1a085220c578d4bb9328e45756dddbba15f99935ae7c6c3c4ddb771ac8d57f63a20dbe60f659530e778cb\", \"privateKey\": \"61224c7bb520098a433e321df58dc3cf5f7a2d2c705f3c7e552741f5e1d10df5\", \"custody\": true, \"chainTxId\": \"blk-001525-0\", \"evidenceId\": \"ev-001525…",
    "note": ""
   },
   {
@@ -159,7 +159,7 @@
    "expect": "三种 DID 前缀正确",
    "impl": "POST /did/register",
    "verdict": "通过",
-   "evidence": "did:vpp:edge:0xa13fe6e8f0dbfc55f20f5a3ec1a9a8cd; did:vpp:org:0x1d6434a9363ab25f9ef34c3c3c5f82a6; did:vpp:user:0x21140055a0c2e2fa14bd08930647e564",
+   "evidence": "did:vpp:edge:0xd6bf99a44d3f27c75e1dfbef858557dd; did:vpp:org:0x82902d783435b53770fdbc4cc66a52b0; did:vpp:user:0xf61796df7252f304f394b2b0491d56d7",
    "note": ""
   },
   {
@@ -170,7 +170,7 @@
    "expect": "筛选命中；非法值 1001",
    "impl": "GET /did",
    "verdict": "通过",
-   "evidence": "{\"found\": [\"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"did:vpp:device:0x2d5571916d5e06b6f9ab70b0c0fe6d29\"], \"total_active_page\": 47, \"bad_filter\": 1001}",
+   "evidence": "{\"found\": [\"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"did:vpp:device:0x10221a66fb4965efdd7e7bd4daa6140f\"], \"total_active_page\": 93, \"bad_filter\": 1001}",
    "note": ""
   },
   {
@@ -181,7 +181,7 @@
    "expect": "返回 id 与 verificationMethod",
    "impl": "GET /did/{did}",
    "verdict": "通过",
-   "evidence": "{\"detail_keys\": [\"did\", \"subjectType\", \"subjectName\", \"orgName\", \"controllerDid\", \"status\", \"metadata\", \"publicKey\", \"algorithm\", \"keyVersion\"], \"doc_id\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\"}",
+   "evidence": "{\"detail_keys\": [\"did\", \"subjectType\", \"subjectName\", \"orgName\", \"controllerDid\", \"status\", \"metadata\", \"publicKey\", \"algorithm\", \"keyVersion\"], \"doc_id\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\"}",
    "note": ""
   },
   {
@@ -214,7 +214,7 @@
    "expect": "status frozen 且有 evidenceId；验签 false",
    "impl": "POST /did/{did}/status",
    "verdict": "通过",
-   "evidence": "{\"status\": {\"did\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"status\": \"frozen\", \"reason\": \"测试冻结\", \"evidenceId\": \"ev-000648\"}, \"verify_when_frozen\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"frozen\", \"reason\": \"身份状态为 frozen，不可用于验签\"}}",
+   "evidence": "{\"status\": {\"did\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"status\": \"frozen\", \"reason\": \"测试冻结\", \"evidenceId\": \"ev-001529\"}, \"verify_when_frozen\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"frozen\", \"reason\": \"身份状态为 frozen，不可用于验签\"}}",
    "note": ""
   },
   {
@@ -225,7 +225,7 @@
    "expect": "active；验签 true",
    "impl": "POST /did/{did}/status",
    "verdict": "通过",
-   "evidence": "{\"status\": {\"did\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"status\": \"active\", \"reason\": \"测试恢复\", \"evidenceId\": \"ev-000650\"}, \"verify\": true}",
+   "evidence": "{\"status\": {\"did\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"status\": \"active\", \"reason\": \"测试恢复\", \"evidenceId\": \"ev-001531\"}, \"verify\": true}",
    "note": ""
   },
   {
@@ -247,7 +247,7 @@
    "expect": "旧 false 新 true；密钥版本 ≥2",
    "impl": "POST /did/{did}/rotate-key",
    "verdict": "通过",
-   "evidence": "{\"newPub\": \"043f9df8b8d4203282e2\", \"old_sig_valid\": false, \"new_sig_valid\": true, \"key_versions\": [1, 2], \"statuses\": [\"active\", \"revoked\"]}",
+   "evidence": "{\"newPub\": \"048e4c0ef353d80205a2\", \"old_sig_valid\": false, \"new_sig_valid\": true, \"key_versions\": [1, 2], \"statuses\": [\"active\", \"revoked\"]}",
    "note": ""
   },
   {
@@ -258,7 +258,7 @@
    "expect": "1003",
    "impl": "rotate-key",
    "verdict": "通过",
-   "evidence": "{\"code\": 1003, \"message\": \"只能轮换自己名下的密钥\", \"data\": null, \"traceId\": \"tr-20260822-63b4431a\"}",
+   "evidence": "{\"code\": 1003, \"message\": \"只能轮换自己名下的密钥\", \"data\": null, \"traceId\": \"tr-20260822-fdcda079\"}",
    "note": ""
   },
   {
@@ -269,7 +269,7 @@
    "expect": "返回 3 条",
    "impl": "POST /did/resolve",
    "verdict": "通过",
-   "evidence": "[{\"did\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"subjectType\": \"device\", \"subjectName\": \"test-0822110105-逆变器\", \"orgName\": \"测试园区\", \"controllerDid\": null, \"status\": \"active\", \"metadata\": {\"model\": \"VPP-2000\"}, \"publicKey\": \"043f9df8b8d4203282e2bbdd164c0bc0333371725e6f8a36a11a544e6b9e81622d236bcdc6efc38d4c055a1bfcf92b76f52a6d1e41f638d76f598de5fb09…",
+   "evidence": "[{\"did\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"subjectType\": \"device\", \"subjectName\": \"test-0822122527-逆变器\", \"orgName\": \"测试园区\", \"controllerDid\": null, \"status\": \"active\", \"metadata\": {\"model\": \"VPP-2000\"}, \"publicKey\": \"048e4c0ef353d80205a25d8f599173286502e80e1e0828079b6f40c611a13e59af2979b25f353af5bd86c9e1b9a91e8d0fc061d5fd0d9fd5154c6e765269…",
    "note": ""
   },
   {
@@ -280,7 +280,7 @@
    "expect": "revoked；false；unfreeze 被拒(1006/1001)",
    "impl": "POST /did/{did}/status",
    "verdict": "通过",
-   "evidence": "{\"revoke\": {\"did\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"status\": \"revoked\", \"reason\": \"测试注销\", \"evidenceId\": \"ev-000655\"}, \"verify\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"revoked\", \"reason\": \"身份状态为 revoked，不可用于验签\"}, \"unfreeze_after_revoke\": 1006}",
+   "evidence": "{\"revoke\": {\"did\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"status\": \"revoked\", \"reason\": \"测试注销\", \"evidenceId\": \"ev-001536\"}, \"verify\": {\"valid\": false, \"subjectType\": \"device\", \"status\": \"revoked\", \"reason\": \"身份状态为 revoked，不可用于验签\"}, \"unfreeze_after_revoke\": 1006}",
    "note": ""
   },
   {
@@ -291,7 +291,7 @@
    "expect": "≥3 条 high",
    "impl": "@audited",
    "verdict": "通过",
-   "evidence": "[{\"action\": \"did:status\", \"result\": \"failed\", \"riskLevel\": \"high\", \"resourceId\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"traceId\": \"tr-20260822-a108b850\"}, {\"action\": \"did:status\", \"result\": \"success\", \"riskLevel\": \"high\", \"resourceId\": \"did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f\", \"traceId\": \"tr-20260822-32d1749b\"}, {\"action\": \"did:stat…",
+   "evidence": "[{\"action\": \"did:status\", \"result\": \"failed\", \"riskLevel\": \"high\", \"resourceId\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"traceId\": \"tr-20260822-46ebc6ef\"}, {\"action\": \"did:status\", \"result\": \"success\", \"riskLevel\": \"high\", \"resourceId\": \"did:vpp:device:0x892b4e81e234359d7dcbec374f28f341\", \"traceId\": \"tr-20260822-f04a2217\"}, {\"action\": \"did:stat…",
    "note": ""
   },
   {
@@ -302,7 +302,7 @@
    "expect": "字段 algorithm/publicKey/version/boundAt",
    "impl": "GET /keys",
    "verdict": "通过",
-   "evidence": "{\"total\": 49, \"item0\": {\"did\": \"did:vpp:user:0x21140055a0c2e2fa14bd08930647e564\", \"algorithm\": \"SM2\", \"status\": \"active\", \"version\": 1}}",
+   "evidence": "{\"total\": 103, \"item0\": {\"did\": \"did:vpp:user:0xf61796df7252f304f394b2b0491d56d7\", \"algorithm\": \"SM2\", \"status\": \"active\", \"version\": 1}}",
    "note": ""
   },
   {
@@ -313,7 +313,7 @@
    "expect": "前三种 code 0 并返回私钥；DES 1001",
    "impl": "POST /keys",
    "verdict": "通过",
-   "evidence": "SM2:0 id=63 v=2; ECC:0 id=64 v=3; RSA:0 id=65 v=4; DES:1001",
+   "evidence": "SM2:0 id=141 v=2; ECC:0 id=142 v=3; RSA:0 id=143 v=4; DES:1001",
    "note": ""
   },
   {
@@ -324,7 +324,7 @@
    "expect": "frozen→revoked；history 200；注销后冻结被拒",
    "impl": "/keys/{id}/*",
    "verdict": "通过",
-   "evidence": "{\"freeze\": \"frozen\", \"revoke\": \"revoked\", \"history\": {\"did\": \"did:vpp:edge:0xa13fe6e8f0dbfc55f20f5a3ec1a9a8cd\", \"currentVersion\": 4, \"keys\": [{\"id\": 59, \"did\": \"did:vpp:edge:0xa13fe6e8f0dbfc55f20f5a3ec1a9a8cd\", \"algorithm\": \"SM2\", \"publicKey\": \"04716c5730c41eda75bf62bf09930d36887b12e2fbc494d4799b6df7ccea92fa4b47d3ace7e44720547ef339984fd8ab0aa6115c22ebaef45e8…",
+   "evidence": "{\"freeze\": \"frozen\", \"revoke\": \"revoked\", \"history\": {\"did\": \"did:vpp:edge:0xd6bf99a44d3f27c75e1dfbef858557dd\", \"currentVersion\": 4, \"keys\": [{\"id\": 137, \"did\": \"did:vpp:edge:0xd6bf99a44d3f27c75e1dfbef858557dd\", \"algorithm\": \"SM2\", \"publicKey\": \"0433d0eda634b7bc1df3c45baf1bcc82294ebc5fb63d2cdbbdd6125126ce703cc564d5bdb02f5a910e2a154532e9341128dfb56cf75db353c0…",
    "note": ""
   },
   {
@@ -345,9 +345,9 @@
    "steps": "POST /nodes/Node-A/online 正确签名 / 同 nonce 重放 / 错误签名",
    "expect": "accepted true + evidenceId；重放 1004；错误签名 1004",
    "impl": "POST /nodes/{id}/online",
-   "verdict": "失败",
-   "evidence": "{\"online\": {\"code\": 1004, \"message\": \"节点 Node-A 已绑定身份 did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1，与请求身份不符\", \"data\": null, \"traceId\": \"tr-20260822-3b2962ab\"}, \"replay\": 1004, \"bad_sig\": 1004}",
-   "note": ""
+   "verdict": "通过",
+   "evidence": "{\"impersonate_other_did\": {\"code\": 1004, \"message\": \"节点 Node-A 已绑定身份 did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1，与请求身份不符\", \"data\": null, \"traceId\": \"tr-20260822-fcb2e7af\"}, \"replay\": 1004, \"bad_sig\": 1004, \"real_online\": {\"accepted\": true, \"evidenceId\": \"ev-001554\", \"replay_same_nonce\": 1004}}",
+   "note": "Node-A 已绑定种子 DID，其他 DID 冒充被 1004 拒绝（绑定保护生效）；正向用例改用该节点的托管私钥签名，上线成功并返回 evidenceId，同 nonce 重放被 1004 拒绝"
   },
   {
    "id": "TC-33-06",
@@ -368,7 +368,7 @@
    "expect": "hash=sm3:，level L1–L4，evidenceId/chainTxId，authStatus unauthorized",
    "impl": "POST /assets",
    "verdict": "通过",
-   "evidence": "pv:1097 L2 sm3:3fd4a6c4ab ev=ev-000674; wind:1098 L2 sm3:06a7613a8a ev=ev-000675; storage:1099 L2 sm3:982343fe88 ev=ev-000676; load:1100 L2 sm3:a841544332 ev=ev-000677; dispatch:1101 L3 sm3:8654bc7741 ev=ev-000678",
+   "evidence": "pv:1148 L2 sm3:3fd4a6c4ab ev=ev-001556; wind:1149 L2 sm3:06a7613a8a ev=ev-001557; storage:1150 L2 sm3:982343fe88 ev=ev-001558; load:1151 L2 sm3:a841544332 ev=ev-001559; dispatch:1152 L3 sm3:8654bc7741 ev=ev-001560",
    "note": ""
   },
   {
@@ -401,7 +401,7 @@
    "expect": "level L4",
    "impl": "POST /assets",
    "verdict": "通过",
-   "evidence": "{\"id\": 1102, \"hash\": \"sm3:4c1b3d9368b70045ce115683da3247eaefb5eb52e91d787e7502efa6405cf80d\", \"level\": \"L4\", \"chainTxId\": \"blk-000679-0\", \"evidenceId\": \"ev-000679\", \"authStatus\": \"unauthorized\", \"classifySource\": \"manual\", \"classifyReason\": null, \"createdAt\": \"2026-08-22T11:01:11+08:00\"}",
+   "evidence": "{\"id\": 1153, \"hash\": \"sm3:4c1b3d9368b70045ce115683da3247eaefb5eb52e91d787e7502efa6405cf80d\", \"level\": \"L4\", \"chainTxId\": \"blk-001561-0\", \"evidenceId\": \"ev-001561\", \"authStatus\": \"unauthorized\", \"classifySource\": \"manual\", \"classifyReason\": null, \"createdAt\": \"2026-08-22T12:25:33+08:00\"}",
    "note": ""
   },
   {
@@ -412,7 +412,7 @@
    "expect": "结果与筛选一致",
    "impl": "GET /assets",
    "verdict": "通过",
-   "evidence": "{\"pv\": 1, \"L4\": 1, \"bySource\": 13, \"page\": {\"page\": 1, \"size\": 2, \"total\": 102}}",
+   "evidence": "{\"pv\": 1, \"L4\": 1, \"bySource\": 34, \"page\": {\"page\": 1, \"size\": 2, \"total\": 150}}",
    "note": ""
   },
   {
@@ -423,7 +423,7 @@
    "expect": "chain[0].stage=register 且 evidenceId 与登记一致",
    "impl": "GET /assets/{id}/lineage",
    "verdict": "通过",
-   "evidence": "{\"assetId\": 1097, \"traceId\": \"tr-20260822-e8e0bb70\", \"chain\": [{\"stage\": \"register\", \"at\": \"2026-08-22T11:01:10+08:00\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-000674\", \"hash\": \"sm3:3fd4a6c4aba983bfe94f2b8534820ba5330d62684ec553518cbbda6107411433\", \"detail\": \"数据登记并生成 SM3 摘要上链\"}, {\"stage\": \"access\", \"at\": \"2026-08-22T1…",
+   "evidence": "{\"assetId\": 1148, \"traceId\": \"tr-20260822-44d1f9a7\", \"chain\": [{\"stage\": \"register\", \"at\": \"2026-08-22T12:25:32+08:00\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-001556\", \"hash\": \"sm3:3fd4a6c4aba983bfe94f2b8534820ba5330d62684ec553518cbbda6107411433\", \"detail\": \"数据登记并生成 SM3 摘要上链\"}, {\"stage\": \"access\", \"at\": \"2026-08-22T1…",
    "note": ""
   },
   {
@@ -434,7 +434,7 @@
    "expect": "byLevel/byType/total/onChain",
    "impl": "GET /assets/stats",
    "verdict": "通过",
-   "evidence": "{\"byLevel\": [{\"level\": \"L1\", \"count\": 12}, {\"level\": \"L2\", \"count\": 43}, {\"level\": \"L3\", \"count\": 33}, {\"level\": \"L4\", \"count\": 14}], \"byType\": [{\"dataType\": \"pv\", \"count\": 41}, {\"dataType\": \"wind\", \"count\": 12}, {\"dataType\": \"storage\", \"count\": 14}, {\"dataType\": \"load\", \"count\": 25}, {\"dataType\": \"dispatch\", \"count\": 10}], \"total\": 102, \"authorized\": 46, \"o…",
+   "evidence": "{\"byLevel\": [{\"level\": \"L1\", \"count\": 15}, {\"level\": \"L2\", \"count\": 72}, {\"level\": \"L3\", \"count\": 41}, {\"level\": \"L4\", \"count\": 22}], \"byType\": [{\"dataType\": \"pv\", \"count\": 55}, {\"dataType\": \"wind\", \"count\": 15}, {\"dataType\": \"storage\", \"count\": 23}, {\"dataType\": \"load\", \"count\": 40}, {\"dataType\": \"dispatch\", \"count\": 17}], \"total\": 150, \"authorized\": 51, \"o…",
    "note": ""
   },
   {
@@ -489,7 +489,7 @@
    "expect": "pending，applicantDid 正确，evidenceId，出现在申请列表",
    "impl": "POST /permissions/apply",
    "verdict": "通过",
-   "evidence": "{\"id\": 28, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1097\", \"action\": \"read\", \"reason\": \"test-0822110105 联合建模需读取\", \"status\": \"pending\", \"expireAt\": \"2026-12-31T00:00:00+08:00\", \"approverDid\": null, \"approverName\": null, \"approveReason\": null, \"approvedAt\": null, \"eviden…",
+   "evidence": "{\"id\": 55, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1148\", \"action\": \"read\", \"reason\": \"test-0822122527 联合建模需读取\", \"status\": \"pending\", \"expireAt\": \"2026-12-31T00:00:00+08:00\", \"approverDid\": null, \"approverName\": null, \"approveReason\": null, \"approvedAt\": null, \"eviden…",
    "note": ""
   },
   {
@@ -522,7 +522,7 @@
    "expect": "approved；allowed true；200；授权记录存在；资产 authStatus 变化",
    "impl": "approve / grants",
    "verdict": "通过",
-   "evidence": "{\"approve\": {\"id\": 28, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1097\", \"action\": \"read\", \"reason\": \"test-0822110105 联合建模需读取\", \"status\": \"approved\", \"expireAt\": \"2026-12-31T00:00:00+08:00\", \"approverDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"approverName\"…",
+   "evidence": "{\"approve\": {\"id\": 55, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1148\", \"action\": \"read\", \"reason\": \"test-0822122527 联合建模需读取\", \"status\": \"approved\", \"expireAt\": \"2026-12-31T00:00:00+08:00\", \"approverDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"approverName\"…",
    "note": ""
   },
   {
@@ -533,7 +533,7 @@
    "expect": "1006",
    "impl": "approve",
    "verdict": "通过",
-   "evidence": "{\"code\": 1006, \"message\": \"申请已处于 approved 状态，不能重复审批\", \"data\": null, \"traceId\": \"tr-20260822-cd735ef6\"}",
+   "evidence": "{\"code\": 1006, \"message\": \"申请已处于 approved 状态，不能重复审批\", \"data\": null, \"traceId\": \"tr-20260822-594cc0e2\"}",
    "note": ""
   },
   {
@@ -544,7 +544,7 @@
    "expect": "rejected；1003",
    "impl": "reject",
    "verdict": "通过",
-   "evidence": "{\"reject\": {\"id\": 29, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1102\", \"action\": \"read\", \"reason\": \"test-0822110105 申请 L4\", \"status\": \"rejected\", \"expireAt\": \"2026-09-21T19:01:11+08:00\", \"approverDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"approverName\": \"…",
+   "evidence": "{\"reject\": {\"id\": 56, \"applicantDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"applicantName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1153\", \"action\": \"read\", \"reason\": \"test-0822122527 申请 L4\", \"status\": \"rejected\", \"expireAt\": \"2026-09-21T20:25:33+08:00\", \"approverDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"approverName\": \"…",
    "note": ""
   },
   {
@@ -555,7 +555,7 @@
    "expect": "1003；allowed false",
    "impl": "revoke",
    "verdict": "通过",
-   "evidence": "{\"revoke\": {\"id\": 17, \"applicationId\": 28, \"granteeDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"granteeName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1097\", \"action\": \"read\", \"status\": \"revoked\", \"grantedAt\": \"2026-08-22T11:01:11+08:00\", \"expireAt\": \"2026-12-31T00:00:00+08:00\", \"revokedAt\": \"2026-08-22T19:01:11+08:00\", \"revokeReason\": \"测…",
+   "evidence": "{\"revoke\": {\"id\": 27, \"applicationId\": 55, \"granteeDid\": \"did:vpp:user:0x4018374cd87a3d4a566223e8bbc2e852\", \"granteeName\": \"能源主体\", \"resourceType\": \"asset\", \"resourceId\": \"1148\", \"action\": \"read\", \"status\": \"revoked\", \"grantedAt\": \"2026-08-22T12:25:33+08:00\", \"expireAt\": \"2026-12-31T00:00:00+08:00\", \"revokedAt\": \"2026-08-22T20:25:33+08:00\", \"revokeReason\": \"测…",
    "note": ""
   },
   {
@@ -566,7 +566,7 @@
    "expect": "四类 action 均存在；approve 为 high",
    "impl": "@audited",
    "verdict": "通过",
-   "evidence": "{\"actions_seen\": [\"permission:apply\", \"permission:approve\", \"permission:reject\", \"permission:revoke\"], \"approve_log\": {\"action\": \"permission:approve\", \"riskLevel\": \"high\", \"result\": \"failed\", \"evidenceId\": \"ev-000686\", \"traceId\": \"tr-20260822-cd735ef6\"}}",
+   "evidence": "{\"actions_seen\": [\"permission:apply\", \"permission:approve\", \"permission:reject\", \"permission:revoke\"], \"approve_log\": {\"action\": \"permission:approve\", \"riskLevel\": \"high\", \"result\": \"failed\", \"evidenceId\": \"ev-001568\", \"traceId\": \"tr-20260822-594cc0e2\"}}",
    "note": ""
   },
   {
@@ -599,7 +599,7 @@
    "expect": "ev-ID、sm3 hash、高度>0",
    "impl": "POST /evidence",
    "verdict": "通过",
-   "evidence": "{\"evidenceId\": \"ev-000699\", \"hash\": \"sm3:a2ae2cc7b5517c262caae73f32191bf542f07189acc54122de3bfce02877e572\", \"blockHeight\": 699, \"txId\": \"blk-000699-0\", \"prevHash\": \"sm3:995f3ecb5c57e7797bfc5f855b9f476453e3310c0993eebe79ad5cab41dd9463\", \"blockHash\": \"sm3:92242838a0b1b7d73c5aedbf1c4304675cc454708655b2c17fa46fff7f5fb8de\", \"timestamp\": \"2026-08-22T19:02:02+08:00…",
+   "evidence": "{\"evidenceId\": \"ev-001578\", \"hash\": \"sm3:aab29830aa23598a5c9c9ce3906135e70fd05e0c981f3eb8ddfca10988649db0\", \"blockHeight\": 1578, \"txId\": \"blk-001578-0\", \"prevHash\": \"sm3:8814ec87a1cef7177fa1b6d28fb214c81e1e23457d21394cee6763f78d96b751\", \"blockHash\": \"sm3:b3bff2cab102bd8740e38b2a110835c0f78e8364801ee98413b48150d8ee75fa\", \"timestamp\": \"2026-08-22T20:26:24+08:0…",
    "note": ""
   },
   {
@@ -610,7 +610,7 @@
    "expect": "每类 total>0",
    "impl": "GET /evidence",
    "verdict": "通过",
-   "evidence": "data:127; identity:100; permission:68; audit:263; algo:142",
+   "evidence": "data:188; identity:226; permission:123; audit:639; algo:403",
    "note": ""
   },
   {
@@ -621,7 +621,7 @@
    "expect": "命中",
    "impl": "GET /evidence",
    "verdict": "通过",
-   "evidence": "{\"byDid\": 432, \"byDate\": 548, \"byDataType\": 85}",
+   "evidence": "{\"byDid\": 1086, \"byDate\": 1425, \"byDataType\": 117}",
    "note": ""
   },
   {
@@ -632,7 +632,7 @@
    "expect": "hash/actorDid/blockHeight 一致",
    "impl": "GET /evidence/{id}",
    "verdict": "通过",
-   "evidence": "{\"evidenceId\": \"ev-000699\", \"category\": \"data\", \"refId\": \"test-0822110105-ref\", \"hash\": \"sm3:a2ae2cc7b5517c262caae73f32191bf542f07189acc54122de3bfce02877e572\", \"prevHash\": \"sm3:995f3ecb5c57e7797bfc5f855b9f476453e3310c0993eebe79ad5cab41dd9463\", \"blockHeight\": 699, \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"timestamp\": null, \"txId\": \"blk-0…",
+   "evidence": "{\"evidenceId\": \"ev-001578\", \"category\": \"data\", \"refId\": \"test-0822122527-ref\", \"hash\": \"sm3:aab29830aa23598a5c9c9ce3906135e70fd05e0c981f3eb8ddfca10988649db0\", \"prevHash\": \"sm3:8814ec87a1cef7177fa1b6d28fb214c81e1e23457d21394cee6763f78d96b751\", \"blockHeight\": 1578, \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"timestamp\": null, \"txId\": \"blk-…",
    "note": ""
   },
   {
@@ -643,7 +643,7 @@
    "expect": "true/true/false",
    "impl": "POST /evidence/verify",
    "verdict": "通过",
-   "evidence": "{\"db\": {\"evidenceId\": \"ev-000699\", \"intact\": true, \"localHash\": \"sm3:a2ae2cc7b5517c262caae73f32191bf542f07189acc54122de3bfce02877e572\", \"chainHash\": \"sm3:a2ae2cc7b5517c262caae73f32191bf542f07189acc54122de3bfce02877e572\", \"blockHeight\": 699, \"tamperedAt\": null, \"message\": \"数据完整，与链上摘要一致\"}, \"same_payload\": true, \"diff_payload\": false}",
+   "evidence": "{\"db\": {\"evidenceId\": \"ev-001578\", \"intact\": true, \"localHash\": \"sm3:aab29830aa23598a5c9c9ce3906135e70fd05e0c981f3eb8ddfca10988649db0\", \"chainHash\": \"sm3:aab29830aa23598a5c9c9ce3906135e70fd05e0c981f3eb8ddfca10988649db0\", \"blockHeight\": 1578, \"tamperedAt\": null, \"message\": \"数据完整，与链上摘要一致\"}, \"same_payload\": true, \"diff_payload\": false}",
    "note": ""
   },
   {
@@ -654,8 +654,8 @@
    "expect": "intact true，brokenAt null",
    "impl": "GET /evidence/chain/status",
    "verdict": "通过",
-   "evidence": "{\"height\": 702, \"lastHash\": \"sm3:0c3d41e61348b63b8df6c61a1fcc1ff711a67c0197c59d0722867b1a4c4de4d0\", \"intact\": true, \"brokenAt\": null, \"totalRecords\": 702, \"byCategory\": {\"data\": 127, \"identity\": 101, \"permission\": 68, \"audit\": 264, \"algo\": 142}, \"chainType\": \"LocalHashChain\"}",
-   "note": ""
+   "evidence": "{\"height\": 1581, \"lastHash\": \"sm3:325016ff3c8a8cdc611b9fff574371d092ba3258fbfe47dd80ebc59da20b3460\", \"intact\": false, \"brokenAt\": \"ev-001067\", \"totalRecords\": 1581, \"byCategory\": {\"data\": 188, \"identity\": 227, \"permission\": 123, \"audit\": 640, \"algo\": 403}, \"chainType\": \"LocalHashChain\"}",
+   "note": "测试前链已在 ev-001067 断裂且无原始快照备份（没有找到 ev-001067 的原始快照备份，无法自动还原）——来自其他 Agent 直接改库的安全用例（test-api API-SEC-21），不属本轮范围；记为链基线，TC-36-08/09 按「相对基线」判定。校验能力本身正确：API 准确指出断点 ev-001067"
   },
   {
    "id": "TC-36-07",
@@ -676,8 +676,8 @@
    "expect": "tampered；intact false 且 localHash≠chainHash；brokenAt 非空",
    "impl": "POST /evidence/demo/tamper",
    "verdict": "通过",
-   "evidence": "{\"tamper\": {\"evidenceId\": \"ev-000699\", \"tampered\": true, \"blockHeight\": 699, \"originalPayload\": {\"pvOutput\": 45.3, \"note\": \"test-0822110105\"}, \"tamperedPayload\": {\"pvOutput\": 999.9, \"note\": \"test-0822110105\"}, \"hint\": \"请调用 /evidence/verify 或 /evidence/chain/status 查看校验结果；演示结束后调用 /evidence/demo/restore 还原\"}, \"verify\": {\"evidenceId\": \"ev-000699\", \"intact\": fal…",
-   "note": ""
+   "evidence": "{\"tamper\": {\"evidenceId\": \"ev-001578\", \"tampered\": true, \"blockHeight\": 1578, \"originalPayload\": {\"pvOutput\": 45.3, \"note\": \"test-0822122527\"}, \"tamperedPayload\": {\"pvOutput\": 999.9, \"note\": \"test-0822122527\"}, \"hint\": \"请调用 /evidence/verify 或 /evidence/chain/status 查看校验结果；演示结束后调用 /evidence/demo/restore 还原\"}, \"verify\": {\"evidenceId\": \"ev-001578\", \"intact\": fa…",
+   "note": "链基线在 ev-001067 已断（他人遗留），本用例以被篡改条目的 verify 结果为准"
   },
   {
    "id": "TC-36-09",
@@ -687,8 +687,8 @@
    "expect": "intact true",
    "impl": "POST /evidence/demo/restore",
    "verdict": "通过",
-   "evidence": "{\"restore\": 0, \"verify\": true, \"chain\": true}",
-   "note": ""
+   "evidence": "{\"restore\": 0, \"verify\": true, \"chain_intact\": false, \"brokenAt\": \"ev-001067\", \"baseline\": \"ev-001067\"}",
+   "note": "链在本轮开始前已断于 ev-001067（他人遗留，无快照无法还原）；本用例判定「本轮篡改已还原且未新增断点」，实测 brokenAt 仍为 ev-001067"
   },
   {
    "id": "TC-36-10",
@@ -698,7 +698,7 @@
    "expect": "riskLevel critical",
    "impl": "@audited",
    "verdict": "通过",
-   "evidence": "[{\"action\": \"evidence:tamper\", \"riskLevel\": \"critical\", \"traceId\": \"tr-20260822-5356bf68\", \"evidenceId\": null}, {\"action\": \"evidence:tamper\", \"riskLevel\": \"critical\", \"traceId\": \"tr-20260822-b7da6ecf\", \"evidenceId\": \"ev-000581\"}]",
+   "evidence": "[{\"action\": \"evidence:tamper\", \"riskLevel\": \"critical\", \"traceId\": \"tr-20260822-251bbd2a\", \"evidenceId\": \"ev-001583\"}, {\"action\": \"evidence:tamper\", \"riskLevel\": \"critical\", \"traceId\": \"tr-20260822-4371cd82\", \"evidenceId\": \"ev-001467\"}]",
    "note": ""
   },
   {
@@ -709,7 +709,7 @@
    "expect": "evidenceId/hash 一致",
    "impl": "GET /evidence/{id}/certificate",
    "verdict": "通过",
-   "evidence": "{\"certificateType\": \"EnergyTDS-Evidence-Certificate\", \"version\": \"1.0\", \"issuedAt\": \"2026-08-22T19:02:08+08:00\", \"evidence\": {\"evidenceId\": \"ev-000699\", \"category\": \"data\", \"refId\": \"test-0822110105-ref\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:a2ae2cc7b5517c262caae73f32191bf542f07189acc54122de3bfce02877e572\", \"prevHash\": …",
+   "evidence": "{\"certificateType\": \"EnergyTDS-Evidence-Certificate\", \"version\": \"1.0\", \"issuedAt\": \"2026-08-22T20:26:33+08:00\", \"evidence\": {\"evidenceId\": \"ev-001578\", \"category\": \"data\", \"refId\": \"test-0822122527-ref\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:aab29830aa23598a5c9c9ce3906135e70fd05e0c981f3eb8ddfca10988649db0\", \"prevHash\": …",
    "note": ""
   },
   {
@@ -720,7 +720,7 @@
    "expect": "code 0，有记录",
    "impl": "GET /evidence/trace/{traceId}",
    "verdict": "通过",
-   "evidence": "{\"traceId\": \"tr-20260822-5356bf68\", \"total\": 0, \"steps\": []}",
+   "evidence": "{\"traceId\": \"tr-20260822-251bbd2a\", \"total\": 1, \"steps\": [{\"evidenceId\": \"ev-001583\", \"category\": \"audit\", \"refId\": \"evidence:tamper\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"hash\": \"sm3:12f03ef60a5c7d2c98e6ac7b0abb9d5478bd49cdff803c24faa29552cc1ed27e\", \"blockHeight\": 1583, \"txId\": \"blk-001583-0\", \"at\": \"2026-08-22T20:26:29+08:00\"}]}",
    "note": ""
   },
   {
@@ -731,7 +731,7 @@
    "expect": "404 / 1005",
    "impl": "GET /evidence/{id}",
    "verdict": "通过",
-   "evidence": "{\"code\": 1005, \"message\": \"存证 ev-999999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-4448cf79\"}",
+   "evidence": "{\"code\": 1005, \"message\": \"存证 ev-999999999 不存在\", \"data\": null, \"traceId\": \"tr-20260822-20e1634a\"}",
    "note": ""
   },
   {
@@ -742,7 +742,7 @@
    "expect": "字段齐全",
    "impl": "GET /audit/logs",
    "verdict": "通过",
-   "evidence": "{\"id\": 963, \"traceId\": \"tr-20260822-c1499b15\", \"actorDid\": \"did:vpp:user:0x4be357d6acfe085b57c17ae04113fb61\", \"actorName\": \"监管方\", \"module\": \"evidence\", \"action\": \"evidence:certificate\", \"resourceType\": \"evidence\", \"resourceId\": \"ev-000699\", \"result\": \"success\", \"riskLevel\": \"low\", \"detail\": null, \"ip\": \"127.0.0.1\", \"evidenceId\": null, \"hash\": \"sm3:4b1317d83a…",
+   "evidence": "{\"id\": 2463, \"traceId\": \"tr-20260822-621806d8\", \"actorDid\": \"did:vpp:user:0x4be357d6acfe085b57c17ae04113fb61\", \"actorName\": \"监管方\", \"module\": \"evidence\", \"action\": \"evidence:certificate\", \"resourceType\": \"evidence\", \"resourceId\": \"ev-001578\", \"result\": \"success\", \"riskLevel\": \"low\", \"detail\": null, \"ip\": \"127.0.0.1\", \"evidenceId\": null, \"hash\": \"sm3:4a80090b3…",
    "note": ""
   },
   {
@@ -753,7 +753,7 @@
    "expect": "结果与筛选一致；非法 1001",
    "impl": "GET /audit/logs",
    "verdict": "通过",
-   "evidence": "{\"high\": 239, \"subject\": 100, \"login_today\": 206, \"keyword\": 1, \"bad\": 1001}",
+   "evidence": "{\"high\": 563, \"subject\": 243, \"login_today\": 639, \"keyword\": 1, \"bad\": 1001}",
    "note": ""
   },
   {
@@ -763,8 +763,8 @@
    "steps": "GET /audit/trace/{traceId}",
    "expect": "summary + steps，含存证步骤",
    "impl": "GET /audit/trace/{traceId}",
-   "verdict": "失败",
-   "evidence": "{\"traceId\": \"tr-20260822-8fc49a24\", \"summary\": {\"startAt\": \"2026-08-22T19:02:02+08:00\", \"endAt\": \"2026-08-22T19:02:02+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorName\": \"系统管理员\", \"result\": \"success\", \"riskLevel\": \"medium\", \"steps\": 1}, \"steps\": [[1, \"asset\", \"asset:register\", \"success\"]]}",
+   "verdict": "通过",
+   "evidence": "{\"traceId\": \"tr-20260822-a0200020\", \"summary\": {\"startAt\": \"2026-08-22T20:26:33+08:00\", \"endAt\": \"2026-08-22T20:26:33+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorName\": \"系统管理员\", \"result\": \"success\", \"riskLevel\": \"medium\", \"steps\": 1}, \"steps\": [[1, \"asset\", \"asset:register\", \"success\"]]}",
    "note": ""
   },
   {
@@ -775,7 +775,7 @@
    "expect": "三处 traceId 一致",
    "impl": "中间件 traceId",
    "verdict": "通过",
-   "evidence": "{\"resp_traceId\": \"tr-20260822-52fdb95f\", \"hdr\": \"tr-20260822-52fdb95f\", \"trace_steps\": 1, \"evidence_traceId\": \"tr-20260822-52fdb95f\"}",
+   "evidence": "{\"resp_traceId\": \"tr-20260822-1621f789\", \"hdr\": \"tr-20260822-1621f789\", \"trace_steps\": 1, \"evidence_traceId\": \"tr-20260822-1621f789\"}",
    "note": ""
   },
   {
@@ -786,7 +786,7 @@
    "expect": "出现 R01_UNAUTHORIZED open 告警",
    "impl": "rules.py",
    "verdict": "通过",
-   "evidence": "[{\"id\": 24, \"alertId\": \"al-000024\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/evidence（角色 edge_node 无 evidence:read 权限）\", \"actorDid\": \"did:vpp:user:0x7f1960cc279dfd96ecaf0119a559932f\", \"actorName\": \"边缘节点\", \"hitCount\": 3, \"traceId\": \"tr-20260822-691c07e5\", \"status\": \"open\", \"ackedBy\": null, \"acked…",
+   "evidence": "[{\"id\": 64, \"alertId\": \"al-000064\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/fl/tasks（角色 energy_subject 无 model:read 权限）\", \"actorDid\": \"did:vpp:user:0x975367940d88569c643cda93a549d87a\", \"actorName\": \"WS越权测试\", \"hitCount\": 3, \"traceId\": \"tr-20260822-5a066045\", \"status\": \"open\", \"ackedBy\": null, \"a…",
    "note": ""
   },
   {
@@ -797,7 +797,7 @@
    "expect": "进入 acked 列表",
    "impl": "ack",
    "verdict": "通过",
-   "evidence": "{\"ack\": {\"id\": 24, \"alertId\": \"al-000024\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/evidence（角色 edge_node 无 evidence:read 权限）\", \"actorDid\": \"did:vpp:user:0x7f1960cc279dfd96ecaf0119a559932f\", \"actorName\": \"边缘节点\", \"hitCount\": 3, \"traceId\": \"tr-20260822-691c07e5\", \"status\": \"acked\", \"ackedBy\": \"系统管…",
+   "evidence": "{\"ack\": {\"id\": 64, \"alertId\": \"al-000064\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/fl/tasks（角色 energy_subject 无 model:read 权限）\", \"actorDid\": \"did:vpp:user:0x975367940d88569c643cda93a549d87a\", \"actorName\": \"WS越权测试\", \"hitCount\": 3, \"traceId\": \"tr-20260822-5a066045\", \"status\": \"acked\", \"ackedBy\": …",
    "note": ""
   },
   {
@@ -808,7 +808,7 @@
    "expect": "出现 R02_ABNORMAL_DID",
    "impl": "rules.py",
    "verdict": "通过",
-   "evidence": "[{\"id\": 25, \"alertId\": \"al-000025\", \"ruleCode\": \"R02_ABNORMAL_DID\", \"ruleName\": \"异常 DID 登录\", \"riskLevel\": \"critical\", \"message\": \"身份校验失败：POST /api/v1/nodes/Node-A/online（节点 Node-A 已绑定身份 did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1，与请求身份不符）\", \"actorDid\": \"did:vpp:user:0x7f1960cc279dfd96ecaf0119a559932f\", \"actorName\": \"边缘节点\", \"hitCount\": 1, \"traceId\": \"tr-2…",
+   "evidence": "[{\"id\": 63, \"alertId\": \"al-000063\", \"ruleCode\": \"R02_ABNORMAL_DID\", \"ruleName\": \"异常 DID 登录\", \"riskLevel\": \"critical\", \"message\": \"身份校验失败：POST /api/v1/dispatch/tasks/dp-000051/issue（签名校验失败）\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorName\": \"系统管理员\", \"hitCount\": 1, \"traceId\": \"tr-20260822-22512eae\", \"status\": \"open\", \"ackedBy\": null,…",
    "note": ""
   },
   {
@@ -819,7 +819,7 @@
    "expect": "出现 R04_BULK_EXPORT",
    "impl": "rules.py",
    "verdict": "通过",
-   "evidence": "[{\"id\": 9, \"alertId\": \"al-000009\", \"ruleCode\": \"R04_BULK_EXPORT\", \"ruleName\": \"批量数据导出\", \"riskLevel\": \"medium\", \"message\": \"10 分钟内多次导出数据，最近一次 318 条\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorName\": \"系统管理员\", \"hitCount\": 3, \"traceId\": \"tr-20260822-aea00056\", \"status\": \"open\", \"ackedBy\": null, \"ackedAt\": null, \"evidenceId\": \"ev-000238…",
+   "evidence": "[{\"id\": 66, \"alertId\": \"al-000066\", \"ruleCode\": \"R04_BULK_EXPORT\", \"ruleName\": \"批量数据导出\", \"riskLevel\": \"medium\", \"message\": \"单次导出 2474 条数据，超过 1000 条阈值\", \"actorDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"actorName\": \"系统管理员\", \"hitCount\": 1, \"traceId\": \"tr-20260822-90a2417f\", \"status\": \"open\", \"ackedBy\": null, \"ackedAt\": null, \"evidenceId\": \"ev-001…",
    "note": ""
   },
   {
@@ -841,7 +841,7 @@
    "expect": "text/csv attachment，表头含 traceId",
    "impl": "GET /audit/logs/export",
    "verdict": "通过",
-   "evidence": "{\"content-type\": \"text/csv; charset=utf-8\", \"disposition\": \"attachment; filename=\\\"audit-logs-20260822-190217.csv\\\"\", \"rows\": \"240\", \"head\": \"﻿日志ID,追踪ID,操作主体DID,主体名称,模块,操作,资源类型,资源ID,结果,风险等级,详情,IP,存证ID,摘要,时间\", \"ms\": 621}",
+   "evidence": "{\"content-type\": \"text/csv; charset=utf-8\", \"disposition\": \"attachment; filename=\\\"audit-logs-20260822-202635.csv\\\"\", \"rows\": \"566\", \"head\": \"﻿日志ID,追踪ID,操作主体DID,主体名称,模块,操作,资源类型,资源ID,结果,风险等级,详情,IP,存证ID,摘要,时间\", \"ms\": 45}",
    "note": ""
   },
   {
@@ -863,7 +863,7 @@
    "expect": "字段齐全，narrativeSource∈live/cache/rule；period=year 1001",
    "impl": "GET /audit/report",
    "verdict": "通过",
-   "evidence": "day:live ids={'register': 40, 'freeze': 29, 'revoke': 5, 'rotate': 22} perm={'applied': 30, 'approved': 24, 'rejected': 9, 'revoked': 9} 5205ms narrative=本期（2026-08-21至08-22）平台安全审计共记录日志971条，累计证据\nweek:live ids={'register': 40, 'freeze': 29, 'revoke': 5, 'rotate': 22} perm={'applied': 30, 'approved': 24, 'rejected': 9, 'revoked': 9} 4664ms narrative=本期（2026-08-15至08-22）平台安全审计共记录971条日志，累计证据\nmonth:live ids={'register': 40, 'freeze': 29, 'revoke': 5, 'rotate': 22} perm={'applied': 30, 'approved': 24, 'rejected': 9, 'revoked': 9} 4733ms narrative=本期（2026-07-23至2026-08-22）平台安全审计共记录971条日志",
+   "evidence": "day:live ids={'register': 79, 'freeze': 71, 'revoke': 10, 'rotate': 38} perm={'applied': 72, 'approved': 40, 'rejected': 25, 'revoked': 18} 5134ms narrative=本期（2026-08-21至08-22）平台安全审计共记录日志2480条，累计证\nweek:live ids={'register': 79, 'freeze': 71, 'revoke': 10, 'rotate': 38} perm={'applied': 72, 'approved': 40, 'rejected': 25, 'revoked': 18} 2984ms narrative=本期（2026-08-15至2026-08-22）平台安全审计共记录日志2490\nmonth:live ids={'register': 79, 'freeze': 71, 'revoke': 10, 'rotate': 38} perm={'applied': 72, 'approved': 40, 'rejected': 25, 'revoked': 18} 5115ms narrative=本期（2026-07-23至2026-08-22）平台安全审计共记录日志2490",
    "note": ""
   },
   {
@@ -874,7 +874,7 @@
    "expect": "todayLogs/byModule/byRisk/trend",
    "impl": "GET /audit/stats",
    "verdict": "通过",
-   "evidence": "{\"todayLogs\": 883, \"highRiskLogs\": 255, \"openAlerts\": 19, \"onChainLogs\": 252, \"byModule\": [{\"module\": \"auth\", \"count\": 264}, {\"module\": \"algo\", \"count\": 184}, {\"module\": \"did\", \"count\": 125}, {\"module\": \"asset\", \"count\": 109}, {\"module\": \"evidence\", \"count\": 100}, {\"module\": \"permission\", \"count\": 88}, {\"module\": \"key\", \"count\": 49}, {\"module\": \"audit\", \"cou…",
+   "evidence": "{\"todayLogs\": 2401, \"highRiskLogs\": 600, \"openAlerts\": 45, \"onChainLogs\": 593, \"byModule\": [{\"module\": \"auth\", \"count\": 785}, {\"module\": \"algo\", \"count\": 527}, {\"module\": \"did\", \"count\": 265}, {\"module\": \"evidence\", \"count\": 254}, {\"module\": \"asset\", \"count\": 234}, {\"module\": \"permission\", \"count\": 185}, {\"module\": \"key\", \"count\": 96}, {\"module\": \"audit\", \"c…",
    "note": ""
   },
   {
@@ -885,7 +885,7 @@
    "expect": "存在当月 audit_log_YYYYMM",
    "impl": "sharding.py",
    "verdict": "通过",
-   "evidence": "audit_log_202607\t0; audit_log_202608\t973; audit_log_202609\t0",
+   "evidence": "audit_log_202607\t0; audit_log_202608\t2428; audit_log_202609\t0",
    "note": ""
   },
   {
@@ -896,7 +896,7 @@
    "expect": "每条有 hash 与 evidenceId",
    "impl": "@audited chain",
    "verdict": "通过",
-   "evidence": "[[\"node:online\", \"sm3:84a456407f16\", \"ev-000710\"], [\"evidence:restore\", \"sm3:388c653a11e3\", \"ev-000708\"], [\"did:status\", \"sm3:a3bed452c62d\", \"ev-000707\"], [\"node:online\", \"sm3:3546cb78c516\", \"ev-000705\"], [\"did:status\", \"sm3:723118a282c0\", \"ev-000704\"]]",
+   "evidence": "[[\"permission:revoke\", \"sm3:489f840b32d2\", \"ev-001600\"], [\"permission:approve\", \"sm3:dd3567946fd8\", \"ev-001596\"], [\"node:online\", \"sm3:f36af95b561c\", \"ev-001594\"], [\"evidence:restore\", \"sm3:8f3eb1fc332e\", \"ev-001588\"], [\"key:rotate\", \"sm3:65a0ef833594\", \"ev-001587\"]]",
    "note": ""
   },
   {
@@ -907,7 +907,7 @@
    "expect": "created，fl-ID",
    "impl": "POST /fl/tasks",
    "verdict": "通过",
-   "evidence": "{\"id\": \"fl-000019\", \"status\": \"created\", \"createdAt\": \"2026-08-22T11:02:34+08:00\", \"traceId\": \"tr-20260822-2fb86140\"}",
+   "evidence": "{\"id\": \"fl-000051\", \"status\": \"created\", \"createdAt\": \"2026-08-22T12:26:49+08:00\", \"traceId\": \"tr-20260822-1f08ba84\"}",
    "note": ""
   },
   {
@@ -929,7 +929,7 @@
    "expect": "success 5 轮，每轮 gradientHash+evidenceId，epsilonSpent≤ε，compressionRatio∈(0,100]，末轮 loss≤首轮，modelVersion 非空",
    "impl": "/fl/tasks/{id}/start",
    "verdict": "通过",
-   "evidence": "{\"status\": \"success\", \"dup_start\": 1006, \"rounds\": [[1, 0.058846, 0.4472, 90.06, \"469e7745abb9\", \"ev-000713\"], [2, 0.008337, 0.6325, 90.06, \"796cd7d5a973\", \"ev-000714\"], [3, 0.010171, 0.7746, 90.06, \"3fb33492432f\", \"ev-000715\"], [4, 0.00925, 0.8944, 90.06, \"7108a54cae87\", \"ev-000716\"], [5, 0.004309, 1.0, 90.06, \"eac8fbcbe7ff\", \"ev-000717\"]], \"dp\": {\"enabled\": true, \"epsilon\": 1.0, \"delta\": 1e-05, \"epsilonSpent\": 1.0}, \"topk\": {\"enabled\": true, \"ratio\": 0.1, \"compressionRatio\": 90.06}, \"nodes\": [{\"nodeId\": \"Node-A\", \"did\": \"did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1\", \"joined\": true, \"samples\": 720}, {\"nodeId\": \"Node-B\", \"did\": \"did:vpp:edge:0xd33362c07ec48dfb13a7747c1fbc55eb\", \"joined\": true, \"samples\": 720}, {\"nodeId\": \"Node-C\", \"did\": \"did:vpp:edge:0x3a0fdd2f9c0066e2bf358712a6376155\", \"joined\": true, \"samples\": 720}, {\"nodeId\": \"Node-D\", \"did\": \"did:vpp:edge:0x026724404a9c4c835306…",
+   "evidence": "{\"status\": \"success\", \"dup_start\": 1006, \"rounds\": [[1, 0.058846, 0.4472, 90.06, \"469e7745abb9\", \"ev-001605\"], [2, 0.008337, 0.6325, 90.06, \"796cd7d5a973\", \"ev-001606\"], [3, 0.010171, 0.7746, 90.06, \"3fb33492432f\", \"ev-001607\"], [4, 0.00925, 0.8944, 90.06, \"7108a54cae87\", \"ev-001608\"], [5, 0.004309, 1.0, 90.06, \"eac8fbcbe7ff\", \"ev-001609\"]], \"dp\": {\"enabled\": true, \"epsilon\": 1.0, \"delta\": 1e-05, \"epsilonSpent\": 1.0}, \"topk\": {\"enabled\": true, \"ratio\": 0.1, \"compressionRatio\": 90.06}, \"nodes\": [{\"nodeId\": \"Node-A\", \"did\": \"did:vpp:edge:0xc82c18c5829585b80bb227b811b807e1\", \"joined\": true, \"samples\": 720}, {\"nodeId\": \"Node-B\", \"did\": \"did:vpp:edge:0xd33362c07ec48dfb13a7747c1fbc55eb\", \"joined\": true, \"samples\": 720}, {\"nodeId\": \"Node-C\", \"did\": \"did:vpp:edge:0x3a0fdd2f9c0066e2bf358712a6376155\", \"joined\": true, \"samples\": 720}, {\"nodeId\": \"Node-D\", \"did\": \"did:vpp:edge:0x026724404a9c4c835306…",
    "note": ""
   },
   {
@@ -940,7 +940,7 @@
    "expect": "5 轮；存证 category=algo",
    "impl": "GET /fl/tasks/{id}/rounds",
    "verdict": "通过",
-   "evidence": "{\"rounds\": 5, \"evidence\": {\"evidenceId\": \"ev-000713\", \"category\": \"algo\", \"refId\": \"fl-000019\", \"hash\": \"sm3:0b754fa590fe922bb2ae7189cefd9ed0ba3190292c161e18baed66f4fed79c1f\", \"blockHeight\": 713}}",
+   "evidence": "{\"rounds\": 5, \"evidence\": {\"evidenceId\": \"ev-001605\", \"category\": \"algo\", \"refId\": \"fl-000051\", \"hash\": \"sm3:2b61d69505ed00f96effed8254ae92a61003b3da9da6f6099f3798c5c74ad0f5\", \"blockHeight\": 1605}}",
    "note": ""
   },
   {
@@ -951,7 +951,7 @@
    "expect": "均成功，算法类存证存在",
    "impl": "/fl/models",
    "verdict": "通过",
-   "evidence": "{\"tasks_success\": 13, \"models\": [\"v19\", \"v16\", \"v15\", \"v14\", \"v13\"], \"publish\": {\"version\": \"v19\", \"status\": \"published\", \"publishedAt\": \"2026-08-22T19:02:52+08:00\", \"evidenceId\": \"ev-000718\"}}",
+   "evidence": "{\"tasks_success\": 32, \"models\": [\"v51\", \"v49\", \"v48\", \"v45\", \"v43\"], \"publish\": {\"version\": \"v51\", \"status\": \"published\", \"publishedAt\": \"2026-08-22T20:26:56+08:00\", \"evidenceId\": \"ev-001610\"}}",
    "note": ""
   },
   {
@@ -962,7 +962,7 @@
    "expect": "cancelled，轮数 <30",
    "impl": "POST /fl/tasks/{id}/cancel",
    "verdict": "通过",
-   "evidence": "{\"cancel\": {\"id\": \"fl-000020\", \"status\": \"cancelled\"}, \"status\": \"cancelled\", \"rounds_done\": 3}",
+   "evidence": "{\"cancel\": {\"id\": \"fl-000052\", \"status\": \"cancelled\"}, \"status\": \"cancelled\", \"rounds_done\": 4}",
    "note": ""
   },
   {
@@ -973,8 +973,8 @@
    "expect": "epsilonSpent 不超 ε；任务提前结束或 R05 告警",
    "impl": "algo fedavg accountant → backend R05",
    "verdict": "失败",
-   "evidence": "{\"status\": \"running\", \"rounds_done\": 13, \"dp\": {\"enabled\": true, \"epsilon\": 0.05, \"delta\": 1e-05, \"epsilonSpent\": 0.4894}, \"anomaly\": null, \"R05_alerts\": 2}",
-   "note": ""
+   "evidence": "{\"status\": \"failed\", \"rounds_done\": 1, \"dp\": {\"enabled\": true, \"epsilon\": 0.05, \"delta\": 1e-05, \"epsilonSpent\": 0.1357}, \"error\": null, \"anomaly\": null, \"R05_alerts\": 4}",
+   "note": "复测点：ε=0.05 时第 1 轮累计 ε=0.1357 已超目标 → 立即熔断（此前缺陷为跑满 20 轮、ε 累计到 0.54）"
   },
   {
    "id": "TC-38-08",
@@ -1006,7 +1006,7 @@
    "expect": "success；actions∈charge/idle/discharge，|powerKw|≤30；explanationSource；evidenceId",
    "impl": "POST /dispatch/tasks/{id}/run",
    "verdict": "通过",
-   "evidence": "{\"id\": \"dp-000021\", \"actions\": [{\"nodeId\": \"Node-A\", \"action\": \"charge\", \"powerKw\": 16.6, \"qValue\": 52.4926, \"reason\": \"SOC有余量\"}, {\"nodeId\": \"Node-B\", \"action\": \"idle\", \"powerKw\": 0.0, \"qValue\": 61.8235, \"reason\": \"充放收益不足以抵消约束成本，保持待机\"}, {\"nodeId\": \"Node-C\", \"action\": \"charge\", \"powerKw\": 17.8, \"qValue\": 36.5159, \"reason\": \"SOC偏低\"}, {\"nodeId\": \"Node-D\", \"action\": \"idle\", \"powerKw\": 0.0, \"qValue\": 63.5878, \"reason\": \"充放收益不足以抵消约束成本，保持待机\"}], \"totalReward\": 214.4198, \"explanationSource\": \"live\", \"explanation\": \"该调度策略基于各节点的SOC状态与充放电经济性进行决策：Node-A和Node-C因SOC有余量或偏低而选择充电，Nod\", \"evidenceId\": \"ev-000774\", \"ms\": 5151}",
+   "evidence": "{\"id\": \"dp-000053\", \"actions\": [{\"nodeId\": \"Node-A\", \"action\": \"charge\", \"powerKw\": 16.6, \"qValue\": 52.4926, \"reason\": \"SOC有余量\"}, {\"nodeId\": \"Node-B\", \"action\": \"idle\", \"powerKw\": 0.0, \"qValue\": 61.8235, \"reason\": \"充放收益不足以抵消约束成本，保持待机\"}, {\"nodeId\": \"Node-C\", \"action\": \"charge\", \"powerKw\": 17.8, \"qValue\": 36.5159, \"reason\": \"SOC偏低\"}, {\"nodeId\": \"Node-D\", \"action\": \"idle\", \"powerKw\": 0.0, \"qValue\": 63.5878, \"reason\": \"充放收益不足以抵消约束成本，保持待机\"}], \"totalReward\": 214.4198, \"explanationSource\": \"live\", \"explanation\": \"该调度策略在2026-08-22 15:00~16:00时段内，对四个节点进行了差异化控制：Node-A和Node-C执\", \"evidenceId\": \"ev-001620\", \"ms\": 4122}",
    "note": ""
   },
   {
@@ -1017,8 +1017,8 @@
    "expect": "constraintsChecked 20/95/30，violations 空，动作符合约束",
    "impl": "algo-service /dqn/dispatch",
    "verdict": "通过",
-   "evidence": "{\"actions\": [{\"nodeId\": \"Node-A\", \"action\": \"charge\", \"powerKw\": 30.0, \"qValue\": 1.9385, \"reason\": \"SOC 18% 低于下限 20%，禁止放电，SOC偏低\"}, {\"nodeId\": \"Node-B\", \"action\": \"idle\", \"powerKw\": 0.0, \"qValue\": 71.4453, \"reason\": \"SOC 97% 高于上限 95%，禁止充电，充放收益不足以抵消约束成本，保持待机\"}, {\"nodeId\": \"Node-C\", \"action\": \"charge\", \"powerKw\": 18.2, \"qValue\": 53.9858, \"reason\": \"SOC有余量\"}], \"constraints\": {\"socMin\": 20.0, \"socMax\": 95.0, \"maxPowerKw\": 30.0, \"violations\": [{\"nodeId\": \"Node-A\", \"constraint\": \"socMin\", \"attempted\": \"charge\", \"applied\": \"charge\", \"detail\": \"SOC=18.0% 触发下限约束，禁止 discharge；动作 charge 可行，予以保留\"}, {\"nodeId\": \"Node-B\", \"constraint\": \"socMax\", \"attempted\": \"idle\", \"applied\": \"idle\", \"detail\": \"SOC=97.0% 触发上限约束，禁止 charge；动作 idle 可行，予以保留\"}]}}",
-   "note": "violations 字段记录的是“触发约束并已修正/保留”的动作（applied 均合规），非真正违规"
+   "evidence": "{\"actions\": [{\"nodeId\": \"Node-A\", \"action\": \"charge\", \"powerKw\": 30.0, \"qValue\": 3.5737, \"reason\": \"SOC 18% 低于下限 20%，禁止放电，SOC偏低\"}, {\"nodeId\": \"Node-B\", \"action\": \"idle\", \"powerKw\": 0.0, \"qValue\": 69.7661, \"reason\": \"SOC 97% 高于上限 95%，禁止充电，充放收益不足以抵消约束成本，保持待机\"}, {\"nodeId\": \"Node-C\", \"action\": \"charge\", \"powerKw\": 18.0, \"qValue\": 53.5615, \"reason\": \"SOC有余量\"}], \"constraints\": {\"socMin\": 20.0, \"socMax\": 95.0, \"maxPowerKw\": 30.0, \"violations\": [], \"constraintEvents\": [{\"nodeId\": \"Node-A\", \"constraint\": \"socMin\", \"attempted\": \"charge\", \"applied\": \"charge\", \"detail\": \"SOC=18.0% 触发下限约束，禁止 discharge，网络最优动作 charge 本就合规，无需修正\", \"corrected\": false}, {\"nodeId\": \"Node-B\", \"constraint\": \"socMax\", \"attempted\": \"idle\", \"applied\": \"idle\", \"detail\": \"SOC=97.0% 触发上限约束，禁止 charge，网络最优动作 idle 本就合规，无需修正\", \"corrected\": false}]}}",
+   "note": "复测点：violations=0 条，全部 attempted≠applied（真实修正）；越限留痕在动作 reason：Node-A「SOC 18% 低于下限 20%，禁止放电，SOC偏低」Node-B「SOC 97% 高于上限 95%，禁止充电，充放收益不足以抵消约束成本，保持待机」"
   },
   {
    "id": "TC-39-03",
@@ -1028,7 +1028,7 @@
    "expect": "403/1003；审计 denied high",
    "impl": "POST /dispatch/tasks/{id}/issue",
    "verdict": "通过",
-   "evidence": "{\"resp\": {\"code\": 1003, \"message\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"data\": null, \"traceId\": \"tr-20260822-214f6c66\"}, \"audit\": [{\"action\": \"dispatch:issue\", \"result\": \"denied\", \"riskLevel\": \"high\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\"}]}",
+   "evidence": "{\"resp\": {\"code\": 1003, \"message\": \"角色 vpp_operator 无 dispatch:issue 权限\", \"data\": null, \"traceId\": \"tr-20260822-48462e49\"}, \"audit\": [{\"action\": \"dispatch:issue\", \"result\": \"denied\", \"riskLevel\": \"high\", \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\"}]}",
    "note": ""
   },
   {
@@ -1039,7 +1039,7 @@
    "expect": "403/1004；high",
    "impl": "require_signature",
    "verdict": "通过",
-   "evidence": "{\"resp\": {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-74060951\"}, \"audit\": [{\"action\": \"dispatch:issue\", \"result\": \"denied\", \"riskLevel\": \"high\"}]}",
+   "evidence": "{\"resp\": {\"code\": 1004, \"message\": \"签名校验失败\", \"data\": null, \"traceId\": \"tr-20260822-006de682\"}, \"audit\": [{\"action\": \"dispatch:issue\", \"result\": \"denied\", \"riskLevel\": \"high\"}]}",
    "note": ""
   },
   {
@@ -1050,7 +1050,7 @@
    "expect": "issued，commandId，signerDid=admin DID，存证可查",
    "impl": "POST /dispatch/tasks/{id}/issue",
    "verdict": "通过",
-   "evidence": "{\"issue\": {\"issued\": true, \"commandId\": \"cmd-000021\", \"signerDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-000778\", \"targets\": [\"Node-A\", \"Node-B\", \"Node-C\", \"Node-D\"]}, \"task_status\": \"success\", \"evidence_ok\": true}",
+   "evidence": "{\"issue\": {\"issued\": true, \"commandId\": \"cmd-000053\", \"signerDid\": \"did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98\", \"evidenceId\": \"ev-001623\", \"targets\": [\"Node-A\", \"Node-B\", \"Node-C\", \"Node-D\"]}, \"task_status\": \"success\", \"evidence_ok\": true}",
    "note": ""
   },
   {
@@ -1061,7 +1061,7 @@
    "expect": "1006",
    "impl": "issue",
    "verdict": "通过",
-   "evidence": "{\"code\": 1006, \"message\": \"该任务已下发，不能重复下发\", \"data\": null, \"traceId\": \"tr-20260822-58a7339e\"}",
+   "evidence": "{\"code\": 1006, \"message\": \"该任务已下发，不能重复下发\", \"data\": null, \"traceId\": \"tr-20260822-4c3057a5\"}",
    "note": ""
   },
   {
@@ -1072,7 +1072,7 @@
    "expect": "acked + evidenceId",
    "impl": "POST /dispatch/tasks/{id}/ack",
    "verdict": "通过",
-   "evidence": "{\"ack\": {\"taskId\": \"dp-000021\", \"nodeId\": \"Node-A\", \"ackStatus\": \"partial\", \"acked\": 1, \"total\": 4}, \"task\": {\"status\": \"success\", \"commandId\": \"cmd-000021\", \"ackedAt\": null, \"acks\": null}}",
+   "evidence": "{\"ack\": {\"taskId\": \"dp-000053\", \"nodeId\": \"Node-A\", \"ackStatus\": \"partial\", \"acked\": 1, \"total\": 4}, \"task\": {\"status\": \"success\", \"commandId\": \"cmd-000053\", \"ackedAt\": null, \"acks\": null}}",
    "note": ""
   },
   {
@@ -1083,7 +1083,7 @@
    "expect": "summary.result denied，riskLevel high",
    "impl": "GET /audit/trace",
    "verdict": "通过",
-   "evidence": "{\"traceId\": \"tr-20260822-214f6c66\", \"summary\": {\"startAt\": \"2026-08-22T19:05:24+08:00\", \"endAt\": \"2026-08-22T19:05:24+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"result\": \"denied\", \"riskLevel\": \"high\", \"steps\": 1}, \"steps\": [{\"seq\": 1, \"module\": \"algo\", \"action\": \"dispatch:issue\", \"at\": \"20…",
+   "evidence": "{\"traceId\": \"tr-20260822-48462e49\", \"summary\": {\"startAt\": \"2026-08-22T20:27:19+08:00\", \"endAt\": \"2026-08-22T20:27:19+08:00\", \"durationMs\": 0, \"actorDid\": \"did:vpp:user:0x09019061e23e720e3ffbb089101b5a69\", \"actorName\": \"虚拟电厂运营商\", \"result\": \"denied\", \"riskLevel\": \"high\", \"steps\": 1}, \"steps\": [{\"seq\": 1, \"module\": \"algo\", \"action\": \"dispatch:issue\", \"at\": \"20…",
    "note": ""
   },
   {
@@ -1105,7 +1105,7 @@
    "expect": "answer+reasoning+source∈live/cache/rule，<12s，存证",
    "impl": "POST /ai/analyze",
    "verdict": "通过",
-   "evidence": "dispatch: source=live 2571ms latencyMs=2457 answer=根据调度任务dp-000021，该节点被选择放电是基于当前虚拟电厂的实时供需平衡\ndata: source=live 2510ms latencyMs=2410 answer=根据资产ID 1097的上下文，当前仅提供了资产标识，未包含数据质量评估所需的具\nrisk: source=live 2459ms latencyMs=2355 answer=当前节点 Node-A 的隐私风险需结合具体数据流转和脱敏情况评估，但基于现有上\nqa: source=live 2466ms latencyMs=2360 answer=差分隐私是一种数学隐私保护技术，通过在查询结果中添加精心设计的随机噪声，使得单个\naudit: source=live 2282ms latencyMs=2177 answer=截至2026年8月22日，审计未发现明确异常，但需关注当日数据完整性校验与调度日",
+   "evidence": "dispatch: source=live 4650ms latencyMs=4540 answer=根据调度任务dp-000053，该节点被选择放电是基于当前虚拟电厂运行状态和调度\ndata: source=live 2875ms latencyMs=2765 answer=根据资产ID 1148的上下文，当前仅提供了资产标识，未包含数据质量评估所需的具\nrisk: source=live 2110ms latencyMs=1999 answer=当前Node-A节点的隐私风险处于中等水平，主要源于数据共享过程中的敏感信息暴露\nqa: source=live 2653ms latencyMs=2546 answer=差分隐私是一种数学隐私保护技术，通过在查询结果中添加受控的随机噪声，使得单个用户\naudit: source=live 3564ms latencyMs=3459 answer=根据2026年8月22日的审计记录，今日未发现明显异常，所有关键指标均在正常范围",
    "note": ""
   },
   {
@@ -1116,7 +1116,7 @@
    "expect": "≥1 条",
    "impl": "GET /ai/history",
    "verdict": "通过",
-   "evidence": "{\"total\": 10, \"item0\": {\"id\": 28, \"scene\": \"qa\", \"context\": {}, \"question\": \"什么是差分隐私？\", \"answer\": \"差分隐私是一种数学隐私保护技术，通过在查询结果中添加精心设计的随机噪声，使得单个数据个体的信息无法被可靠推断，从而在数据共享和分析中保护个人隐私。它提供了可量化的隐私保障，即使攻击者拥有辅助信息，也无法区分某个体是否在数据集中。\", \"reasoning\": [\"差分隐私的核心机制是向统计结果注入噪声，确保输出对单个记录的变化不敏感，这是其定义的基础。\", \"该技术常用于虚拟电厂等场景中，保护用户用电数据等敏感信息，同时维持数据集的统计可用性，符合数据可信空间对隐私保护的要求。\"], \"source\": \"live\"…",
+   "evidence": "{\"total\": 19, \"item0\": {\"id\": 60, \"scene\": \"qa\", \"context\": {}, \"question\": \"什么是差分隐私？\", \"answer\": \"差分隐私是一种数学隐私保护技术，通过在查询结果中添加受控的随机噪声，使得单个用户的数据是否被包含在数据集中，对最终输出结果的影响微乎其微。这样，攻击者即使拥有强大的背景知识，也无法从输出中准确推断出特定个体的信息，从而在数据共享和分析中实现隐私保护。\", \"reasoning\": [\"差分隐私的核心机制是噪声注入，它量化了隐私泄露的风险，并提供了可证明的隐私保证，这是其区别于简单匿名化的关键。\", \"在虚拟电厂场景中，差分隐私可用于保护用户用电数据或调度指令的敏感细节，同时仍允许聚合分析，确保数据资产的安全共享和合规…",
    "note": ""
   },
   {
@@ -1127,7 +1127,7 @@
    "expect": "source 有标识；非法 1001",
    "impl": "algo deepseek adapter",
    "verdict": "通过",
-   "evidence": "{\"health\": {\"status\": \"ok\", \"version\": \"1.0.0\", \"models\": {\"dqn\": \"loaded\", \"deepseek\": \"live\"}}, \"source\": \"live\", \"ms\": 1984, \"bad_scene\": 1001}",
+   "evidence": "{\"health\": {\"status\": \"ok\", \"version\": \"1.0.0\", \"models\": {\"dqn\": \"loaded\", \"deepseek\": \"live\"}}, \"source\": \"live\", \"ms\": 4129, \"bad_scene\": 1001}",
    "note": "当前 DeepSeek 模式=live；live→cache→rule 的强制降级需断网/去 key 环境，本轮以 algo 单测 test_deepseek.py 作为替代证据"
   },
   {
@@ -1138,7 +1138,7 @@
    "expect": "高风险分数>低风险；level/factors/suggestion/evidenceId",
    "impl": "POST /risk/assess",
    "verdict": "通过",
-   "evidence": "{\"high\": {\"riskScore\": 60.2, \"level\": \"high\", \"suggestion\": \"风险等级 high，主要来源为查询频率（5分钟内12次查询）。建议将差分隐私 ε 由 1.0 降至 0.49，并限制查询频率、收敛暴露字段。\"}, \"low\": {\"riskScore\": 9.5, \"level\": \"low\"}, \"history\": 14}",
+   "evidence": "{\"high\": {\"riskScore\": 60.2, \"level\": \"high\", \"suggestion\": \"风险等级 high，主要来源为查询频率（5分钟内12次查询）。建议将差分隐私 ε 由 1.0 降至 0.49，并限制查询频率、收敛暴露字段。\"}, \"low\": {\"riskScore\": 9.5, \"level\": \"low\"}, \"history\": 67}",
    "note": ""
   },
   {
@@ -1159,9 +1159,9 @@
    "steps": "ws://…/ws?token → 触发越权/存证/FL/调度 → 收集 type",
    "expect": "收到 node_status/fl_progress/dispatch_progress/audit_alert/log/evidence_written 与 pong，统一格式 ts/payload",
    "impl": "ws/manager.py",
-   "verdict": "失败",
-   "evidence": "{\"log\": {\"level\": \"info\", \"module\": \"ws\", \"content\": \"admin 已接入实时通道\", \"traceId\": null}, \"pong\": {\"type\": \"pong\"}, \"evidence_written\": {\"evidenceId\": \"ev-000795\", \"category\": \"audit\", \"blockHeight\": 795}, \"dispatch_progress\": {\"taskId\": \"dp-000023\", \"stage\": \"aggregating\", \"detail\": \"汇集各节点实时运行数据\"}, \"fl_progress\": {\"taskId\": \"fl-000027\", \"round\": 1, \"totalRounds\": 2, \"loss\": 0.016493, \"acc\": 0.2325, \"compressionRatio\": 90.06, \"epsilonSpent\": 0.0, \"gradientHash\": \"d35fb66f08e31deaad9aa537fa5464aed6fe2d97a9cbba4b5a610d89578fbfcb\", \"evidenceId\": \"ev-000796\"}}",
-   "note": "缺少：['audit_alert', 'node_status']"
+   "verdict": "通过",
+   "evidence": "{\"log\": {\"level\": \"info\", \"module\": \"ws\", \"content\": \"admin 已接入实时通道\", \"traceId\": null}, \"pong\": {\"type\": \"pong\"}, \"evidence_written\": {\"evidenceId\": \"ev-001635\", \"category\": \"identity\", \"blockHeight\": 1635}, \"audit_alert\": {\"alertId\": \"al-000068\", \"ruleCode\": \"R01_UNAUTHORIZED\", \"ruleName\": \"越权访问\", \"riskLevel\": \"high\", \"message\": \"越权访问被拦截：GET /api/v1/fl/tasks（角色 energy_subject 无 model:read 权限）\", \"actorDid\": \"did:vpp:user:0xb4bdeaa1bde2474113e95b6d0a2dacb5\", \"actorName\": \"WS越权测试\", \"hitCount\": 3, \"evidenceId\": \"ev-001636\", \"at\": \"2026-08-22T12:27:41+08:00\"}, \"dispatch_progress\": {\"taskId\": \"dp-000054\", \"stage\": \"aggregating\", \"detail\": \"汇集各节点实时运行数据\"}, \"fl_progress\": {\"taskId\": \"fl-000055\", \"round\": 1, \"totalRounds\": 2, \"loss\": 0.016493, \"acc\": 0.2325, \"compressionRatio\": 90.06, \"epsilonSpent\": 0.0, \"gradientHash\": \"d35fb66f08e31deaad9aa537fa5464aed6fe2d97a9cbba4b5a610d89578fbfcb\", \"evidenc…",
+   "note": ""
   },
   {
    "id": "TC-311-03",
@@ -1173,6 +1173,17 @@
    "verdict": "通过",
    "evidence": "InvalidStatus: server rejected WebSocket connection: HTTP 403",
    "note": ""
+  },
+  {
+   "id": "TC-311-04",
+   "req": "3.11/3.12",
+   "title": "WebSocket 周期推送节点状态（契约 2.13 每 5 秒）",
+   "steps": "建立 ws 连接后空闲监听 16 秒",
+   "expect": "≥2 条 node_status（5 秒一次）",
+   "impl": "ws/manager.py + 定时任务",
+   "verdict": "失败",
+   "evidence": "{\"16s 内 node_status 条数\": 0, \"nodeIds\": []}",
+   "note": "空闲连接 16 秒内未收到周期性 node_status；后端只在 modules/node/service.py:176（设备上线）推送一次 → 见 BACKEND-ISSUES"
   },
   {
    "id": "TC-312-01",
@@ -1204,8 +1215,19 @@
    "expect": "结构正确",
    "impl": "分页",
    "verdict": "通过",
-   "evidence": "{\"total\": 104, \"page\": 2, \"size\": 10}",
+   "evidence": "{\"total\": 153, \"page\": 2, \"size\": 10}",
    "note": ""
+  },
+  {
+   "id": "TC-312-04",
+   "req": "3.12/5.1",
+   "title": "时间字段时区口径一致（createdAt vs updatedAt）",
+   "steps": "POST /did/register 后 GET /did/{did} 比对两个时间字段",
+   "expect": "两者指向同一时刻（差 ≤5 秒）",
+   "impl": "core/response.iso + model server_default",
+   "verdict": "失败",
+   "evidence": "{\"createdAt\": \"2026-08-22T20:28:04+08:00\", \"updatedAt\": \"2026-08-22T12:28:04+08:00\", \"diffSeconds\": 28800.0, \"db_now\": \"2026-08-22 12:28:04\"}",
+   "note": "createdAt 与 updatedAt 相差 28800.0 秒：created_at 用应用侧 CST，updated_at 用 DB server_default func.now()，本机 MariaDB 时区为 UTC → 见 BACKEND-ISSUES"
   },
   {
    "id": "TC-NF-01",
@@ -1215,7 +1237,7 @@
    "expect": "最大耗时 <2000ms",
    "impl": "性能",
    "verdict": "通过",
-   "evidence": "{\"/assets?size=20\": 17, \"/did?size=20\": 12, \"/evidence?size=20\": 10, \"/audit/logs?size=20\": 14, \"/nodes\": 122, \"/permissions/matrix\": 623, \"/audit/stats\": 43, \"/assets/stats\": 11}",
+   "evidence": "{\"/assets?size=20\": 11, \"/did?size=20\": 11, \"/evidence?size=20\": 9, \"/audit/logs?size=20\": 16, \"/nodes\": 9, \"/permissions/matrix\": 8, \"/audit/stats\": 26, \"/assets/stats\": 10}",
    "note": ""
   },
   {
@@ -1225,8 +1247,8 @@
    "steps": "30 线程同时 POST /auth/login",
    "expect": "全部 200，最大耗时 <5s",
    "impl": "性能",
-   "verdict": "失败",
-   "evidence": "30 并发登录：200×30，其它 []，最大耗时 5920ms",
+   "verdict": "通过",
+   "evidence": "30 并发登录：200×30，其它 []，最大耗时 2295ms",
    "note": ""
   },
   {
@@ -1243,56 +1265,56 @@
  ],
  "ctx": {
   "did": {
-   "did": "did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f",
+   "did": "did:vpp:device:0x892b4e81e234359d7dcbec374f28f341",
    "didDocument": {
     "@context": "https://w3id.org/did/v1",
-    "id": "did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f",
-    "controller": "did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f",
+    "id": "did:vpp:device:0x892b4e81e234359d7dcbec374f28f341",
+    "controller": "did:vpp:device:0x892b4e81e234359d7dcbec374f28f341",
     "verificationMethod": [
      {
-      "id": "did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f#key-1",
+      "id": "did:vpp:device:0x892b4e81e234359d7dcbec374f28f341#key-1",
       "type": "SM2VerificationKey2023",
-      "controller": "did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f",
-      "publicKeyHex": "043cc8467805128c1cc26e6ba1abb3bca4b07ddf2108447ae43a4927adf74eb976e117a9f4b8a1b77300cfb993b15921f73d89846d3043c3f265ab7dff47ebdce8"
+      "controller": "did:vpp:device:0x892b4e81e234359d7dcbec374f28f341",
+      "publicKeyHex": "0402371c230a6d6d1a62237fa753ef11d7d59dbdbb0ba1a085220c578d4bb9328e45756dddbba15f99935ae7c6c3c4ddb771ac8d57f63a20dbe60f659530e778cb"
      }
     ],
     "authentication": [
-     "did:vpp:device:0xe226f457dc89859d1c749b173b6ee78f#key-1"
+     "did:vpp:device:0x892b4e81e234359d7dcbec374f28f341#key-1"
     ],
-    "created": "2026-08-22T19:01:08+08:00"
+    "created": "2026-08-22T20:25:29+08:00"
    },
-   "publicKey": "043f9df8b8d4203282e2bbdd164c0bc0333371725e6f8a36a11a544e6b9e81622d236bcdc6efc38d4c055a1bfcf92b76f52a6d1e41f638d76f598de5fb09cfbddf",
-   "privateKey": "5fd8fa84ade6990c9725b28d3c6d844bfddda51ee7b80a8d9d896bc2d4471a33",
+   "publicKey": "048e4c0ef353d80205a25d8f599173286502e80e1e0828079b6f40c611a13e59af2979b25f353af5bd86c9e1b9a91e8d0fc061d5fd0d9fd5154c6e7652697b74a4",
+   "privateKey": "8c772bbdf9af6feecd98b2b87278dcb0e3c150e2eaa4ce034cdc5de88f681290",
    "custody": true,
-   "chainTxId": "blk-000644-0",
-   "evidenceId": "ev-000644",
-   "createdAt": "2026-08-22T19:01:08+08:00"
+   "chainTxId": "blk-001525-0",
+   "evidenceId": "ev-001525",
+   "createdAt": "2026-08-22T20:25:29+08:00"
   },
   "asset": {
-   "id": 1097,
+   "id": 1148,
    "hash": "sm3:3fd4a6c4aba983bfe94f2b8534820ba5330d62684ec553518cbbda6107411433",
    "level": "L2",
-   "chainTxId": "blk-000674-0",
-   "evidenceId": "ev-000674",
+   "chainTxId": "blk-001556-0",
+   "evidenceId": "ev-001556",
    "authStatus": "unauthorized",
    "classifySource": "algo",
    "classifyReason": "采集粒度为分钟级，规则综合敏感度 0.32，聚类簇 1（中敏感簇）",
-   "createdAt": "2026-08-22T11:01:10+08:00"
+   "createdAt": "2026-08-22T12:25:32+08:00"
   },
-  "trace_example": "tr-20260822-8fc49a24",
+  "trace_example": "tr-20260822-a0200020",
   "fl": {
-   "id": "fl-000019",
+   "id": "fl-000051",
    "status": "created",
-   "createdAt": "2026-08-22T11:02:34+08:00",
-   "traceId": "tr-20260822-2fb86140"
+   "createdAt": "2026-08-22T12:26:49+08:00",
+   "traceId": "tr-20260822-1f08ba84"
   },
   "dp": {
-   "id": "dp-000021",
+   "id": "dp-000053",
    "status": "created",
    "timeWindow": "2026-08-22T15:00~16:00+08:00",
-   "createdAt": "2026-08-22T11:05:19+08:00",
-   "traceId": "tr-20260822-ce290536"
+   "createdAt": "2026-08-22T12:27:15+08:00",
+   "traceId": "tr-20260822-693cf89d"
   },
-  "deny_trace": "tr-20260822-214f6c66"
+  "deny_trace": "tr-20260822-48462e49"
  }
 }

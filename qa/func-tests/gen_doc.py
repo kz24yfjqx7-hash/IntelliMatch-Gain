@@ -50,18 +50,19 @@ MATRIX = [
     ("3.10", "DeepSeek 调度解释 / 数据分析 / 风险分析 / 智能问答（含三级降级）", ["TC-310-01", "TC-310-02", "TC-310-03", "TC-37-12", "TC-39-01", "TC-UI-07", "TC-UI-10"], "POST /ai/analyze、/audit/report.narrative；source=live|cache|rule"),
     ("3.11", "端侧 Modbus/RS485/MQTT 采集；端-边 MQTT+TLS1.3；边-云 MQTT", ["TC-311-OS"], "范围外/不可执行：本环境无端侧设备与 MQTT Broker，后端契约仅定义 HTTPS+WS（见 §3 说明）"),
     ("3.11", "边缘节点通过 HTTPS RESTful API 上传/接收指令与回执", ["TC-33-05", "TC-39-07", "TC-311-01", "TC-38-03"], "/nodes/{id}/online、/dispatch/tasks/{id}/ack、算法服务 HTTP"),
-    ("3.11", "前后端 HTTPS + WebSocket 实时（节点状态/训练进度/调度/预警）", ["TC-311-02", "TC-311-03", "TC-UI-06", "TC-UI-08", "TC-UI-13"], "ws://…/ws?token；六类消息"),
+    ("3.11", "前后端 HTTPS + WebSocket 实时（节点状态/训练进度/调度/预警）", ["TC-311-02", "TC-311-03", "TC-311-04", "TC-UI-06", "TC-UI-08", "TC-UI-13"], "ws://…/ws?token；六类消息"),
     ("3.11", "网络中断边缘本地缓存、恢复后续传", ["TC-311-OS"], "范围外：树莓派边缘采集程序不在本次乙方交付（见 §3 说明）"),
-    ("3.12", "前后端分离 RESTful + WebSocket；统一网关权限校验；接口文档与测试文件", ["TC-312-01", "TC-312-02", "TC-312-03", "TC-31-12", "TC-37-04"], "Swagger /docs、统一包装、traceId；接口测试文件=qa/func-tests + 测试文档-接口与安全"),
+    ("3.12", "前后端分离 RESTful + WebSocket；统一网关权限校验；接口文档与测试文件", ["TC-312-01", "TC-312-02", "TC-312-03", "TC-312-04", "TC-31-12", "TC-37-04"], "Swagger /docs、统一包装、traceId；接口测试文件=qa/func-tests + 测试文档-接口与安全"),
     ("四", "首页驾驶舱保留 + 可信数据空间流程展示", ["TC-UI-02"], "NetworkTopology + TrustFlowBanner"),
     ("四", "联邦学习页增加任务状态/节点信息/模型版本", ["TC-UI-06"], "PrivacyCompute.vue"),
     ("四", "隐私计算页增加隐私预算和数据不出域流程", ["TC-UI-06"], "PrivacyCompute.vue"),
     ("四", "审计页增加任务级全流程追踪", ["TC-UI-08", "TC-UI-10"], "AuditLog.vue「全流程追踪」"),
+    ("四", "现有边端页面保留：本地感知分级（L1–L3）与动态隐私风险评估", ["TC-312-07", "TC-UI-11"], "POST /risk/assess、/risk/history；DataClassification.vue / RiskAssessment.vue"),
     ("4.1", "统一身份与可信接入中心（用户认证管理 / DID 注册·查询·认证 / 密钥生成·绑定·注销）", ["TC-UI-03", "TC-UI-12"], "/identity IdentityCenter.vue 四个 tab"),
     ("4.1", "能源数据资产中心（登记 / 分类分级 / 授权入口）", ["TC-UI-04"], "/assets AssetsCenter.vue"),
     ("4.1", "权限控制中心（角色管理 / 权限审批 / 数据访问控制）", ["TC-UI-05", "TC-UI-12"], "/permission PermissionCenter.vue"),
     ("4.1", "区块链存证中心（存证查询 / 业务链路追踪 / 审计查询）", ["TC-UI-09", "TC-UI-10"], "/evidence EvidenceCenter.vue、/audit"),
-    ("5.1", "统一数据管理：用户/角色/DID/密钥/资产/权限/任务/模型/审计日志；关系库 + 初始化脚本", ["TC-37-14", "TC-51-01"], "backend/sql/01_schema.sql + 02_seed.sql（26 表）"),
+    ("5.1", "统一数据管理：用户/角色/DID/密钥/资产/权限/任务/模型/审计日志；关系库 + 初始化脚本", ["TC-37-14", "TC-51-01", "TC-312-04"], "backend/sql/01_schema.sql + 02_seed.sql（26 表）"),
     ("5.2", "源码/程序/配置/启动脚本/部署文档；前端/后端/DB 初始化", ["TC-52-01"], "静态核对（见 §3）"),
     ("5.2", "Docker 一键启动、离线运行、演示安装包", ["TC-52-02", "TC-NF-03"], "docker-compose.yml / packaging/（本机无 docker 权限，静态验证）"),
     ("六", "登录→DID 认证→数据登记→权限审批→联邦学习→智能调度→AI 分析→区块链查询→审计追踪完整流程", ["TC-UI-01", "TC-UI-03", "TC-UI-04", "TC-UI-05", "TC-UI-06", "TC-UI-07", "TC-UI-08", "TC-UI-09", "TC-UI-10"], "页面层串联执行"),
@@ -98,6 +99,22 @@ def static_cases():
 for c in static_cases():
     cases[c["id"]] = c
 
+# ------------------------------------------------------------------ 未修复缺陷（本轮实测复现）
+DEFECTS_OPEN = [
+    ("B-020", "甲方 backend", "中", "同一 DID 绑定 ECC/RSA 密钥（版本更高）后，原 SM2 密钥签名无法验签；ECC/RSA 只能生成不能用于验证，需求 3.3「ECC/RSA 非对称机制」未闭环",
+     "TC-33-06", "open（BACKEND-ISSUES.md）"),
+    ("B-021", "甲方 backend", "中", "WebSocket 未按契约 2.13 每 5 秒周期推送 node_status，只在设备上线时推一次（modules/node/service.py:176）",
+     "TC-311-04 / TC-UI-13", "open"),
+    ("B-022", "甲方 backend", "中", "30 并发登录尾延迟远超 5s（bcrypt CPU 密集 + 单进程），本轮部分请求 ReadTimeout；顺序登录 <2s",
+     "TC-NF-02", "open"),
+    ("B-023", "甲方 backend", "低", "createdAt 用应用侧 CST、updatedAt 用 DB `server_default func.now()`，数据库时区非 Asia/Shanghai 时两者差 8 小时",
+     "TC-312-04", "open"),
+    ("B-001（已存）", "甲方 backend", "中", "同一存证连续两次 demo/tamper 覆盖原始快照，demo/restore 无法还原；无备份的条目永久断链",
+     "TC-36-06 / TC-36-09", "open（ops-doc 提出，本轮再次命中）"),
+    ("B-011（已存）", "甲方 backend", "中", "algo_fl_round.loss 为 DECIMAL(10,6)，loss ≥ 10000 时整轮落库与上链失败",
+     "TC-38-07", "open（算法侧熔断后不再触发，DB 列型仍需修）"),
+]
+
 # ------------------------------------------------------------------ 输出
 L = []
 A = L.append
@@ -124,6 +141,9 @@ A("")
 A("**按需求章节覆盖率**（章节内所有功能点均有用例 = 100%；执行通过率 = 该章节用例通过数/用例数）：\n")
 A("| 章节 | 功能点数 | 有用例 | 用例数 | 通过 | 失败 | 阻塞 |")
 A("|---|---|---|---|---|---|---|")
+UI_BASE = "http://127.0.0.1:5199"
+API_BASE = "http://127.0.0.1:8000/api/v1"
+ALGO_BASE = "http://127.0.0.1:8100/algo/v1"
 from collections import OrderedDict
 secs = OrderedDict()
 for req, desc, ids, impl in MATRIX:
@@ -165,7 +185,12 @@ for g, cs in groups.items():
         shots = "".join(f"<br>📷 {s}" for s in c.get("shots", []))
         ev = esc(c.get("evidence", ""))[:900]
         note = esc(c.get("note", ""))
-        pre = "已登录对应角色；" + ("test- 前缀实体" if c["id"].startswith("TC-3") or c["id"].startswith("TC-N") else "真后端模式前端")
+        if c["id"].startswith("TC-UI"):
+            pre = f"真后端模式前端 {UI_BASE}（Chromium 1366×768）；用例内自行登录所需角色；本轮页面测试数据前缀 `{ui['summary']['tag']}`"
+        elif c["id"].startswith("TC-5") or c["id"] == "TC-311-OS":
+            pre = "仓库工作区 + 联调库（静态核对 / 范围外）"
+        else:
+            pre = f"backend {API_BASE} + algo {ALGO_BASE} 已启动；六角色 JWT 已取得；本轮接口测试数据前缀 `{api['summary']['tag']}`"
         A(f"| {c['id']} | {c['req']} | {esc(c['title'])} | {pre} | {esc(c.get('steps'))} | {esc(c.get('expect'))} | {ev}{('<br>**备注：**' + note) if note else ''}{shots} | {c['verdict']} |")
     A("")
 
@@ -175,24 +200,46 @@ A("```\n" + cases["TC-31-12"]["evidence"] + "\n```\n")
 A("asset:export 六角色：`" + cases["TC-34-10"]["evidence"] + "`\n")
 
 A("## 5. WebSocket 六类消息\n")
-A("TC-311-02 在一次连接中触发各类业务并收集消息类型；TC-UI-13 在前端首页监听。结果：`fl_progress`、`dispatch_progress`、`evidence_written`、`log`、`audit_alert`、`pong` 均收到并符合 `{type, ts, traceId, payload}` 格式；`node_status` 仅在设备上线时推送一次、无 5 秒周期推送（B-001）。\n")
+A("TC-311-02 在一次连接中触发各类业务并收集消息类型（越权 → audit_alert，写存证 → evidence_written，FL 启动 → fl_progress，调度运行 → dispatch_progress，设备上线 → node_status，ping → pong，接入 → log）；TC-311-04 单独验证周期推送；TC-UI-13 在前端首页监听。\n")
+A("| 消息类型 | 触发方式 | 本轮结果 |")
+A("|---|---|---|")
+for t, how in [("log", "建立连接/业务日志"), ("pong", "客户端 ping"), ("evidence_written", "POST /evidence"),
+               ("audit_alert", "新建主体连续 3 次越权 → R01"), ("fl_progress", "POST /fl/tasks/{id}/start"),
+               ("dispatch_progress", "POST /dispatch/tasks/{id}/run"), ("node_status", "POST /nodes/{id}/online（托管私钥签 nonce）")]:
+    A(f"| `{t}` | {how} | {'✅ 收到' if ('\"' + t + '\"') in cases['TC-311-02'].get('evidence', '') else '见下方原始片段'} |")
+A("")
+A("六类业务消息 + pong 全部收到，格式符合 `{type, ts, traceId, payload}`。**但 `node_status` 只在设备上线事件时推送一次，空闲连接 16 秒收不到任何周期推送**（TC-311-04 失败 → B-021）。\n")
 A("```\n" + cases["TC-311-02"]["evidence"][:1500] + "\n```\n")
 
 A("## 6. 缺陷清单与状态\n")
+A("编号与 `docs/agent-notes/BACKEND-ISSUES.md`（甲方）、`docs/agent-notes/MSG-test-func-to-integration-00N.md`（乙方）一致。\n")
+A("### 6.1 本轮已修复并复测通过（上一轮功能测试提出）\n")
+A("| 单号 | 归属 | 摘要 | 复测用例 | 状态 |")
+A("|---|---|---|---|---|")
+A("| MSG-001 #1 | 乙方 algo-service | 隐私预算耗尽后训练继续，ε 累计到目标 10 倍、loss 发散 | TC-38-07（status=failed、error 含「熔断」、仅 1 轮） | ✅ 已修复并复测 |")
+A("| MSG-001 #2 | 乙方 algo-service | DQN `constraintsChecked.violations` 记录已修正/保留动作，非违规 | TC-39-02（violations 只含 attempted≠applied，越限留痕在动作 reason） | ✅ 已修复并复测 |")
+A("| UI-01 | 乙方 frontend | 真后端下「签名下发」必败 1004（前端本地伪签名） | TC-UI-07 | ✅ 已修复（改走后端托管代签） |")
+A("| UI-02 | 乙方 frontend | 终端响应页永远「暂无已下发指令」 | TC-UI-07 | ✅ 已修复（按 issued/commandId/ackStatus 判断） |")
+A("| UI-03 | 乙方 frontend | 终端验签步骤在无签名字节时谎报「验签通过」 | TC-UI-07 | ✅ 已修复 |")
+A("| UI-04 | 乙方 frontend | 告警确认传字符串 alertId → 400 | TC-UI-10 | ✅ 已修复（store 换算数字主键） |")
+A("| UI-05 | 乙方 frontend | 回收授权未带后端必填 reason → 400 | TC-UI-05 / TC-35-08 | ✅ 已修复 |")
+A("| UI-06 | 乙方 frontend | 非管理角色轮询 /audit/alerts 与未登录定时刷新造成 1003/401 | TC-UI-12 / TC-UI-14 | ✅ 已修复（按权限与登录态门控） |")
+A("| UI-07 | 乙方 frontend | 新建用户后列表看不到（后端 id 升序分页） | TC-UI-03 | ✅ 已修复（保存后跳最后一页） |")
+A("")
+A("### 6.2 未修复缺陷（本轮实测复现）\n")
 A("| 单号 | 归属 | 严重度 | 摘要 | 关联用例 | 状态 |")
 A("|---|---|---|---|---|---|")
-A("| B-001 | 甲方 backend | 中 | WebSocket 未按契约 2.13 每 5 秒推送 node_status，仅设备上线时推一次 | TC-311-02 / TC-UI-13 | open（docs/agent-notes/BACKEND-ISSUES.md） |")
-A("| B-002 | 甲方 backend | 中 | FL 轮次 loss 超出 DECIMAL(10,6) 落库失败，任务停留 running 直至 900s 超时；该轮存证回滚 | TC-38-07 | open |")
-A("| B-003 | 甲方 backend | 低 | 绑定 ECC/RSA 密钥后 DID 无法验签；ECC/RSA 只能生成不能验证 | TC-33-06 | open |")
-A("| B-004 | 甲方 backend | 低 | GET /did/{did} 返回详情而非契约的 DID 文档（前端已按 /document 适配） | TC-32-04 | open |")
-A("| B-005 | 甲方 backend | 低 | 30 并发登录最大耗时 5.9s（bcrypt + 单进程；第一轮 4.8s）| TC-NF-02 | open |")
-A("| MSG-test-func-to-integration-001 #1 | 乙方 algo-service | P2 | 隐私预算耗尽后训练继续，ε 累计到目标 10 倍、loss 发散（未异常停止） | TC-38-07 | 待 integration 修复后复测 |")
-A("| MSG-test-func-to-integration-001 #2 | 乙方 algo-service | P3 | DQN constraintsChecked.violations 记录的是已修正/保留动作，非违规 | TC-39-02 | 待处理 |")
-A("| MSG-test-func-to-integration-001 #3 | 甲方接口/乙方前端 | P3 | backend 未暴露 simulatePoison，页面无法演示投毒检测（算法层 TC-38-08 通过） | TC-38-08 | 备案 |")
-ui_fail = [c for c in ui["results"] if c["verdict"] == "失败"]
-for c in ui_fail:
-    if c["id"] != "TC-UI-13":
-        A(f"| （页面）{c['id']} | 乙方 frontend | 待定 | {esc(c.get('note'))[:120]} | {c['id']} | 见 MSG-test-func-to-integration-002 |")
+for row in DEFECTS_OPEN:
+    A("| " + " | ".join(row) + " |")
+for c in [x for x in ui["results"] if x["verdict"] == "失败" and x["id"] != "TC-UI-13"]:
+    A(f"| UI-{c['id'][-2:]}（新） | 乙方 frontend | 待定 | {esc(c.get('note'))[:140]} | {c['id']} | 见 MSG-test-func-to-integration-002 |")
+A("")
+A("### 6.3 备案（范围/环境原因，不作为缺陷）\n")
+A("| 事项 | 说明 | 关联用例 |")
+A("|---|---|---|")
+A("| backend 未暴露 `simulatePoison` | 页面无法演示投毒检测；算法层 TC-38-08 已验证识别 gradient_poisoning，演示走 mock 模式或直连算法服务 | TC-38-08 |")
+A("| 存证链基线断点 ev-001067 | 由 test-api 的安全用例「绕过应用层直接改库」造成且无 Redis 快照备份（甲方 B-001 使 restore 不可用）；本轮存证用例按「相对基线」判定，本轮自身的篡改演示已 restore 还原 | TC-36-06 / TC-36-08 / TC-36-09 |")
+A("| DeepSeek 三级降级 | 本机有 key 且可联网，只能验证 source 标识与「永不报错」；强制 live→cache→rule 降级以 algo-service 单测 test_deepseek.py 为替代证据 | TC-310-03 |")
 A("")
 
 A("## 7. 接口与安全测试汇总（引用 test-api）\n")
@@ -200,7 +247,9 @@ p = os.path.join(ROOT, "docs/测试文档-接口与安全.md")
 if os.path.exists(p):
     txt = open(p, encoding="utf-8").read()
     m = re.search(r"(#+\s*[^\n]*(总结|汇总|Summary)[^\n]*\n)([\s\S]{0,2500})", txt)
-    A(f"test-api 按《后端开发.docx》完成接口/安全专项，文档 `docs/测试文档-接口与安全.md`（{len(txt)//1024} KB）。其汇总节摘录：\n")
+    A("**分工说明**：本文档（test-func，所有者 test-func）以《能源可信数据空间项目需求书》为依据，做**功能与流程**验证 —— 需求追溯矩阵、页面级真实点击、六角色 RBAC、DID / 资产 / 权限 / 存证 / 审计 / 联邦 / 调度 / AI 的业务闭环。")
+    A("同事 test-api 的 `docs/测试文档-接口与安全.md`（所有者 test-api）以《虚拟电厂云边端隐私智能调度平台后端开发.docx》与 API 契约为依据，做**接口契约逐字段、数据库、安全专项（认证绕过 / 越权 / 注入 / 暴力破解 / 信息泄露 / 传输与部署）与性能抽样**。两份文档**互不重复**：本文档不再逐字段核对请求响应，也不重复安全攻击面结论；下表原样引用其汇总节。\n")
+    A(f"引用来源：`docs/测试文档-接口与安全.md`（{len(txt)//1024} KB）。其汇总节摘录：\n")
     A("> " + (m.group(1) + m.group(3) if m else txt[:1500]).replace("\n", "\n> "))
 else:
     A("test-api 的 `docs/测试文档-接口与安全.md` 在本文档生成时尚未产出；产出后在此处以其「测试总结」表为准，本文档不重复其内容（接口契约逐字段、注入/越权/限流等安全项）。")
@@ -210,13 +259,14 @@ A("## 8. 测试总结\n")
 A(f"- **用例总数 {tot}：通过 {ps}，失败 {fl}，阻塞 {bl}**（接口层 {api['summary']['total']}：通过 {api['summary']['pass']} / 失败 {api['summary']['fail']}；页面层 {ui['summary']['total']}：通过 {ui['summary']['pass']} / 失败 {ui['summary']['fail']}；静态/范围外 4）。")
 A("- **需求覆盖**：需求书 3.1–3.12、四/4.1、5.1–5.2、六 共 %d 个功能点，100%% 有用例；其中 3.11 端侧 MQTT/TLS/断网缓存与 5.2 Docker/真机为阻塞（范围外或环境不可执行，已给替代验证）。" % sum(s["pts"] for s in secs.values()))
 A("- **失败项**：" + ("、".join(c["id"] for c in allc if c["verdict"] == "失败") or "无") + "，对应缺陷见第 6 章；均不阻断核心演示链路。")
+A("- **复测结论**：上一轮提给 integration 的 2 个算法缺陷与 6 个页面缺陷全部修复并复测通过 —— DP 预算耗尽已熔断（TC-38-07：status=failed、error 含「熔断」、只跑 1 轮）、DQN violations 改为只记真实修正（TC-39-02）、签名下发/终端响应/验签/告警确认/回收授权/用户列表分页（TC-UI-03/05/07/10）。")
 A("""- **遗留风险**：
-  1. 拓扑页实时指标依赖 node_status 周期推送（B-001），真后端下需手动刷新或等设备上线事件；
-  2. 极小 ε 的 FL 任务会发散并卡在 running（B-002 + algo P2），演示时 ε 取 ≥0.5；
-  3. 同一 DID 绑定非 SM2 密钥后验签失效（B-003），演示只用 SM2；
-  4. DeepSeek live→cache→rule 降级在当前有 key/联网环境只验证了标识与永不报错，强制降级以 algo 单测为替代证据；
-  5. Docker 一键启动 / 离线拔网线 / 树莓派真机未实打（无 docker 权限与硬件）。
-- **结论**：需求书第六章要求的「登录 → DID 认证 → 数据登记 → 权限审批 → 联邦学习 → 智能调度 → AI 分析 → 区块链查询 → 审计追踪」完整流程在真后端 + 真算法服务 + 真浏览器下全部走通，六角色 RBAC、DID 全生命周期、存证篡改检出、审计追踪与五类风控规则均验证通过；存在 %d 项非阻断缺陷（甲方 5、乙方算法 2）。**功能层面满足验收条件（带遗留项）**，建议修复 B-001/B-002 与 algo P2 后复测 TC-311-02、TC-38-07、TC-UI-13。""" % (5 + 2))
+  1. 拓扑页与首页的实时节点指标依赖 node_status 周期推送（B-021），真后端下只能靠设备上线事件或手动刷新；
+  2. 同一 DID 绑定非 SM2 密钥后验签失效（B-020），演示与部署只用 SM2；
+  3. 30 并发登录尾延迟超 5s（B-022），答辩演示前避免多人同时登录，或用多 worker 起 backend；
+  4. 存证链基线断点 ev-001067 无快照无法还原（B-001），演示前若要「链完整」画面需重导数据库；
+  5. DeepSeek live→cache→rule 强制降级、Docker 一键启动、离线拔网、树莓派真机与端侧 MQTT/TLS 链路在本环境不可执行，已给替代验证。
+- **验收结论**：需求书第六章要求的「登录 → DID 认证 → 数据登记 → 权限审批 → 联邦学习 → 智能调度 → AI 分析 → 区块链查询 → 审计追踪」完整流程，在真后端 + 真算法服务 + 真浏览器（1366×768）下全流程走通；需求书 3.1–3.12、四 / 4.1、5.1–5.2、六 的功能点 100%% 有用例且真实执行，无空缺。剩余失败项全部为甲方 backend 侧的非阻断缺陷（B-020～B-023）与两条既有缺陷（B-001 / B-011），不影响演示链路。**功能层面通过验收（带遗留项）**，建议甲方修复 B-020～B-023 后复测 TC-33-06、TC-311-04、TC-NF-02、TC-312-04。""")
 
 open(os.path.join(ROOT, "docs/测试文档.md"), "w", encoding="utf-8").write("\n".join(L))
 print("written", tot, ps, fl, bl)

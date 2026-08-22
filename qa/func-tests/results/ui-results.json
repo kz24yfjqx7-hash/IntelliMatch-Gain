@@ -1,12 +1,14 @@
 {
  "summary": {
-  "tag": "test-08221108",
+  "tag": "test-08221229",
   "total": 15,
-  "pass": 2,
-  "fail": 13,
+  "pass": 8,
+  "fail": 7,
   "consoleErrors": [
    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-   "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+   "Failed to load resource: the server responded with a status of 409 (Conflict)",
+   "pageerror: perspectiveStore.stopNodePolling is not a function",
+   "Failed to load resource: the server responded with a status of 403 (Forbidden)"
   ]
  },
  "results": [
@@ -36,7 +38,7 @@
     "docs/test-evidence/03-home-trustflow.jpg",
     "docs/test-evidence/04-home-node-task.jpg"
    ],
-   "evidence": "counts=61/105/18/30/27/916; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 11:09:07\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
+   "evidence": "counts=105/153/28/56/54/1,647; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/22 12:29:35\n[ALGO]\n系统管理员 fl:train → failed：任务已完成，如需重跑请新建任务\nt",
    "verdict": "通过",
    "note": ""
   },
@@ -48,10 +50,12 @@
    "expect": "各操作成功并有提示，DID 文档含 verificationMethod，验签结果正确",
    "impl": "IdentityCenter.vue",
    "shots": [
+    "docs/test-evidence/05-identity-did-registered.jpg",
+    "docs/test-evidence/06-identity-verify-ok.jpg",
     "docs/test-evidence/TC-UI-03-fail.jpg"
    ],
    "verdict": "失败",
-   "note": "断言失败：用户列表含 admin"
+   "note": "locator.click: Timeout 30000ms exceeded."
   },
   {
    "id": "TC-UI-04",
@@ -61,10 +65,13 @@
    "expect": "显示 L 级与分级理由；登记返回 sm3 摘要与 ev- 存证；溯源含 register；授权入口可见",
    "impl": "AssetsCenter.vue",
    "shots": [
-    "docs/test-evidence/TC-UI-04-fail.jpg"
+    "docs/test-evidence/08-assets-classify.jpg",
+    "docs/test-evidence/09-assets-registered.jpg",
+    "docs/test-evidence/10-assets-lineage.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.innerText: Timeout 30000ms exceeded."
+   "evidence": "登记成功 · 已写入存证链 资产 ID 1157 敏感等级 L2 SM3 摘要 sm3:5cc27746a29fc2e9ada52fe413af3611664a669728e9be8ab0928665eba8888c 链上交易 blk-001665-0 存证 ID ev-001665 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-05",
@@ -74,11 +81,10 @@
    "expect": "申请 pending → approved；已授权列表出现；矩阵渲染；校验器结果正确",
    "impl": "PermissionCenter.vue",
    "shots": [
-    "docs/test-evidence/11-permission-apply-subject.jpg",
     "docs/test-evidence/TC-UI-05-fail.jpg"
    ],
    "verdict": "失败",
-   "note": "断言失败：角色管理列出 ≥6 角色"
+   "note": "locator.waitFor: Timeout 15000ms exceeded."
   },
   {
    "id": "TC-UI-06",
@@ -91,7 +97,7 @@
     "docs/test-evidence/TC-UI-06-fail.jpg"
    ],
    "verdict": "失败",
-   "note": "断言失败：页面含数据不出域流程与隐私预算"
+   "note": "locator.waitFor: Timeout 20000ms exceeded."
   },
   {
    "id": "TC-UI-07",
@@ -104,7 +110,7 @@
     "docs/test-evidence/TC-UI-07-fail.jpg"
    ],
    "verdict": "失败",
-   "note": "locator.click: Timeout 30000ms exceeded."
+   "note": "locator.waitFor: Timeout 20000ms exceeded."
   },
   {
    "id": "TC-UI-08",
@@ -114,10 +120,14 @@
    "expect": "1003 拦截；R01 告警；high 日志 dispatch:issue denied；traceId 时间轴",
    "impl": "CloudAggregate.vue / AuditLog.vue / AppHeader 铃铛",
    "shots": [
-    "docs/test-evidence/TC-UI-08-fail.jpg"
+    "docs/test-evidence/21-dispatch-deny-1003.jpg",
+    "docs/test-evidence/22-dispatch-deny-bell.jpg",
+    "docs/test-evidence/23-audit-high-logs.jpg",
+    "docs/test-evidence/24-audit-trace.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.click: Timeout 30000ms exceeded."
+   "evidence": "铃铛计数=1; audit_alert WS 帧 0→1; 弹层含 R01=true",
+   "note": "",
+   "verdict": "通过"
   },
   {
    "id": "TC-UI-09",
@@ -128,10 +138,13 @@
    "impl": "EvidenceCenter.vue",
    "shots": [
     "docs/test-evidence/25-evidence-list.jpg",
-    "docs/test-evidence/TC-UI-09-fail.jpg"
+    "docs/test-evidence/26-evidence-tampered.jpg",
+    "docs/test-evidence/27-evidence-chain-broken.jpg",
+    "docs/test-evidence/28-evidence-trace.jpg"
    ],
-   "verdict": "失败",
-   "note": "locator.click: Timeout 30000ms exceeded."
+   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:2076558; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-001687.json; 追踪链路按钮=1",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-10",
@@ -140,9 +153,11 @@
    "steps": "/audit → 导出 CSV → 全流程追踪「联邦训练链路」→ 风险告警「确认」→ 审计报告「生成报告」",
    "expect": "CSV 下载；时间轴 ≥3 步；告警可确认；报告含 narrative 与来源徽章",
    "impl": "AuditLog.vue",
-   "shots": [],
+   "shots": [
+    "docs/test-evidence/TC-UI-10-fail.jpg"
+   ],
    "verdict": "失败",
-   "note": "page.waitForEvent: Target page, context or browser has been closed"
+   "note": "断言失败：联邦训练链路步骤 1 ≥3"
   },
   {
    "id": "TC-UI-11",
@@ -151,9 +166,13 @@
    "steps": "/edge/classification → 开始分级；/edge/risk → 立即评估 → 预设「预算耗尽批量导出」→ 立即评估",
    "expect": "分级表打标 L1/L2/L3；风险评分与等级、建议显示",
    "impl": "DataClassification.vue / RiskAssessment.vue",
-   "shots": [],
-   "verdict": "失败",
-   "note": "page.evaluate: Target page, context or browser has been closed"
+   "shots": [
+    "docs/test-evidence/31-edge-classification.jpg",
+    "docs/test-evidence/32-edge-risk.jpg"
+   ],
+   "evidence": "高风险场景含拦截/警告=true",
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-12",
@@ -162,9 +181,12 @@
    "steps": "vpp：/evidence、/identity 用户管理、/permission 申请审批、/edge/privacy；subject 直接访问 /cloud/aggregate；edge 登录看侧栏；regulator 打开 /audit",
    "expect": "按钮级与路由级权限与角色矩阵一致",
    "impl": "v-permission / router.beforeEach / AppSidebar",
-   "shots": [],
-   "verdict": "失败",
-   "note": "locator.click: Target page, context or browser has been closed"
+   "shots": [
+    "docs/test-evidence/33-rbac-vpp-privacy-disabled.jpg",
+    "docs/test-evidence/34-rbac-edge-sidebar.jpg"
+   ],
+   "verdict": "通过",
+   "note": ""
   },
   {
    "id": "TC-UI-13",
@@ -174,8 +196,9 @@
    "expect": "收到 ≥1 条 node_status",
    "impl": "ws/manager.py / stores/ws",
    "shots": [],
-   "verdict": "失败",
-   "note": "page.goto: Target page, context or browser has been closed"
+   "evidence": "16s 内收到的 WS 帧：{\"connected\":1,\"log\":1}",
+   "note": "16 秒内未收到 node_status 周期推送（后端仅在设备上线时推送，未按契约 2.13 每 5 秒推送）→ 见 B-issue",
+   "verdict": "失败"
   },
   {
    "id": "TC-UI-14",
@@ -185,8 +208,9 @@
    "expect": "无横向滚动条、图表尺寸非 0、无未捕获 JS 异常",
    "impl": "全部页面",
    "shots": [],
-   "verdict": "失败",
-   "note": "page.evaluate: Target page, context or browser has been closed"
+   "evidence": "问题=无; pageerror=1; console.error=4",
+   "note": "pageerror: perspectiveStore.stopNodePolling is not a function",
+   "verdict": "失败"
   },
   {
    "id": "TC-UI-15",
@@ -196,8 +220,9 @@
    "expect": "跳转 /login?redirect=/evidence",
    "impl": "router 守卫",
    "shots": [],
-   "verdict": "失败",
-   "note": "locator.click: Target page, context or browser has been closed"
+   "evidence": "http://127.0.0.1:5199/login?redirect=/evidence",
+   "verdict": "通过",
+   "note": ""
   }
  ]
 }

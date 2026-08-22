@@ -119,8 +119,13 @@ export const usePerspectiveStore = defineStore('perspective', () => {
     return createEdgeReport(node, overrides)
   }
 
+  /** 最近一次收到 node_status 的时间戳（0 表示从未收到），用于决定要不要轮询兜底 */
+  let lastNodeStatusAt = 0
+  let pollTimer = null
+
   /** 用 WS node_status 增量更新节点指标 */
   function applyNodeStatus(payload) {
+    lastNodeStatusAt = Date.now()
     if (!payload?.nodeId) return
     const node = nodes.value.find(n => n.id === payload.nodeId)
     if (!node) return
@@ -144,10 +149,32 @@ export const usePerspectiveStore = defineStore('perspective', () => {
       }
       nodesLoaded.value = true
       if (!wsDetach) wsDetach = wsClient.on(WS_TYPES.NODE_STATUS, applyNodeStatus)
+      startNodePolling()
       return nodes.value
     } finally {
       nodesLoading.value = false
     }
+  }
+
+  /**
+   * 节点指标轮询兜底：契约 2.13 要求 node_status 每 5 秒推一次，
+   * 真后端目前只在 /nodes/{id}/online 时推（见 BACKEND-ISSUES B-020），
+   * 于是这里每 15 秒检查一次——期间没收到过 node_status 才重新拉列表，
+   * 收得到推送时不会产生任何多余请求（mock 模式即如此）。
+   */
+  function startNodePolling(intervalMs = 15000) {
+    if (pollTimer) return
+    pollTimer = setInterval(() => {
+      if (Date.now() - lastNodeStatusAt < intervalMs) return
+      nodeApi.listNodes({ size: 50 }).then(data => {
+        const items = (data?.items || []).map(normalizeNode)
+        if (items.length) nodes.value = items
+      }).catch(() => { /* 未登录 / 无权限：静默 */ })
+    }, intervalMs)
+  }
+
+  function stopNodePolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
   }
 
   return {
@@ -171,6 +198,8 @@ export const usePerspectiveStore = defineStore('perspective', () => {
     getNodeById,
     buildEdgeReport,
     fetchNodes,
+    startNodePolling,
+    stopNodePolling,
     applyNodeStatus
   }
 })

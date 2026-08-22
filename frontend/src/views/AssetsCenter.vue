@@ -39,7 +39,7 @@
         <el-input v-model="query.keyword" placeholder="名称 / ID / 哈希" clearable style="width: 200px" @keyup.enter="reload" @clear="reload" />
         <el-button @click="reload">查询</el-button>
       </div>
-      <el-table :data="list.items" v-loading="list.loading" size="small" stripe>
+      <el-table :data="list.items" v-loading="list.loading" size="small" stripe :empty-text="emptyText">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="资产名称" min-width="200" />
         <el-table-column label="类型" width="80">
@@ -228,6 +228,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { registerAsset, listAssets, getAsset, getAssetLineage, classifyAssets, getAssetStats, listDids, applyPermission } from '@/api'
 import { useLogStore } from '@/stores/logs'
+import { useUserStore } from '@/stores/user'
 import { LEVEL_LABELS, DATA_TYPE_LABELS, fmtDateTime, shortDid, toIso8 } from '@/utils/format'
 import CenterPage from '@/components/center/CenterPage.vue'
 import StatCard from '@/components/center/StatCard.vue'
@@ -237,6 +238,7 @@ import EChart from '@/components/center/EChart.vue'
 import { LEVEL_COLORS, CHART_COLORS, AXIS, TOOLTIP } from '@/components/center/chartTheme.js'
 
 const logStore = useLogStore()
+const userStore = useUserStore()
 
 const LEVEL_ICON = { L1: '🟢', L2: '🔵', L3: '🟠', L4: '🔴' }
 const LEVEL_TONE = { L1: 'success', L2: 'primary', L3: 'warning', L4: 'danger' }
@@ -288,6 +290,10 @@ async function loadSources() {
 
 /* ---------- 列表 ---------- */
 const query = reactive({ dataType: '', level: '', sourceDid: '', keyword: '', page: 1, size: 10 })
+/** 空表提示：energy_subject / edge_node 的资产列表 scope=own，种子数据下本来就为空 */
+const emptyText = computed(() => (userStore.hasRole(['energy_subject', 'edge_node'])
+  ? '暂无数据（当前角色仅可见本人登记的数据资产）'
+  : '暂无数据'))
 const list = reactive({ items: [], total: 0, loading: false })
 async function load() {
   list.loading = true

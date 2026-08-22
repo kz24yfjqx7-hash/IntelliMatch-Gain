@@ -50,6 +50,7 @@ onMounted(async () => {
 // 离开布局（退出登录回到 /login）时清理 WS 订阅，避免重复订阅与泄漏
 onBeforeUnmount(() => {
   logStore.detachWs()
+  perspectiveStore.stopNodePolling()
 })
 
 // 根据路由 meta.perspective 同步视角（中心页与审计页不改变视角）

@@ -93,10 +93,14 @@ PYEOF
 
 # 非 JSON 响应的裸断言：check_raw 名称 python表达式(可用 status, h, body)
 check_raw() {
-  local name="$1" expr="$2" res
-  res=$("$PY" - "$STATUS" "$BODY" "$HDR" "$expr" <<'PYEOF'
+  local name="$1" expr="$2" res bodyfile
+  # 响应体可能是几百 KB 的 CSV，用临时文件传给 python，避免 "Argument list too long"
+  bodyfile=$(mktemp)
+  printf '%s' "$BODY" > "$bodyfile"
+  res=$("$PY" - "$STATUS" "$bodyfile" "$HDR" "$expr" <<'PYEOF'
 import sys
-status, body, hdr, expr = sys.argv[1:5]
+status, bodyfile, hdr, expr = sys.argv[1:5]
+body = open(bodyfile, encoding="utf-8", errors="replace").read()
 h = {}
 for line in hdr.splitlines():
     if ":" in line:
@@ -108,6 +112,7 @@ except Exception as e:
 print("OK" if ok else "FAIL: 断言不成立: %s | 实际 HTTP %s CT=%s body=%s" % (expr, status, h.get("content-type"), body[:200].replace("\n"," ")))
 PYEOF
   )
+  rm -f "$bodyfile"
   if [ "$res" = "OK" ]; then PASS_N=$((PASS_N+1)); echo "PASS $name"
   else FAIL_N=$((FAIL_N+1)); echo "FAIL $name: ${res#FAIL: }"; echo "     复现: $LAST_CURL"; fi
 }
