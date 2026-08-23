@@ -95,7 +95,9 @@ request.interceptors.response.use(
       if (body.code === 0) {
         return body.data
       }
-      handleBizError(body.code, body.message, body.traceId || traceId)
+      // config.silent：调用方自己处理失败，不弹全局 toast。用于后台附属请求
+      // （如铃铛轮询），它们失败不该打断用户正在做的事。仍然 reject，调用方能感知
+      if (!response.config?.silent) handleBizError(body.code, body.message, body.traceId || traceId)
       return Promise.reject(buildError(body.message, body.code, body.traceId || traceId, { data: body.data }))
     }
     // 非标准包装直接返回
@@ -105,9 +107,11 @@ request.interceptors.response.use(
     // 请求拦截器里本地拒绝的（未登录），不提示、直接透传
     if (error?.silent) return Promise.reject(error)
     const traceId = error.config?.traceId
+    const silent = error.config?.silent
     const body = error.response?.data
     if (body && typeof body === 'object' && 'code' in body) {
-      handleBizError(body.code, body.message, body.traceId || traceId)
+      // 1002 例外：登录态失效必须提示并跳登录，静默请求也不能吞
+      if (!silent || body.code === 1002) handleBizError(body.code, body.message, body.traceId || traceId)
       return Promise.reject(buildError(body.message, body.code, body.traceId || traceId, {
         status: error.response?.status,
         data: body.data
@@ -118,7 +122,7 @@ request.interceptors.response.use(
     if (error.code === 'ECONNABORTED') message = '请求超时'
     else if (status) message = `HTTP ${status}`
     else if (!error.response) message = '网络异常，后端不可达'
-    ElMessage.error(message)
+    if (!silent) ElMessage.error(message)
     return Promise.reject(buildError(message, status ? 5000 : -1, traceId, { status }))
   }
 )

@@ -6,6 +6,7 @@ import { assetHandlers } from './asset.js'
 import { permissionHandlers } from './permission.js'
 import { evidenceHandlers } from './evidence.js'
 import { auditHandlers } from './audit.js'
+import { noticeHandlers } from './notice.js'
 import { nodeHandlers } from './node.js'
 import { flHandlers } from './fl.js'
 import { dispatchHandlers } from './dispatch.js'
@@ -20,6 +21,7 @@ export const handlers = [
   ...permissionHandlers,
   ...evidenceHandlers,
   ...auditHandlers,
+  ...noticeHandlers,
   ...nodeHandlers,
   ...flHandlers,
   ...dispatchHandlers,

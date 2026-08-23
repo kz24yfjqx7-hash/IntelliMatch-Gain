@@ -26,17 +26,20 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppLogBar from '@/components/AppLogBar.vue'
 import { useLogStore } from '@/stores/logs'
+import { useNoticeStore } from '@/stores/notice'
 import { usePerspectiveStore } from '@/stores/perspective'
 import { useUserStore } from '@/stores/user'
 import { wsClient } from '@/api/ws'
 
 const route = useRoute()
 const logStore = useLogStore()
+const noticeStore = useNoticeStore()
 const perspectiveStore = usePerspectiveStore()
 const userStore = useUserStore()
 
 onMounted(async () => {
   logStore.attachWs()
+  noticeStore.attachWs()
   if (userStore.token) wsClient.connect(userStore.token)
   try {
     await perspectiveStore.fetchNodes()
@@ -45,11 +48,14 @@ onMounted(async () => {
   }
   // 真后端 /audit/alerts 仅 sys_admin/regulator 可读（其它角色 1003 且会被风控计数），按角色门控；告警仍通过 WS audit_alert 实时到达
   if (userStore.canReadAudit) logStore.fetchAlerts({ status: 'open' }).catch(() => {})
+  // 站内消息对所有登录角色开放（接口本身按 DID 过滤，看不到别人的）
+  noticeStore.fetchNotices().catch(() => {})
 })
 
 // 离开布局（退出登录回到 /login）时清理 WS 订阅，避免重复订阅与泄漏
 onBeforeUnmount(() => {
   logStore.detachWs()
+  noticeStore.detachWs()
   perspectiveStore.stopNodePolling()
 })
 

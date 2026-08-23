@@ -19,16 +19,61 @@
         </div>
       </div>
 
-      <!-- 告警铃铛 -->
-      <el-popover placement="bottom-end" :width="380" trigger="click" popper-class="alert-popper">
+      <!-- 消息铃铛：待办消息 + 风险告警 -->
+      <el-popover placement="bottom-end" :width="400" trigger="click" popper-class="alert-popper"
+                  @show="onBellOpen">
         <template #reference>
-          <div class="bell" title="风险告警">
-            <el-badge :value="logStore.unackedAlertCount" :hidden="logStore.unackedAlertCount === 0" :max="99">
+          <div class="bell" :title="bellTitle">
+            <el-badge :value="bellCount" :hidden="bellCount === 0" :max="99">
               <el-icon :size="20"><Bell /></el-icon>
             </el-badge>
           </div>
         </template>
-        <div class="alert-panel">
+
+        <div class="bell-tabs">
+          <div class="bell-tab" :class="{ active: bellTab === 'notice' }" @click="bellTab = 'notice'">
+            消息<span v-if="noticeStore.unreadCount" class="tab-dot">{{ noticeStore.unreadCount }}</span>
+          </div>
+          <div v-if="userStore.canReadAudit" class="bell-tab" :class="{ active: bellTab === 'alert' }" @click="bellTab = 'alert'">
+            风险告警<span v-if="logStore.unackedAlertCount" class="tab-dot">{{ logStore.unackedAlertCount }}</span>
+          </div>
+        </div>
+
+        <!-- 消息 -->
+        <div v-show="bellTab === 'notice'" class="alert-panel">
+          <div class="alert-panel-title">
+            <span>消息（未读 {{ noticeStore.unreadCount }}）</span>
+            <span>
+              <el-button link size="small" :disabled="noticeStore.unreadCount === 0 || noticeStore.available === false" @click="readAll">全部已读</el-button>
+              <el-button link size="small" @click="refreshNotices">刷新</el-button>
+            </span>
+          </div>
+          <div v-if="noticeStore.available === false" class="alert-empty">
+            消息服务未就绪<br />
+            <span class="empty-hint">后端需重启并执行 sql/05_migrate_20260823.sql</span>
+          </div>
+          <div v-else-if="noticeStore.notices.length === 0" class="alert-empty">暂无消息</div>
+          <div v-for="n in noticeStore.notices.slice(0, 10)" :key="n.id"
+               class="notice-item" :class="[n.level, { read: n.status === 'read' }]"
+               @click="openNotice(n)">
+            <div class="notice-head">
+              <span class="notice-dot" :class="{ hidden: n.status === 'read' }"></span>
+              <span class="notice-title">{{ n.title }}</span>
+              <span class="alert-time">{{ fmtTime(n.createdAt) }}</span>
+            </div>
+            <div class="notice-content">{{ n.content }}</div>
+            <div class="notice-foot">
+              <span>{{ n.actorName || shortDid(n.actorDid) || '系统' }}</span>
+              <span class="notice-go">查看 →</span>
+            </div>
+          </div>
+          <div class="alert-footer">
+            <el-button link size="small" @click="goPermission">前往权限中心 →</el-button>
+          </div>
+        </div>
+
+        <!-- 风险告警（保持原样） -->
+        <div v-show="bellTab === 'alert'" class="alert-panel">
           <div class="alert-panel-title">
             <span>风险告警（未确认 {{ logStore.unackedAlertCount }}）</span>
             <el-button link size="small" @click="refreshAlerts">刷新</el-button>
@@ -75,19 +120,66 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { usePerspectiveStore } from '@/stores/perspective'
 import { useLogStore } from '@/stores/logs'
+import { useNoticeStore } from '@/stores/notice'
 import { useUserStore } from '@/stores/user'
 import { fmtTime, shortDid, RISK_LABELS } from '@/utils/format'
 
 const router = useRouter()
 const perspectiveStore = usePerspectiveStore()
 const logStore = useLogStore()
+const noticeStore = useNoticeStore()
 const userStore = useUserStore()
 const isMock = import.meta.env.VITE_USE_MOCK === 'true'
+
+const bellTab = ref('notice')
+// 角标是两类未加起来的总数：用户只关心「有几件事等我」，不关心分类
+const bellCount = computed(() => noticeStore.unreadCount + logStore.unackedAlertCount)
+const bellTitle = computed(() => {
+  const parts = []
+  if (noticeStore.unreadCount) parts.push(`${noticeStore.unreadCount} 条未读消息`)
+  if (logStore.unackedAlertCount) parts.push(`${logStore.unackedAlertCount} 条未确认告警`)
+  return parts.length ? parts.join('，') : '消息与告警'
+})
+
+/** 打开铃铛时拉一次最新的，并把默认 tab 落在有未读的那一侧 */
+function onBellOpen() {
+  if (noticeStore.unreadCount === 0 && logStore.unackedAlertCount > 0 && userStore.canReadAudit) {
+    bellTab.value = 'alert'
+  }
+  refreshNotices()
+}
+
+function refreshNotices() {
+  noticeStore.fetchNotices().catch(() => {})
+}
+
+async function readAll() {
+  try {
+    await noticeStore.markAllRead()
+  } catch { /* request.js 已提示 */ }
+}
+
+/** 点一条消息：标记已读并跳到它指向的地方 */
+async function openNotice(n) {
+  if (n.status === 'unread') {
+    noticeStore.markRead([n.id]).catch(() => {})
+  }
+  if (!n.link) return
+  // link 形如 /permission?tab=applications&id=12
+  const [path, query = ''] = String(n.link).split('?')
+  const q = Object.fromEntries(new URLSearchParams(query))
+  router.push({ path, query: q })
+}
+
+function goPermission() {
+  router.push('/permission')
+}
 
 function handleToggle() {
   const oldPerspective = perspectiveStore.currentPerspective
@@ -177,9 +269,42 @@ async function onUserCommand(cmd) {
 .role-tag.regulator { background: rgba(243, 156, 18, 0.2); color: var(--color-warning); }
 .user-did { font-size: 12px; color: #888; }
 
+.bell-tabs { display: flex; gap: 4px; border-bottom: 1px solid rgba(128,128,128,.25); margin-bottom: 8px; }
+.bell-tab {
+  padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--color-text-secondary, #888);
+  border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px;
+}
+.bell-tab:hover { color: var(--color-primary, #00B4D8); }
+.bell-tab.active { color: var(--color-primary, #00B4D8); border-bottom-color: var(--color-primary, #00B4D8); font-weight: 600; }
+.tab-dot {
+  min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; border-radius: 8px;
+  background: #E63946; color: #fff; font-size: 11px; text-align: center;
+}
+
+.notice-item {
+  padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; cursor: pointer;
+  border-left: 3px solid var(--color-primary, #00B4D8); background: rgba(0, 180, 216, 0.06);
+  transition: background .15s;
+}
+.notice-item:hover { background: rgba(0, 180, 216, 0.14); }
+.notice-item.success { border-left-color: #2ECC71; background: rgba(46, 204, 113, 0.07); }
+.notice-item.warning { border-left-color: #F39C12; background: rgba(243, 156, 18, 0.07); }
+.notice-item.read { opacity: .55; }
+.notice-head { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.notice-dot { width: 7px; height: 7px; border-radius: 50%; background: #E63946; flex-shrink: 0; }
+.notice-dot.hidden { visibility: hidden; }
+.notice-title { font-weight: 600; }
+.notice-content {
+  font-size: 12px; margin: 4px 0 2px 13px; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.notice-foot { display: flex; justify-content: space-between; font-size: 11px; color: #999; margin-left: 13px; }
+.notice-go { color: var(--color-primary, #00B4D8); }
+
 .alert-panel { max-height: 420px; overflow: auto; }
 .alert-panel-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 8px; }
 .alert-empty { color: #999; text-align: center; padding: 16px 0; }
+.empty-hint { font-size: 11px; color: #777; }
 .alert-item { padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid #999; background: rgba(0, 0, 0, 0.03); }
 .alert-item.high, .alert-item.critical { border-left-color: #E63946; background: rgba(230, 57, 70, 0.06); }
 .alert-item.medium { border-left-color: #F39C12; }

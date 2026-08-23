@@ -2,6 +2,20 @@
 import { http } from 'msw'
 import { db, RESOURCES, ACTIONS, nextId, permissionsOfRoles } from '../db.js'
 import { BASE, handle, ok, body, query, paginate, requireAuth, requirePerm, writeAudit, writeEvidence, raiseAlert, MockError, now } from '../helpers.js'
+import { pushNotice } from './notice.js'
+
+const RES_LABEL = { asset: '数据资产', model: '模型', dispatch: '调度指令', evidence: '存证', algo: '算法', user: '用户' }
+const ACT_LABEL = { read: '读取', write: '写入', execute: '执行', issue: '签发', export: '导出', manage: '管理' }
+const resLabel = t => RES_LABEL[t] || t || '资源'
+const actLabel = a => ACT_LABEL[a] || a || ''
+
+/** 审批人 = 具备 user:manage 的角色，与后端 APPROVER_ROLES 对应 */
+function approverDids(excludeDid) {
+  return db.users
+    .filter(u => u.status !== 'disabled' && u.did && u.did !== excludeDid
+                 && permissionsOfRoles(u.roles).includes('user:manage'))
+    .map(u => u.did)
+}
 
 /** 请求体里的 grants 可能是对象（旧形状）或契约数组形状，统一成 {资源: [动作]} */
 function toGrantsMap(data) {
@@ -106,6 +120,11 @@ export const permissionHandlers = [
     }
     db.applications.push(app)
     writeAudit({ traceId, user, module: 'permission', action: 'permission:apply', resourceType: data.resourceType, resourceId: data.resourceId, detail: `申请 ${data.resourceType}:${data.action}（${data.resourceId}）`, evidenceId: ev.evidence_id })
+    pushNotice(approverDids(user.did), {
+      category: 'permission_apply', level: 'warning', title: '有新的权限申请待审批',
+      content: `${app.applicantName || app.applicantDid} 申请${resLabel(app.resourceType)} ${app.resourceId} 的${actLabel(app.action)}权限。理由：${app.reason || '未填写'}`,
+      link: `/permission?tab=apps&id=${id}`, refType: 'permission_application', refId: id, actor: user
+    })
     return ok({ id, status: 'pending', applicantDid: user.did, createdAt: app.createdAt, evidenceId: ev.evidence_id, traceId }, traceId)
   })),
 
@@ -139,6 +158,11 @@ export const permissionHandlers = [
     if (asset) asset.authStatus = 'authorized'
     writeAudit({ traceId, user, module: 'permission', action: 'permission:approve', resourceType: app.resourceType, resourceId: app.resourceId, riskLevel: 'medium', detail: `审批通过申请 #${app.id}，生成授权 #${grant.id}`, evidenceId: ev.evidence_id })
     checkR03(app.applicantDid, traceId)
+    pushNotice([app.applicantDid], {
+      category: 'permission_result', level: 'success', title: '权限申请已通过',
+      content: `${resLabel(app.resourceType)} ${app.resourceId} 的${actLabel(app.action)}权限申请已通过。审批意见：${app.reviewComment || '无'}`,
+      link: '/permission?tab=grants', refType: 'permission_application', refId: app.id, actor: user
+    })
     return ok({ id: app.id, status: app.status, grantId: grant.id, evidenceId: ev.evidence_id, reviewedAt: app.reviewedAt }, traceId)
   })),
 
@@ -154,6 +178,11 @@ export const permissionHandlers = [
     db.permChangeLogs.push({ id: nextId('permChange'), applicationId: app.id, did: app.applicantDid, change: 'rejected', operator: user.did, at: app.reviewedAt, evidenceId: ev.evidence_id })
     writeAudit({ traceId, user, module: 'permission', action: 'permission:reject', resourceType: app.resourceType, resourceId: app.resourceId, detail: `驳回申请 #${app.id}：${app.reviewComment}`, evidenceId: ev.evidence_id })
     checkR03(app.applicantDid, traceId)
+    pushNotice([app.applicantDid], {
+      category: 'permission_result', level: 'warning', title: '权限申请被驳回',
+      content: `${resLabel(app.resourceType)} ${app.resourceId} 的${actLabel(app.action)}权限申请被驳回。审批意见：${app.reviewComment || '无'}`,
+      link: `/permission?tab=apps&id=${app.id}`, refType: 'permission_application', refId: app.id, actor: user
+    })
     return ok({ id: app.id, status: app.status, evidenceId: ev.evidence_id, reviewedAt: app.reviewedAt }, traceId)
   })),
 
@@ -175,7 +204,8 @@ export const permissionHandlers = [
     const g = db.grants.find(x => x.id === Number(params.id))
     if (!g) throw new MockError(1005, '授权不存在')
     if (g.status === 'revoked') throw new MockError(1006, '授权已回收')
-    g.status = 'revoked'; g.revokedAt = now(); g.revokedBy = user.did
+    const revokeReason = (await body(request))?.reason || '管理员手动回收授权'
+    g.status = 'revoked'; g.revokedAt = now(); g.revokedBy = user.did; g.revokeReason = revokeReason
     const ev = writeEvidence({ category: 'permission', refId: `grant-${g.id}`, actorDid: user.did, traceId, payload: { op: 'permission:revoke', grantId: g.id, did: g.did } })
     db.permChangeLogs.push({ id: nextId('permChange'), applicationId: g.applicationId, did: g.did, change: 'revoked', operator: user.did, at: g.revokedAt, evidenceId: ev.evidence_id })
     const stillGranted = db.grants.some(x => x.status === 'active' && x.resourceType === 'asset' && x.resourceId === g.resourceId)
@@ -183,6 +213,11 @@ export const permissionHandlers = [
     if (asset && !stillGranted) asset.authStatus = 'unauthorized'
     writeAudit({ traceId, user, module: 'permission', action: 'permission:revoke', resourceType: g.resourceType, resourceId: g.resourceId, riskLevel: 'medium', detail: `回收授权 #${g.id}`, evidenceId: ev.evidence_id })
     checkR03(g.did, traceId)
+    pushNotice([g.did], {
+      category: 'permission_revoke', level: 'warning', title: '你的一项授权已被回收',
+      content: `${resLabel(g.resourceType)} ${g.resourceId} 的${actLabel(g.action)}权限已被回收。原因：${revokeReason}`,
+      link: '/permission?tab=grants', refType: 'perm_grant', refId: g.id, actor: user
+    })
     return ok({ id: g.id, status: g.status, evidenceId: ev.evidence_id }, traceId)
   })),
 

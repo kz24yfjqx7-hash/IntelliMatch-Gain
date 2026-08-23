@@ -140,6 +140,7 @@ _MODULES = [
     "asset",
     "evidence",
     "audit",
+    "notice",
     "node",
     "algo",
 ]

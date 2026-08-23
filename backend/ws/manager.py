@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 MESSAGE_TYPES = frozenset({
     "node_status", "fl_progress", "dispatch_progress", "audit_alert", "log", "evidence_written",
 })
+# 契约之外的扩展类型。notice 是**定向**推送（只发给指定 DID），不走 broadcast，
+# 因此不能混进 MESSAGE_TYPES：那里的 push() 是全量广播，站内信广播出去就是越权。
+DIRECTED_TYPES = frozenset({"notice"})
 
 # 契约 2.13：node_status「节点状态与实时指标，每 5 秒推送」
 NODE_STATUS_INTERVAL = 5.0
@@ -49,6 +52,22 @@ class ConnectionManager:
         if principal:
             logger.info("WebSocket 已断开：%s（剩余 %d 个连接）",
                         principal.get("username"), len(self._connections))
+
+    async def send_to(self, message: dict, dids: set[str]) -> None:
+        """只发给 principal.did 命中的连接。同一个人多端登录会各收一份，符合预期。"""
+        if not self._connections or not dids:
+            return
+        payload = json.dumps(message, ensure_ascii=False, default=_json_default)
+        dead = []
+        for ws, principal in list(self._connections.items()):
+            if principal.get("did") not in dids:
+                continue
+            try:
+                await ws.send_text(payload)
+            except Exception:  # noqa: BLE001
+                dead.append(ws)
+        for ws in dead:
+            await self.disconnect(ws)
 
     async def broadcast(self, message: dict) -> None:
         """向所有连接推送。发送失败的连接直接剔除，不让死连接拖慢广播。"""
@@ -91,38 +110,59 @@ def set_loop(loop: asyncio.AbstractEventLoop | None = None) -> None:
         _loop = None
 
 
-def push(message_type: str, payload: dict, trace_id: str | None = None) -> None:
-    """同步侧的推送入口。**永远不抛异常**——推送失败不能影响业务。"""
-    if message_type not in MESSAGE_TYPES:
-        logger.warning("未知的 WebSocket 消息类型：%s", message_type)
-        return
-    if manager.count == 0:
-        return
-
+def _build(message_type: str, payload: dict, trace_id: str | None) -> dict:
     if trace_id is None:
         from core.middleware import current_trace_id
 
         trace_id = current_trace_id.get()
-
-    message = {
+    return {
         "type": message_type,
         "ts": iso(now_cst()),
         "traceId": trace_id,
         "payload": payload,
     }
 
+
+def _schedule(coro_factory) -> None:
+    """把广播协程丢回事件循环。**永远不抛异常**——推送失败不能影响业务。"""
     try:
         running = asyncio.get_running_loop()
     except RuntimeError:
         running = None
-
     try:
         if running is not None:
-            running.create_task(manager.broadcast(message))
+            running.create_task(coro_factory())
         elif _loop is not None:
-            asyncio.run_coroutine_threadsafe(manager.broadcast(message), _loop)
+            asyncio.run_coroutine_threadsafe(coro_factory(), _loop)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("WebSocket 推送失败 type=%s：%s", message_type, exc)
+        logger.warning("WebSocket 推送调度失败：%s", exc)
+
+
+def push(message_type: str, payload: dict, trace_id: str | None = None) -> None:
+    """同步侧的广播入口。**永远不抛异常**——推送失败不能影响业务。"""
+    if message_type not in MESSAGE_TYPES:
+        logger.warning("未知的 WebSocket 消息类型：%s", message_type)
+        return
+    if manager.count == 0:
+        return
+    message = _build(message_type, payload, trace_id)
+    _schedule(lambda: manager.broadcast(message))
+
+
+def push_to_dids(dids, message_type: str, payload: dict,
+                 trace_id: str | None = None) -> None:
+    """定向推送给指定 DID 的在线连接。用于站内信这类**不能广播**的消息。
+
+    收件人不在线时什么也不做：消息本身已经落库，对方下次进页面拉列表就能看到。
+    """
+    if message_type not in DIRECTED_TYPES:
+        logger.warning("非定向消息类型不得走定向推送：%s", message_type)
+        return
+    targets = {d for d in (dids or []) if d}
+    if not targets or manager.count == 0:
+        return
+    message = _build(message_type, payload, trace_id)
+    _schedule(lambda: manager.send_to(message, targets))
 
 
 # ---------------------------------------------------------------- node_status 周期广播（契约 2.13）

@@ -239,6 +239,29 @@ CREATE TABLE IF NOT EXISTS perm_change_log (
   INDEX idx_type (change_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限变更留痕（供 R03 高频权限变更规则统计）';
 
+-- 站内消息（铃铛）。按收件人 DID 扇出：一条事件发给 N 个人就是 N 行，
+-- 因为「已读」是每个人各自的状态，不能共享一行。
+CREATE TABLE IF NOT EXISTS sys_notice (
+  id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+  recipient_did  VARCHAR(128) NOT NULL COMMENT '收件人 DID',
+  recipient_name VARCHAR(128),
+  category       VARCHAR(32)  NOT NULL COMMENT 'permission_apply/permission_result/permission_revoke',
+  level          VARCHAR(16)  NOT NULL DEFAULT 'info' COMMENT 'info|success|warning',
+  title          VARCHAR(128) NOT NULL,
+  content        VARCHAR(512),
+  link           VARCHAR(255) COMMENT '点击跳转的前端路由',
+  ref_type       VARCHAR(32),
+  ref_id         VARCHAR(64),
+  actor_did      VARCHAR(128) COMMENT '触发者：申请人或审批人',
+  actor_name     VARCHAR(128),
+  status         VARCHAR(16)  NOT NULL DEFAULT 'unread' COMMENT 'unread|read',
+  read_at        DATETIME,
+  trace_id       VARCHAR(64),
+  created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_recipient_status (recipient_did, status),
+  INDEX idx_recipient_created (recipient_did, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内消息（铃铛）';
+
 -- ----------------------------------------------------------------------------
 -- 五、可信存证（需求 3.6）—— 本地哈希链
 -- ----------------------------------------------------------------------------

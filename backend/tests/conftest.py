@@ -46,6 +46,7 @@ def engine():
     import modules.did.model  # noqa: F401
     import modules.evidence.model  # noqa: F401
     import modules.node.model  # noqa: F401
+    import modules.notice.model  # noqa: F401
     import modules.permission.model  # noqa: F401
 
     Base.metadata.create_all(eng)

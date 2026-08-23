@@ -38,6 +38,24 @@ const ENUMS = {
   dqnAction: ['charge', 'idle', 'discharge']
 }
 
+/**
+ * 契约之外的扩展接口。
+ *
+ * `contract/` 是冻结区（见 contract/README.md 铁律 1），本仓库不得单方面修改。
+ * 新功能确实需要新接口时，先在这里显式登记、说明用途和归属模块，等两方当面确认后
+ * 再由一人更新 API-CONTRACT.md 并追加变更记录，届时把对应条目从这里删掉。
+ *
+ * 登记在册 ≠ 放行任意路径：没登记的契约外路径仍然让用例失败，这正是本表存在的意义。
+ */
+const CONTRACT_EXTENSIONS = [
+  // 站内消息（铃铛）：权限申请通知审批人、审批结果通知申请人。backend/modules/notice
+  { key: 'GET /notices', why: '我的消息列表' },
+  { key: 'GET /notices/unread-count', why: '铃铛角标未读数' },
+  { key: 'POST /notices/read', why: '标记若干条已读' },
+  { key: 'POST /notices/read-all', why: '全部已读' }
+]
+const EXTENSION_KEYS = new Set(CONTRACT_EXTENSIONS.map(e => e.key))
+
 /* ---------------- 契约解析 ---------------- */
 function contractEndpoints() {
   const part2 = CONTRACT.split('## 第二部分')[1].split('## 第三部分')[0]
@@ -129,15 +147,18 @@ describe('A1 契约路径 ⇄ api/*.js ⇄ mocks/handlers', () => {
   it('契约第二部分解析出 73 个接口', () => {
     expect(eps.length).toBe(73)
   })
-  it('api/*.js 覆盖全部契约接口且无契约外路径', () => {
+  it('api/*.js 覆盖全部契约接口，契约外路径必须已登记为扩展', () => {
     const calls = apiCalls()
     const want = new Set(eps.map(e => e.key))
-    expect(Object.keys(calls).filter(k => !want.has(k))).toEqual([])
+    const extra = Object.keys(calls).filter(k => !want.has(k) && !EXTENSION_KEYS.has(k))
+    expect(extra, '出现未登记的契约外接口，先在 CONTRACT_EXTENSIONS 登记并推动契约变更').toEqual([])
     expect([...want].filter(k => !calls[k])).toEqual([])
   })
-  it('mocks/handlers 覆盖全部契约接口', () => {
+  it('mocks/handlers 覆盖全部契约接口与已登记扩展', () => {
     const hs = new Set(handlerList().map(h => h.key))
     expect(eps.map(e => e.key).filter(k => !hs.has(k))).toEqual([])
+    // 扩展接口同样要有离线桩，否则 mock 模式下铃铛会 404
+    expect([...EXTENSION_KEYS].filter(k => !hs.has(k))).toEqual([])
   })
   it('静态路径先于能匹配它的动态路径注册（/evidence/chain/status 先于 /evidence/{id} 等）', () => {
     const dyn = []

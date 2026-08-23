@@ -13,6 +13,8 @@ export const WS_TYPES = {
   FL_PROGRESS: 'fl_progress',
   DISPATCH_PROGRESS: 'dispatch_progress',
   AUDIT_ALERT: 'audit_alert',
+  // 站内消息。**定向**推送：后端只发给收件人 DID 命中的连接，不是广播
+  NOTICE: 'notice',
   LOG: 'log',
   EVIDENCE_WRITTEN: 'evidence_written',
   PONG: 'pong'

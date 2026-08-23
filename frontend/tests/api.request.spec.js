@@ -29,7 +29,9 @@ const local = setupServer(
   http.get('*/api/v1/badsig', () => HttpResponse.json(wrap(null, 1004, '签名无效'), { status: 403 })),
   http.get('*/api/v1/conflict200', () => HttpResponse.json(wrap(null, 1006, '任务已在运行'), { status: 200 })),
   http.get('*/api/v1/boom', () => HttpResponse.json(wrap(null, 5000, '内部错误', 'tr-20260821-deadbeef'), { status: 500 })),
-  http.get('*/api/v1/csv', () => new HttpResponse('a,b\n1,2\n', { headers: { 'Content-Type': 'text/csv' } }))
+  http.get('*/api/v1/csv', () => new HttpResponse('a,b\n1,2\n', { headers: { 'Content-Type': 'text/csv' } })),
+  http.get('*/api/v1/missing', () => HttpResponse.json(wrap(null, 1005, '接口或资源不存在'), { status: 404 })),
+  http.get('*/api/v1/down', () => HttpResponse.error())
 )
 
 let request, download
@@ -104,5 +106,31 @@ describe('request.js 拦截器', () => {
 
   it('baseURL 为 /api/v1', () => {
     expect(request.defaults.baseURL).toBe('/api/v1')
+  })
+
+  /* silent：后台附属请求（铃铛拉取）失败不该弹全局 toast 打断用户。
+     这条用例是为「登录后立刻弹接口或资源不存在」那次回归立的。 */
+  describe('config.silent', () => {
+    it('silent 请求业务失败不弹 toast，但仍 reject 且带 code', async () => {
+      await expect(request.get('/missing', { silent: true })).rejects.toMatchObject({ code: 1005 })
+      expect(toastError).not.toHaveBeenCalled()
+    })
+
+    it('silent 请求网络不可达也不弹 toast', async () => {
+      await expect(request.get('/down', { silent: true })).rejects.toBeTruthy()
+      expect(toastError).not.toHaveBeenCalled()
+    })
+
+    it('不带 silent 时同样的 404 照常弹 toast（不影响既有行为）', async () => {
+      await expect(request.get('/missing')).rejects.toMatchObject({ code: 1005 })
+      expect(toastError).toHaveBeenCalled()
+    })
+
+    it('silent 也不能吞掉 1002：登录态失效必须提示并跳登录', async () => {
+      await expect(request.get('/unauth', { silent: true })).rejects.toMatchObject({ code: 1002 })
+      await new Promise(r => setTimeout(r, 20))
+      expect(toastError).toHaveBeenCalled()
+      expect(clearSession).toHaveBeenCalled()
+    })
   })
 })

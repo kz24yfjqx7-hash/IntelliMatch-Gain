@@ -419,12 +419,17 @@ const sessions = new Map() // token -> { userId, issuedAt, expiresAt }
 const revokedTokens = new Set() // 已登出的 token（在过期前一律拒绝）
 const counters = {
   asset: 1080, application: applications.length, grant: grants.length, permChange: permChangeLogs.length, key: keyId, keyRotation: keyRotations.length,
-  fl: 2, model: 12, dispatch: 2, command: 2, alert: alerts.length, audit: auditId, ai: aiHistory.length, risk: riskHistory.length, user: users.length, did: dids.length
+  fl: 2, model: 12, dispatch: 2, command: 2, alert: alerts.length, audit: auditId, ai: aiHistory.length, risk: riskHistory.length, user: users.length, did: dids.length,
+  notice: 0
 }
+
+/* ---------- 站内消息（铃铛）---------- */
+// 离线演示模式下从空开始：申请/审批一走通就会有消息，比预置几条假消息更能说明链路
+const notices = []
 
 export const db = {
   users, roles, dids, keys, keyRotations, nodes, nodeMetrics, assets, applications, grants, permChangeLogs,
-  auditLogs, alerts, flTasks, flModels, dispatchTasks, aiHistory, riskHistory, sessions, revokedTokens, counters,
+  auditLogs, alerts, notices, flTasks, flModels, dispatchTasks, aiHistory, riskHistory, sessions, revokedTokens, counters,
   ORG_DID, DEMO_TRACE, DENY_TRACE,
   /** 运行期 FL 作业句柄（taskId -> {cancel}） */
   flJobs: new Map(),
