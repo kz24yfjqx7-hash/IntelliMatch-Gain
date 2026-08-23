@@ -144,7 +144,7 @@
           <el-table :data="grants.items" v-loading="grants.loading" size="small" stripe>
             <el-table-column prop="id" label="ID" width="60" />
             <el-table-column label="被授权主体" min-width="180">
-              <template #default="{ row }">{{ row.granteeName || '--' }}<br /><HashText :value="row.did" :head="20" /></template>
+              <template #default="{ row }">{{ row.granteeName || '--' }}<br /><HashText :value="row.granteeDid" :head="20" /></template>
             </el-table-column>
             <el-table-column label="资源 / 操作" min-width="150">
               <template #default="{ row }"><span class="mono">{{ row.resourceType }}:{{ row.action }}</span><br /><span class="muted">resourceId {{ row.resourceId }}</span></template>
@@ -404,10 +404,10 @@ async function submitReview() {
   reviewing.value = true
   try {
     if (reviewForm.kind === 'approve') {
-      const data = await approveApplication(reviewForm.id, { comment: reviewForm.comment })
+      const data = await approveApplication(reviewForm.id, { reason: reviewForm.comment })
       logStore.addLog(`审批通过申请 #${reviewForm.id}，生成授权 #${data.grantId}，存证 ${data.evidenceId}`, 'INFO', 'PERMISSION')
     } else {
-      const data = await rejectApplication(reviewForm.id, { comment: reviewForm.comment })
+      const data = await rejectApplication(reviewForm.id, { reason: reviewForm.comment })
       logStore.addLog(`驳回申请 #${reviewForm.id}：${reviewForm.comment}，存证 ${data.evidenceId}`, 'WARN', 'PERMISSION')
     }
     ElMessage.success('已处理')
