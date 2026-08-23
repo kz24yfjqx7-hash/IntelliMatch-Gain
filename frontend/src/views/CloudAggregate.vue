@@ -369,7 +369,7 @@ function hydrateStages(t) {
   set('aggregating', t.createdAt, `汇聚 ${(t.nodeIds || []).length} 个节点实时指标`)
   if (t.strategy) set('computing', t.createdAt, 'DQN 生成调度策略，约束校验通过')
   if (t.explanation) set('explaining', t.createdAt, `解释来源：${{ live: 'DeepSeek 实时', cache: '缓存', rule: '规则模板' }[t.explanationSource] || t.explanationSource || '—'}`)
-  if (t.issued) set('issued', t.issuedAt, `已下发至 ${(t.targets || t.nodeIds || []).join(', ')}${t.signerDid ? '，签发者 ' + shortDid(t.signerDid) : ''}`)
+  if (t.issued) set('issued', t.issuedAt, `已下发至 ${(t.targets || t.nodeIds || []).join(', ')}${t.signerDid ? '，签发者 ' + t.signerDid : ''}`)
   if (t.ackStatus === 'acked') set('acked', t.updatedAt, t.ackDetail || '边缘节点执行确认')
 }
 
@@ -590,8 +590,9 @@ onBeforeUnmount(() => {
 .step-text { font-size: 13px; color: var(--color-text); font-weight: 500; }
 .status-detail { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; min-width: 0; }
 .detail-value { font-size: 13px; font-weight: 700; color: var(--color-primary); font-family: 'Consolas', monospace; }
-/* 详情文字：宽度锁在单元格内，最多两行，超出省略号（长内容 hover 看全文，见模板 title） */
-.detail-label { font-size: 10px; color: var(--color-text-secondary); width: 100%; overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+/* 详情文字：宽度锁在单元格内，完整换行显示（签发者 DID 也完整展示）；
+   长串按字符断行不溢出，五张卡靠 grid 默认 stretch 等高对齐 */
+.detail-label { font-size: 10px; color: var(--color-text-secondary); width: 100%; word-break: break-all; line-height: 1.5; }
 .task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .task-card { border-radius: 12px; padding: 14px; border: 1px solid rgba(0, 180, 216, 0.15); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .task-card.wide { grid-column: 1 / -1; }
