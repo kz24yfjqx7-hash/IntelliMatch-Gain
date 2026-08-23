@@ -35,7 +35,7 @@
               </div>
               <div class="status-detail">
                 <span class="detail-value">{{ stageLog[s.key]?.at ? fmtTime(stageLog[s.key].at, 'HH:mm:ss') : '--' }}</span>
-                <span class="detail-label">{{ stageLog[s.key]?.detail || s.desc }}</span>
+                <span class="detail-label" :title="stageLog[s.key]?.detail || s.desc">{{ stageLog[s.key]?.detail || s.desc }}</span>
               </div>
             </div>
           </div>
@@ -578,16 +578,17 @@ onBeforeUnmount(() => {
 .left-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding-right: 4px; }
 .main-area { border-radius: 12px; padding: 12px; border: 1px solid rgba(0, 180, 216, 0.15); }
 .status-panel { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-.status-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 10px; border: 1px solid rgba(0, 180, 216, 0.15); opacity: 0.55; transition: all 0.3s ease; }
+.status-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 10px; border: 1px solid rgba(0, 180, 216, 0.15); opacity: 0.55; transition: all 0.3s ease; min-width: 0; overflow: hidden; }
 .status-item.active { opacity: 1; background: rgba(0, 180, 216, 0.06); }
 .status-item.completed { border-color: rgba(46, 204, 113, 0.35); }
 .status-item.failed { border-color: rgba(230, 57, 70, 0.5); opacity: 1; }
 .status-step { display: flex; align-items: center; gap: 8px; }
 .step-icon { font-size: 18px; }
 .step-text { font-size: 13px; color: var(--color-text); font-weight: 500; }
-.status-detail { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.status-detail { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; min-width: 0; }
 .detail-value { font-size: 13px; font-weight: 700; color: var(--color-primary); font-family: 'Consolas', monospace; }
-.detail-label { font-size: 10px; color: var(--color-text-secondary); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 详情文字：宽度锁在单元格内，最多两行，超出省略号（长内容 hover 看全文，见模板 title） */
+.detail-label { font-size: 10px; color: var(--color-text-secondary); width: 100%; overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
 .task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .task-card { border-radius: 12px; padding: 14px; border: 1px solid rgba(0, 180, 216, 0.15); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .task-card.wide { grid-column: 1 / -1; }
