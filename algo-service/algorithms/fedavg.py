@@ -208,6 +208,8 @@ class FedAvgTrainer:
         self.history: list[RoundResult] = []
         self.anomaly: dict | None = None
         self.excluded: set[str] = set()  # 已判定投毒、后续轮次降权剔除的节点
+        self.best_loss: float = float("inf")
+        self.diverge_streak: int = 0
 
     # ------------------------------------------------------------ 单轮
     def run_round(self) -> RoundResult:
@@ -281,6 +283,28 @@ class FedAvgTrainer:
                     "round": t,
                     "detail": f"第 {t} 轮累计隐私预算 ε={eps_spent:.4f} 已超过目标 ε={self.accountant.epsilon_target}",
                 }
+        # 9. 发散熔断：loss 非有限，或连续 PATIENCE 轮比历史最优差 FACTOR 倍
+        #    典型诱因：节点太少（w_max→1）或 ε 太小，噪声范数是更新的几十倍。
+        #    投毒/预算异常优先级更高，同一轮只报一个。
+        if not np.isfinite(loss) or (np.isfinite(self.best_loss) and loss > self.best_loss * config.FL_DIVERGE_FACTOR):
+            self.diverge_streak += 1
+        else:
+            self.diverge_streak = 0
+        if np.isfinite(loss):
+            self.best_loss = min(self.best_loss, loss)
+        if round_anomaly is None and (not np.isfinite(loss) or self.diverge_streak >= config.FL_DIVERGE_PATIENCE):
+            n_nodes = len(active)
+            hint = ("参与节点仅 1 个，差分隐私噪声权重 w_max=1、无法被聚合平均稀释" if n_nodes == 1
+                    else f"参与节点 {n_nodes} 个")
+            sig = f"，噪声乘子 σ={self.accountant.sigma:.2f}" if self.accountant is not None else ""
+            round_anomaly = {
+                "type": "training_diverged",
+                "nodeId": None,
+                "round": t,
+                "detail": (f"第 {t} 轮测试 loss={loss:.4g} 已达历史最优 {self.best_loss:.4g} 的 "
+                           f"{config.FL_DIVERGE_FACTOR:g} 倍以上（连续 {self.diverge_streak} 轮）；{hint}{sig}。"
+                           f"建议增加参与节点或放宽 ε 后重试"),
+            }
         if round_anomaly is not None:
             self.anomaly = round_anomaly
 

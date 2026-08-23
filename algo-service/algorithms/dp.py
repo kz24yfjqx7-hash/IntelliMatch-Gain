@@ -13,7 +13,8 @@
 
 工程约定（写给答辩评委）：
   - 裁剪阈值 C 采用自适应裁剪：取本轮各节点更新 L2 范数的中位数，避免固定 C 与真实
-    更新量级不匹配导致「全裁没」或「没裁到」；
+    更新量级不匹配导致「全裁没」或「没裁到」；但 C 不得超过配置上限 DP_CLIP_NORM
+    （否则噪声随被噪声撑大的更新一起增长，形成正反馈而发散）；
   - 噪声由聚合服务端加在加权平均之后（DP-FedAvg，McMahan et al. 2018）：
     加权平均对单节点更新的敏感度为 C·w_max（w_max 为最大样本权重），
     因此噪声为 N(0, (σ·C·w_max)^2)；
@@ -80,6 +81,7 @@ class PrivacyAccountant:
     clip_norm: float = 1.0
     q: float = 1.0
     sigma: float = field(init=False)
+    clip_cap: float = field(init=False)
     rounds_done: int = field(default=0, init=False)
     spent: float = field(default=0.0, init=False)
     history: list = field(default_factory=list, init=False)
@@ -87,6 +89,7 @@ class PrivacyAccountant:
     def __post_init__(self) -> None:
         self.sigma_required = sigma_from_budget(self.epsilon_target, self.delta, self.total_rounds, self.q)
         self.sigma = min(self.sigma_required, SIGMA_MAX)
+        self.clip_cap = max(float(self.clip_norm), 1e-8)   # 构造时传入的 clip_norm 即上限
 
     def step(self) -> tuple[float, float]:
         """记一轮预算消耗，返回 (增量, 累计)。"""
@@ -106,7 +109,10 @@ class PrivacyAccountant:
         """自适应裁剪：C = 各节点更新范数中位数；返回 (裁剪后更新, 本轮 C)。"""
         norms = [float(np.linalg.norm(u)) for u in updates.values()]
         c = float(np.median(norms)) if norms else self.clip_norm
-        c = max(c, 1e-8)
+        # 自适应 C 只能往下调、不能越过配置上限：噪声标准差 ∝ C，C 若跟着被噪声撑大的
+        # 更新范数一起涨，就是正反馈，单节点 + DP 实测 6 轮 loss 发散到 9×10⁷。
+        # 封顶后 C 与噪声有界，剩下的只是 DP 本身的信噪比问题（由发散熔断兜底）。
+        c = min(max(c, 1e-8), self.clip_cap)
         self.clip_norm = c
         return {k: clip_by_l2(u, c)[0] for k, u in updates.items()}, c
 

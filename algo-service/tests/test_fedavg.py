@@ -171,3 +171,41 @@ def test_model_version_assigned_on_success(run_job):
     job = run_job(rounds=2)
     assert job["status"] == "success"
     assert isinstance(job["modelVersion"], str) and job["modelVersion"]
+
+
+# ---------------------------------------------------------------- 发散熔断与裁剪封顶（2026-08-23，用户现场 fl-000070 复现）
+
+def test_single_node_dp_diverges_and_is_fused(run_job):
+    """单节点 + DP ε=0.6：噪声权重 w_max=1、噪声范数是更新的 20 余倍，原实现 loss 10 轮发散到 9×10⁷ 还报 success。
+    现在应在几轮内判定 training_diverged 并以 failed 收尾，error 里给出节点数/σ 与建议。"""
+    job = run_job(rounds=10, nodes=[{"id": "Node-B", "samples": 320}],
+                  dp={"enabled": True, "epsilon": 0.6, "delta": 1e-5}, topk={"enabled": True, "ratio": 0.1})
+    assert job["status"] == "failed", job
+    assert job["anomaly"] and job["anomaly"]["type"] == "training_diverged", job["anomaly"]
+    assert "节点仅 1 个" in job["anomaly"]["detail"] and "建议" in job["anomaly"]["detail"]
+    assert "训练发散" in (job.get("error") or "")
+    assert len(job["rounds"]) < 10                       # 熔断，没有跑满
+    assert max(_losses(job)) < 1e4                       # C 封顶后不再指数爆炸（原实现第 6 轮已 1.16×10⁴）
+
+
+def test_four_nodes_dp_still_converges(run_job):
+    """封顶与熔断不能伤到正常配置：四节点 ε=1.0 仍应收敛且无异常。"""
+    job = run_job(rounds=10, dp={"enabled": True, "epsilon": 1.0, "delta": 1e-5}, topk={"enabled": True, "ratio": 0.1})
+    assert job["status"] == "success" and job["anomaly"] is None, job.get("anomaly")
+    losses = _losses(job)
+    assert losses[-1] < losses[0] and losses[-1] < 0.05
+
+
+def test_adaptive_clip_is_capped():
+    """自适应 C 取中位数但不得超过 DP_CLIP_NORM——否则噪声 ∝ C 跟着被撑大的更新一起涨，形成正反馈。"""
+    import config
+    from algorithms.dp import PrivacyAccountant
+
+    acc = PrivacyAccountant(epsilon_target=1.0, delta=1e-5, total_rounds=10, clip_norm=config.DP_CLIP_NORM, q=0.1)
+    big = {"Node-A": np.ones(161) * 10.0, "Node-B": np.ones(161) * 30.0}
+    clipped, c = acc.clip_updates(big)
+    assert c <= config.DP_CLIP_NORM
+    assert all(np.linalg.norm(u) <= config.DP_CLIP_NORM + 1e-9 for u in clipped.values())
+    small = {"Node-A": np.ones(161) * 0.001, "Node-B": np.ones(161) * 0.002}
+    _, c2 = acc.clip_updates(small)
+    assert c2 < config.DP_CLIP_NORM                      # 小更新时仍是自适应（往下调）

@@ -43,8 +43,15 @@ FL_STOP_ON_BUDGET_EXHAUSTED = os.getenv("FL_STOP_ON_BUDGET_EXHAUSTED", "true").l
 FL_LOCAL_EPOCHS = int(os.getenv("FL_LOCAL_EPOCHS", "3"))
 FL_LOCAL_LR = float(os.getenv("FL_LOCAL_LR", "0.05"))
 FL_BATCH_SIZE = int(os.getenv("FL_BATCH_SIZE", "32"))
-# DP 梯度裁剪阈值 C
+# DP 梯度裁剪阈值 C：自适应裁剪（各节点更新范数中位数）的**上限**。
+# 不封顶会形成正反馈：噪声 ∝ C，噪声把权重撑大 → 下一轮更新范数变大 → C 变大 → 噪声更大，
+# 单节点 + DP 实测 6 轮内 C 涨 90 倍、loss 从 0.2 发散到 9×10⁷。
 DP_CLIP_NORM = float(os.getenv("DP_CLIP_NORM", "1.0"))
+# 训练发散熔断：某轮测试 loss 非有限，或连续 FL_DIVERGE_PATIENCE 轮 > 历史最优 loss × FL_DIVERGE_FACTOR，
+# 判定 anomaly=training_diverged 并停止（默认开）。典型诱因是节点太少/ε 太小导致噪声远大于更新。
+FL_STOP_ON_DIVERGENCE = os.getenv("FL_STOP_ON_DIVERGENCE", "true").lower() not in ("0", "false", "no")
+FL_DIVERGE_FACTOR = float(os.getenv("FL_DIVERGE_FACTOR", "20"))
+FL_DIVERGE_PATIENCE = int(os.getenv("FL_DIVERGE_PATIENCE", "2"))
 # 本地学习率衰减：第 t 轮 lr_t = FL_LOCAL_LR / (1 + FL_LR_DECAY·(t−1))，抑制 Non-IID 客户端漂移
 FL_LR_DECAY = float(os.getenv("FL_LR_DECAY", "0.3"))
 # 投毒检测：节点更新与其余节点更新的平均余弦相似度低于该阈值判为可疑。

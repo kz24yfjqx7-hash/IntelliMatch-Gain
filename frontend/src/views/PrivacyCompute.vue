@@ -98,8 +98,11 @@
               </span>
             </div>
             <div v-if="task.anomaly" class="anomaly">
-              🚨 检测到异常：{{ task.anomaly.type === 'gradient_poisoning' ? `可疑梯度上传（${task.anomaly.nodeId}，第 ${task.anomaly.round} 轮）` : task.anomaly.type === 'privacy_budget_exhausted' ? `隐私预算耗尽（第 ${task.anomaly.round} 轮）` : task.anomaly.type }}
+              🚨 检测到异常：{{ task.anomaly.type === 'gradient_poisoning' ? `可疑梯度上传（${task.anomaly.nodeId}，第 ${task.anomaly.round} 轮）` : task.anomaly.type === 'privacy_budget_exhausted' ? `隐私预算耗尽（第 ${task.anomaly.round} 轮）` : task.anomaly.type === 'training_diverged' ? `训练发散已熔断（第 ${task.anomaly.round} 轮）` : task.anomaly.type }}
               <span class="anomaly-detail">{{ task.anomaly.detail }}</span>
+            </div>
+            <div v-if="task.status === 'failed' && task.error" class="anomaly">
+              ⛔ 任务失败原因：<span class="anomaly-detail">{{ task.error }}</span>
             </div>
           </div>
           <div class="card empty-card" v-else>

@@ -351,6 +351,8 @@ CREATE TABLE IF NOT EXISTS algo_fl_task (
   model_version VARCHAR(32),
   creator_did   VARCHAR(128),
   trace_id      VARCHAR(64),
+  anomaly       JSON COMMENT 'B-029：算法服务上报的异常 {type,nodeId,round,detail}，gradient_poisoning / privacy_budget_exhausted / training_diverged',
+  error         VARCHAR(512) COMMENT 'B-029：任务失败原因（算法服务 error 原文）',
   started_at    DATETIME,
   finished_at   DATETIME,
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

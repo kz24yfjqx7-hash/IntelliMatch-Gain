@@ -167,6 +167,42 @@ def test_梯度异常触发R05高危告警(client, login):
         assert "Node-C" in kwargs["message"]
 
 
+def test_B029_异常与失败原因落库并随详情返回_R05按任务去重(client, login, fake_redis):
+    """B-029：算法服务上报的 anomaly / error 原来只用来触发 R05 就丢了，任务详情永远没有异常；
+    且 R05 的去重主体为空，所有任务共用一个桶——10 分钟内第二个异常任务不告警。"""
+    from modules.algo.service import persist_fl_progress
+
+    admin = login("admin")
+    before = client.get("/api/v1/audit/alerts?ruleCode=R05_SUSPICIOUS_GRAD&size=50",
+                        headers=admin).json()["data"]["total"]
+    anomaly = {"type": "training_diverged", "nodeId": None, "round": 4,
+               "detail": "第 4 轮测试 loss=23.56 已达历史最优 0.2091 的 20 倍以上；参与节点仅 1 个。建议增加参与节点或放宽 ε 后重试"}
+    ids = []
+    for i in range(2):                                   # 两个任务，同一窗口内先后发散
+        task_id = _create_fl(client, admin, rounds=4).json()["data"]["id"]
+        ids.append(task_id)
+        job = {"jobId": task_id, "status": "running", "currentRound": 4, "totalRounds": 4,
+               "rounds": [{"round": 4, "loss": 23.56, "acc": 0.0, "compressionRatio": 90.0,
+                           "epsilonSpent": 0.3, "gradientHash": f"sha256:{i}{i}{i}"}],
+               "anomaly": anomaly}
+        persist_fl_progress(task_id, job, f"tr-fl-div-{i}")
+        persist_fl_progress(task_id, job, f"tr-fl-div-{i}")        # 轮询重复送同一异常：不能再告警
+        done = {**job, "status": "failed", "error": "训练发散：" + anomaly["detail"] + "，训练已熔断停止"}
+        persist_fl_progress(task_id, done, f"tr-fl-div-{i}")
+
+    for task_id in ids:
+        d = client.get(f"/api/v1/fl/tasks/{task_id}", headers=admin).json()["data"]
+        assert d["status"] == "failed"
+        assert d["anomaly"]["type"] == "training_diverged" and "建议" in d["anomaly"]["detail"]
+        assert d["error"].startswith("训练发散：")
+
+    after = client.get("/api/v1/audit/alerts?ruleCode=R05_SUSPICIOUS_GRAD&size=50",
+                       headers=admin).json()["data"]
+    assert after["total"] == before + 2, "两个任务各告警一次；同一任务重复轮询不重复告警"
+    msgs = [a["message"] for a in after["items"][:2]]
+    assert all("训练发散" in m for m in msgs) and any(ids[0] in m for m in msgs) and any(ids[1] in m for m in msgs)
+
+
 def test_取消训练(client, login, algo_stub):
     admin = login("admin")
     task_id = _create_fl(client, admin).json()["data"]["id"]

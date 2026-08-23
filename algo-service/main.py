@@ -234,6 +234,12 @@ class FlJob:
                     self.error = f"隐私预算耗尽：第 {res.round} 轮累计 ε={res.epsilonSpent} 已超过目标 ε={self.req.dp.epsilon}，训练已熔断停止"
                     log.warning("[fl %s] %s", self.id, self.error)
                     return
+                # 训练发散：再跑下去只是把噪声当模型上链，以 failed 收尾并说明原因，不能报 success
+                if config.FL_STOP_ON_DIVERGENCE and (res.anomaly or {}).get("type") == "training_diverged":
+                    self.status = "failed"
+                    self.error = f"训练发散：{res.anomaly.get('detail')}，训练已熔断停止"
+                    log.warning("[fl %s] %s", self.id, self.error)
+                    return
                 if config.FL_ROUND_DELAY > 0 and len(self.rounds) < self.req.rounds:
                     # 分段 sleep 以便及时响应取消
                     end = time.time() + config.FL_ROUND_DELAY

@@ -62,7 +62,8 @@ _ALERT_FLAG_PREFIX = "risk:alerted:"
 
 def fire(rule_code: str, *, principal=None, message: str = "",
          actor_did: str | None = None, actor_name: str | None = None,
-         immediate: bool = False, db: Session | None = None) -> dict | None:
+         immediate: bool = False, db: Session | None = None,
+         dedup_key: str | None = None) -> dict | None:
     """记录一次规则命中。累计到阈值才真正产生告警。
 
     immediate=True 时跳过计数直接告警（R02、R05 这类一次就该报的规则）。
@@ -84,7 +85,9 @@ def fire(rule_code: str, *, principal=None, message: str = "",
         actor_did = principal.did
     if actor_name is None and principal is not None:
         actor_name = principal.real_name or principal.username
-    subject = actor_did or actor_name or "anonymous"
+    # 计数与去重的主体：默认是触发者；R05 这类「按任务」而非「按人」的规则显式传 dedup_key，
+    # 否则 actor 为空时所有任务共用一个 anonymous 桶，窗口内第二个异常任务永远不告警（B-029）
+    subject = dedup_key or actor_did or actor_name or "anonymous"
 
     try:
         threshold = 1 if immediate else rule["threshold"]
@@ -200,8 +203,11 @@ def fire_suspicious_gradient(task_id: str, anomaly: dict, actor_did: str | None 
     """R05：算法服务上报梯度异常或隐私预算超限。由联邦学习轮询任务调用。"""
     detail = anomaly.get("detail") or anomaly.get("type", "未知异常")
     node = anomaly.get("nodeId")
+    kind = {"gradient_poisoning": "梯度投毒", "privacy_budget_exhausted": "隐私预算耗尽",
+            "training_diverged": "训练发散"}.get(anomaly.get("type"), "梯度异常")
     return fire("R05_SUSPICIOUS_GRAD", actor_did=actor_did, immediate=True,
-                message=f"联邦学习任务 {task_id} 检测到梯度异常"
+                dedup_key=f"fl:{task_id}",
+                message=f"联邦学习任务 {task_id} 检测到{kind}"
                         + (f"（节点 {node}）" if node else "") + f"：{detail}")
 
 

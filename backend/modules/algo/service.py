@@ -110,6 +110,9 @@ def _fl_to_item(task: AlgoFlTask, rounds: list[AlgoFlRound] | None = None,
         "modelVersion": task.model_version,
         "creatorDid": task.creator_did,
         "traceId": task.trace_id,
+        # B-029：异常与失败原因随任务详情返回，前端据此展示异常横幅 / 失败说明
+        "anomaly": task.anomaly,
+        "error": task.error,
         "startedAt": iso(task.started_at),
         "finishedAt": iso(task.finished_at),
         "createdAt": iso(task.created_at),
@@ -335,6 +338,13 @@ def persist_fl_progress(task_id: str, job: dict, trace_id: str) -> bool:
                 _upsert_model_version(db, task, job["modelVersion"])
 
         anomaly = job.get("anomaly")
+        # B-029：异常与失败原因落库。轮询会反复拿到同一个 anomaly，只在首次出现时触发 R05，
+        # 否则每 2 秒一次的轮询会把同一异常反复送进风控（靠去重兜底不是办法）。
+        new_anomaly = bool(anomaly) and task.anomaly != anomaly
+        if anomaly:
+            task.anomaly = anomaly
+        if job.get("error"):
+            task.error = str(job["error"])[:512]
         creator_did = task.creator_did
         total_rounds = task.rounds
         db.commit()
@@ -360,9 +370,11 @@ def persist_fl_progress(task_id: str, job: dict, trace_id: str) -> bool:
             detail=f"联邦学习任务 {task_id} 结束，状态 {status}，共 {total_rounds} 轮",
         )
 
-    # 契约 3.2 明确要求：算法服务上报 anomaly 时必须生成 R05 高危审计日志
-    if anomaly:
-        fire_suspicious_gradient(task_id, anomaly)
+    # 契约 3.2 明确要求：算法服务上报 anomaly 时必须生成 R05 高危审计日志。
+    # 告警挂在任务创建者名下、按任务去重（B-029：原来 actor 为空，全部任务共用
+    # 一个 anonymous 去重桶，10 分钟内第二个异常任务永远不告警）。
+    if new_anomaly:
+        fire_suspicious_gradient(task_id, anomaly, creator_did)
 
     return finished
 

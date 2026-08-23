@@ -33,6 +33,11 @@ class AlgoFlTask(Base):
     model_version: Mapped[str | None] = mapped_column(String(32))
     creator_did: Mapped[str | None] = mapped_column(String(128))
     trace_id: Mapped[str | None] = mapped_column(String(64))
+    # B-029：算法服务上报的异常（投毒 / 预算耗尽 / 训练发散）与失败原因。
+    # 原来只在轮询时拿来触发 R05 告警就丢掉了，任务详情永远没有 anomaly，
+    # 前端在真后端模式下看不到异常横幅，失败任务也说不出为什么失败。
+    anomaly: Mapped[dict | None] = mapped_column(JSON)
+    error: Mapped[str | None] = mapped_column(String(512))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(
