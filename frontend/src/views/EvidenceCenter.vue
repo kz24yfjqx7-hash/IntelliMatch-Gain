@@ -282,7 +282,25 @@ async function load() {
     const [from, to] = range.value || []
     const data = await listEvidence({ page: query.page, size: query.size, category: query.category || undefined, dataType: query.dataType || undefined, did: query.did || undefined, from: from || undefined, to: to || undefined })
     list.items = data.items || []; list.total = data.total || 0
+    await pinTampered()
   } catch { /* 拦截器已提示 */ } finally { list.loading = false }
+}
+/**
+ * 被篡改记录不在当前页（链上千余条时几乎必然）→ 按 id 取详情钉到表首。
+ * 放在 load() 里而不是只在 submitTamper 里做：篡改/校验本身会写审计存证，WS evidence_written 到达后
+ * onEvidenceWritten 会节流刷新第一页，若只在 submitTamper 里钉一次，1.5 s 后就会被刷掉（E2E 09 首跑失败的根因）。
+ */
+async function pinTampered() {
+  if (query.page !== 1) return
+  const ids = new Set([...(chain.value?.tamperedIds || []), ...localTamperedIds.value])
+  const missing = [...ids].filter(id => !list.items.some(e => e.evidenceId === id))
+  if (!missing.length) return
+  const pinned = []
+  for (const id of missing) {
+    const cached = dataEvidences.value.find(e => e.evidenceId === id)
+    try { pinned.push({ ...(cached || await getEvidence(id)), tampered: true, pinned: true }) } catch { /* 取不到就算了，区块条已标红 */ }
+  }
+  list.items = [...pinned, ...list.items]
 }
 function reload() { query.page = 1; load() }
 function rowClass({ row }) {
@@ -347,17 +365,9 @@ async function submitTamper() {
     tamperVisible.value = false
     const r = await doVerify(t.evidenceId)
     await loadStatus()
+    query.page = 1
     await Promise.all([loadBlocks(), load()])
-    // 让被篡改记录出现在检索表首页：不在当前页时钉到表首（真后端列表不支持按 evidenceId 过滤）
-    if (!list.items.some(e => e.evidenceId === t.evidenceId)) {
-      // 先看下拉候选里有没有；没有就直接按 id 取详情——链上千余条时被篡改的那条
-      // 往往既不在当前页也不在候选里，取不到就会出现"区块条标红了、表格里却找不到"的割裂感
-      let target = dataEvidences.value.find(e => e.evidenceId === t.evidenceId)
-      if (!target) {
-        try { target = await getEvidence(t.evidenceId) } catch { /* 取不到就算了，区块条已标红 */ }
-      }
-      if (target) list.items = [{ ...target, tampered: true }, ...list.items]
-    }
+    // 被篡改记录不在第一页时由 load() → pinTampered() 钉到表首（真后端列表不支持按 evidenceId 过滤）
     selected.value = list.items.find(e => e.evidenceId === t.evidenceId) || selected.value
     if (chain.value && !chain.value.intact) logStore.addLog(`链状态：断裂于高度 ${chain.value.brokenAt ?? chain.value.brokenAtId}，之后 ${Math.max(0, chain.value.height - (chain.value.brokenAt || 0))} 个区块受影响`, 'ERROR', 'CHAIN')
     if (r && !r.intact) ElMessage.error(`校验失败：${r.message}`)

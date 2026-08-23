@@ -18,6 +18,7 @@ C = R.case
 ALGO_DIR = os.path.join(ROOT, "algo-service")
 BACKEND_DIR = os.path.join(ROOT, "backend")
 LOG = os.environ.get("SCRATCH", "/tmp")
+os.makedirs(LOG, exist_ok=True)
 
 
 def wait_up(url, secs=40):

@@ -1,183 +1,191 @@
 {
  "admin_did": "did:vpp:user:0x34ba9ca061137b9b46fc73d103be8f98",
- "user_id": 16,
- "user_name": "test-user-22776870",
+ "user_id": 26,
+ "user_name": "test-user-56371222",
  "dev": {
-  "did": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+  "did": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
   "didDocument": {
    "@context": "https://w3id.org/did/v1",
-   "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
-   "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+   "id": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
+   "controller": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
    "verificationMethod": [
     {
-     "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-1",
+     "id": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc#key-1",
      "type": "SM2VerificationKey2023",
-     "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
-     "publicKeyHex": "048da77943796d65ac21004d03eb14188d0a267283783716fe98d56d780973adb6c7340037e931964ee38d7e7a024a24e04c0c996bf555d3649a1d677bae891a61"
+     "controller": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
+     "publicKeyHex": "04c5b8ad258ba5a2e2f09868af850a77cf16e0a0508950d20f20e3dd68662e06d392bfc7545a53b20233151400b46aee2b0d76cc14e8252cbeb15b1cc292e845c6"
     }
    ],
    "authentication": [
-    "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-1"
+    "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc#key-1"
    ],
-   "created": "2026-08-23T02:19:37+08:00"
+   "created": "2026-08-23T11:39:31+08:00"
   },
-  "publicKey": "048da77943796d65ac21004d03eb14188d0a267283783716fe98d56d780973adb6c7340037e931964ee38d7e7a024a24e04c0c996bf555d3649a1d677bae891a61",
-  "privateKey": "e7367343fc43104b7028a5876d943f2959ab0c5e490acde30dcbcaa14da5fe49",
+  "publicKey": "04c5b8ad258ba5a2e2f09868af850a77cf16e0a0508950d20f20e3dd68662e06d392bfc7545a53b20233151400b46aee2b0d76cc14e8252cbeb15b1cc292e845c6",
+  "privateKey": "07437572cfa06829c74035cba179889fec82c9db1042c467ce6cce2764cec38e",
   "custody": false,
-  "chainTxId": "blk-001379-0",
-  "evidenceId": "ev-001379",
-  "createdAt": "2026-08-23T02:19:37+08:00"
+  "chainTxId": "blk-002301-0",
+  "evidenceId": "ev-002301",
+  "createdAt": "2026-08-23T11:39:31+08:00"
  },
  "dev_custody": {
-  "did": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
+  "did": "did:vpp:device:0x3d29e0a89d5b45ee6f18353254fa8572",
   "didDocument": {
    "@context": "https://w3id.org/did/v1",
-   "id": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
-   "controller": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
+   "id": "did:vpp:device:0x3d29e0a89d5b45ee6f18353254fa8572",
+   "controller": "did:vpp:device:0x3d29e0a89d5b45ee6f18353254fa8572",
    "verificationMethod": [
     {
-     "id": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2#key-1",
+     "id": "did:vpp:device:0x3d29e0a89d5b45ee6f18353254fa8572#key-1",
      "type": "SM2VerificationKey2023",
-     "controller": "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2",
-     "publicKeyHex": "0457bbf74512eb08cdb9ce3651032b3ec9e369483f06bce282ba6c294129654c386d4b1850ae24362d6b943957f2e75bed1858aa1753d546455e5b031453bd1c5a"
+     "controller": "did:vpp:device:0x3d29e0a89d5b45ee6f18353254fa8572",
+     "publicKeyHex": "047a3f3e4cdc64a475756d6c30a5c5bb00e5f19e89e22e4f908ee11f8a8faebc3101694a5754055560fc0f2dfa8121c4e3a7cb9501982efb6833c6276e7c15b2a4"
     }
    ],
    "authentication": [
-    "did:vpp:device:0xe8137b1bef057438e1162428a65eeec2#key-1"
+    "did:vpp:device:0x3d29e0a89d5b45ee6f18353254fa8572#key-1"
    ],
-   "created": "2026-08-23T02:19:37+08:00"
+   "created": "2026-08-23T11:39:31+08:00"
   },
-  "publicKey": "0457bbf74512eb08cdb9ce3651032b3ec9e369483f06bce282ba6c294129654c386d4b1850ae24362d6b943957f2e75bed1858aa1753d546455e5b031453bd1c5a",
-  "privateKey": "28746395c6b8b2a19ef4e348bf0193f6e16a2f92959066bf0bf2d13c3d16a833",
+  "publicKey": "047a3f3e4cdc64a475756d6c30a5c5bb00e5f19e89e22e4f908ee11f8a8faebc3101694a5754055560fc0f2dfa8121c4e3a7cb9501982efb6833c6276e7c15b2a4",
+  "privateKey": "bffd75398927daf8f7c720ff611831a096c95fc3ee741713e61293496cdc64ed",
   "custody": true,
-  "chainTxId": "blk-001380-0",
-  "evidenceId": "ev-001380",
-  "createdAt": "2026-08-23T02:19:37+08:00"
+  "chainTxId": "blk-002302-0",
+  "evidenceId": "ev-002302",
+  "createdAt": "2026-08-23T11:39:31+08:00"
  },
  "dev_v2": {
-  "did": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
-  "publicKey": "04406a16004868accf7eb4bebc15cfe04b41e17baf343b414ed722d2a9bae76274218fa84d3bbf3784835a2624ebdc0be3bd8793db5cc1812d85dd7b6515d4f401",
-  "privateKey": "27e70498bdc8e8f9cdbd16e9db69d5ea61924a058ba407be0c298d3ec1bb7a00",
+  "did": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
+  "publicKey": "047e9f3a517e4433cb09304e572c1b14dc7c9872d9cccd9a9745646455bae56c7d801c9b428ae808fe746bf943b6acc29cf27a72bd3c82403a8dce998c6cd7ae27",
+  "privateKey": "78e11e38582d3b55fb32f6d142d9d83fc57b1c1b4cf1f9d8f5bf2b0b264608a5",
   "version": 2,
   "algorithm": "SM2",
   "custody": false,
-  "evidenceId": "ev-001387",
+  "evidenceId": "ev-002309",
   "didDocument": {
    "@context": "https://w3id.org/did/v1",
-   "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
-   "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
+   "id": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
+   "controller": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
    "verificationMethod": [
     {
-     "id": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-2",
+     "id": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc#key-2",
      "type": "SM2VerificationKey2023",
-     "controller": "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906",
-     "publicKeyHex": "04406a16004868accf7eb4bebc15cfe04b41e17baf343b414ed722d2a9bae76274218fa84d3bbf3784835a2624ebdc0be3bd8793db5cc1812d85dd7b6515d4f401"
+     "controller": "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc",
+     "publicKeyHex": "047e9f3a517e4433cb09304e572c1b14dc7c9872d9cccd9a9745646455bae56c7d801c9b428ae808fe746bf943b6acc29cf27a72bd3c82403a8dce998c6cd7ae27"
     }
    ],
    "authentication": [
-    "did:vpp:device:0x295f3c4d7056107efdc108e8fb415906#key-2"
+    "did:vpp:device:0x4670ad1c931f8f8acc77dc12bd16bcbc#key-2"
    ],
-   "created": "2026-08-23T02:19:37+08:00",
-   "updated": "2026-08-23T02:19:38+08:00"
+   "created": "2026-08-23T11:39:31+08:00",
+   "updated": "2026-08-23T11:39:32+08:00"
   }
  },
- "user_did": "did:vpp:user:0x465957766815ba993b1d4bf22213ac37",
- "key_id": 105,
- "asset_id": 1120,
- "asset_ev": "ev-001407",
- "role": "test_role_22779669",
- "app_id": 60,
- "grant_id": 30,
+ "user_did": "did:vpp:user:0xaede43d2fcdbd9bdee3a151b29dd416f",
+ "key_id": 174,
+ "asset_id": 1147,
+ "asset_ev": "ev-002329",
+ "role": "test_role_56374025",
+ "app_id": 89,
+ "grant_id": 43,
  "env_restored": [
-  "ev-001352"
+  "ev-002273"
  ],
- "ev_id": "ev-001431",
+ "ev_id": "ev-002353",
  "chain_before": {
-  "height": 1432,
-  "lastHash": "sm3:09915d34fc2c0231563e0c285c254504aea7f481e2527f4d1f75528a79b09125",
+  "height": 2354,
+  "lastHash": "sm3:5d195a6dbd358443ee735d298997e816f1a0988972d3d23f0b103bbc1baf5464",
   "intact": true,
   "brokenAt": null,
   "brokenAtEvidenceId": null,
-  "totalRecords": 1432,
+  "totalRecords": 2354,
   "byCategory": {
-   "data": 160,
-   "identity": 182,
-   "permission": 146,
-   "audit": 671,
-   "algo": 273
+   "data": 201,
+   "identity": 305,
+   "permission": 210,
+   "audit": 1126,
+   "algo": 512
   },
   "chainType": "LocalHashChain",
-  "verifiedAt": "2026-08-23T02:19:40+08:00"
+  "verifiedAt": "2026-08-23T11:39:34+08:00"
  },
- "alert_id": 53,
+ "alert_id": 89,
  "edge_d": {
   "did": "did:vpp:edge:0x026724404a9c4c835306ce158a6360f4",
-  "privateKey": "2d614fe26c3632e8450b71ebdc0e1f9b67f0d79cd9fa0229a2b9c40bb7be66ea",
-  "publicKey": "04056e5186b76adb4a5bb2b898c5dca6f2b6d48d43c09d89ba9390df5bd1094586e19f70ad98eff9e3a0d08792a012a18f1086c8a446cd924baf27e10b59c1f1ad"
+  "privateKey": "7d663f2392385394a4c30d95fc084a03af218277a64000fa8c6220a0d86a0c35",
+  "publicKey": "04f6d9427463916a101c1898ccdc3d96a6dd1b76b8f4d03aeef460db66660fa1cff5e553c3588e556d8a1672915b9b1031af303a8ec841068597ca53fc26061cd1"
  },
- "fl": "fl-000035",
- "dp": "dp-000036",
+ "fl": "fl-000062",
+ "dp": "dp-000071",
  "dp_run": {
-  "id": "dp-000036",
+  "id": "dp-000071",
   "status": "success",
   "strategy": {
    "actions": [
     {
      "nodeId": "Node-A",
      "action": "discharge",
-     "powerKw": 18.1,
-     "qValue": 48.312,
-     "reason": "负荷最高，SOC充足"
+     "powerKw": 20.9,
+     "qValue": 65.1811,
+     "reason": "SOC 100% 高于上限 95%，禁止充电，负荷排第3位，SOC充足"
     },
     {
      "nodeId": "Node-C",
      "action": "charge",
-     "powerKw": 16.9,
-     "qValue": 45.6447,
-     "reason": "SOC有余量"
+     "powerKw": 15.0,
+     "qValue": 3.4956,
+     "reason": "SOC 5% 低于下限 20%，禁止放电，光伏过剩，SOC偏低"
     },
     {
      "nodeId": "Node-D",
      "action": "discharge",
-     "powerKw": 17.2,
-     "qValue": 53.7031,
-     "reason": "负荷排第2位，SOC充足"
+     "powerKw": 23.0,
+     "qValue": 63.5316,
+     "reason": "SOC 100% 高于上限 95%，禁止充电，负荷最高，SOC充足"
     }
    ],
-   "totalReward": 147.6598,
+   "totalReward": 132.2083,
    "timeWindow": "2026-08-22T19:00~20:00+08:00",
    "constraintsChecked": {
     "socMin": 20.0,
     "socMax": 95.0,
     "maxPowerKw": 30.0,
-    "violations": []
+    "violations": [
+     {
+      "nodeId": "Node-C",
+      "constraint": "socMin",
+      "attempted": "discharge",
+      "applied": "charge",
+      "detail": "SOC=5.0% 触发下限约束，禁止 discharge，原动作 discharge 改为 charge"
+     }
+    ]
    }
   },
   "qTable": [
    {
     "nodeId": "Node-A",
-    "charge": 16.1282,
-    "idle": 43.3691,
-    "discharge": 48.312
+    "charge": 8.8469,
+    "idle": 52.3656,
+    "discharge": 65.1811
    },
    {
     "nodeId": "Node-C",
-    "charge": 45.6447,
-    "idle": 42.8154,
-    "discharge": 41.8428
+    "charge": 3.4956,
+    "idle": 1.7737,
+    "discharge": 7.2695
    },
    {
     "nodeId": "Node-D",
-    "charge": 18.938,
-    "idle": 49.6912,
-    "discharge": 53.7031
+    "charge": 4.5065,
+    "idle": 46.5688,
+    "discharge": 63.5316
    }
   ],
-  "explanation": "该调度策略依据各节点负荷水平与SOC状态，在满足功率和SOC约束的前提下，优先让高负荷且SOC充足的节点放电，同时让SOC有余量的节点充电，以平衡供需并最大化总收益（147.66）。",
+  "explanation": "该调度策略依据各节点的SOC状态和负荷优先级，在2026-08-22 19:00-20:00时段内对虚拟电厂储能进行充放电优化：Node-A和Node-D因SOC达100%（高于95%上限）被禁止充电，分别以20.9kW和23kW放电以支撑高负荷；Node-C因SOC仅5%（低于20%下限）被禁止放电，改为15kW充电以吸收光伏过剩电力，同时系统检测到Node-C原放电动作违反下限约束并自动纠正。整体策略在满足SOC安全边界的前提下，通过负荷排序（Node-D负荷最高、Node-A排第3）实现总奖励132.21。",
   "explanationSource": "live",
-  "evidenceId": "ev-001481",
-  "traceId": "tr-20260823-1857f674",
-  "signPayload": "dispatch:issue:dp-000036:sm3:075a124241e801707e64e366dc814576eadce5b99f588029ddbaf6df1c48926a"
+  "evidenceId": "ev-002403",
+  "traceId": "tr-20260823-af4770e0",
+  "signPayload": "dispatch:issue:dp-000071:sm3:5a71569239181c44c882cd663861367a3c4b04f9769a89da9e912764192f263a"
  },
  "ai_source": "live"
 }

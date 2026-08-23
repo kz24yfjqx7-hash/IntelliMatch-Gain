@@ -39,10 +39,16 @@ s = timed(lambda: c.get("/audit/logs", headers=H, params={"page": 1, "size": 20}
 C("API-PERF-05", "性能抽样（跨月 UNION）", "GET /audit/logs ×30", "P95 < 500ms", [(s["p95"] < 500, str(s))], s)
 
 
-def login_once(_):
+# 20 条独立连接（每线程一个 Client）在计时**之外**先建好：httpx.Client() 构造要建 SSL
+# 上下文，单次约 80-90 ms 且持 GIL，若放在计时区内由 20 个线程各建一个，会被串行成
+# 1.7-1.9 s 的纯客户端开销计入"登录耗时"（2026-08-23 实测：curl -P20 真实服务端 P95
+# 仅 ~280 ms，而本脚本量到 2.9-3.0 s 在阈值 3000 附近抖动）。
+clients = [httpx.Client(base_url=BASE, timeout=30) for _ in range(20)]
+
+
+def login_once(i):
     t0 = time.perf_counter()
-    with httpx.Client(base_url=BASE, timeout=30) as cc:
-        r = cc.post("/auth/login", json={"username": "admin", "password": "admin123"})
+    r = clients[i].post("/auth/login", json={"username": "admin", "password": "admin123"})
     return (time.perf_counter() - t0) * 1000, r.status_code, (r.json().get("code") if r.headers.get("content-type", "").startswith("application/json") else None)
 
 
@@ -50,6 +56,8 @@ t0 = time.perf_counter()
 with ThreadPoolExecutor(20) as ex:
     res = list(ex.map(login_once, range(20)))
 wall = (time.perf_counter() - t0) * 1000
+for cc in clients:
+    cc.close()
 codes = [x[2] for x in res]
 s = {"concurrency": 20, "wall_ms": round(wall, 1), "p95_ms": round(p95([x[0] for x in res]), 1), "max_ms": round(max(x[0] for x in res), 1), "codes": sorted(set(codes))}
 C("API-PERF-06", "20 并发登录", "ThreadPool 20 并发 POST /auth/login", "全部 code 0，无 5xx/1007；P95 < 3000ms", [(codes == [0] * 20, f"codes={codes}"), (s["p95_ms"] < 3000, str(s))], s)

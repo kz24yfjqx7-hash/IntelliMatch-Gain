@@ -635,17 +635,48 @@ def sec_audit():
     a = [x for x in (b.get("data") or {}).get("items", []) if x.get("ruleCode") == "R04_BULK_EXPORT"]
     C("API-AUD-22", "契约 2.7 R04_BULK_EXPORT", "10 分钟内导出 ≥3 次", "出现 R04_BULK_EXPORT 告警", [(bool(a), "无 R04")], a[:1], r.status_code)
     # R03 高频权限变更：同一主体 ≥5 次/10 分钟
+    # 用一个本次新建的 energy_subject 账号当申请方：R03 去重窗口 10 分钟，演示账号 subject
+    # 很可能刚在上一轮/上一个脚本里告过警，再触发不会有新告警（设计内）；新主体没有历史，
+    # 断言也改成「必须出现本次触发后新产生、且归属该主体的告警」——历史行不再能让用例通过
+    # （B-028 正是靠历史行被掩盖了两天的缺陷）。
+    churn_user = uniq("test-churn")
+    req("POST", "/users", "admin", {"username": churn_user, "password": "Churn-123456", "realName": "R03 触发主体",
+                                    "orgName": "测试机构", "roles": ["energy_subject"], "bindDid": True})
+    rr, bb = req("POST", "/auth/login", None, {"username": churn_user, "password": "Churn-123456"})
+    churn_token = (bb.get("data") or {}).get("token")
+    churn_did = (bb.get("data") or {}).get("user", {}).get("did") or \
+        next((u.get("did") for u in (req("GET", "/users", "admin", params={"keyword": churn_user, "size": 5})[1].get("data") or {}).get("items", []) if u.get("username") == churn_user), None)
     aid = CTX["asset_id"]
+    t_before = time.time()
+    reject_ms = []
     for i in range(5):
-        rr, bb = req("POST", "/permissions/apply", "subject", {"resourceType": "asset", "resourceId": str(aid), "action": "read", "reason": f"test-churn-{i}"})
+        rr, bb = req("POST", "/permissions/apply", None, {"resourceType": "asset", "resourceId": str(aid), "action": "read", "reason": f"test-churn-{i}"}, raw_token=churn_token)
         app = (bb.get("data") or {}).get("id")
         if app:
+            t0 = time.time()
             req("POST", f"/permissions/applications/{app}/reject", "admin", {"reason": "test-churn"})
+            reject_ms.append(round((time.time() - t0) * 1000))
     time.sleep(0.5)
-    r, b = req("GET", "/audit/alerts", "admin", params={"size": 50})
-    a = [x for x in (b.get("data") or {}).get("items", []) if x.get("ruleCode") == "R03_PERM_CHURN"]
-    C("API-AUD-23", "契约 2.7 R03_PERM_CHURN", "同一主体 5 次权限变更", "出现 R03_PERM_CHURN 告警", [(bool(a), "无 R03")], a[:1], r.status_code)
+    r, b = req("GET", "/audit/alerts", "admin", params={"size": 50, "ruleCode": "R03_PERM_CHURN"})
+    a = [x for x in (b.get("data") or {}).get("items", [])
+         if x.get("ruleCode") == "R03_PERM_CHURN" and x.get("actorDid") == churn_did
+         and _iso_ts(x.get("createdAt")) >= t_before - 2]
+    C("API-AUD-23", "契约 2.7 R03_PERM_CHURN / B-028", "新建主体 5 次申请+驳回（5 次权限变更）",
+      "出现归属该主体、createdAt 晚于触发时刻的 R03 告警，evidenceId 非空；每次驳回 <2s（B-028 修复前第 5 次约 9s）",
+      [(bool(churn_did), "拿不到申请方 DID"), (bool(a), f"无本次新产生的 R03（actorDid={churn_did}）"),
+       (bool(a) and bool(a[0].get("evidenceId")), "告警未上链"),
+       (bool(reject_ms) and max(reject_ms) < 2000, f"驳回耗时 ms={reject_ms}")],
+      {"alert": a[:1], "rejectMs": reject_ms}, r.status_code)
 
+
+
+def _iso_ts(v) -> float:
+    """ISO8601（含 +08:00）→ 时间戳；解析失败返回 0。"""
+    try:
+        from datetime import datetime
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0.0
 
 # ============================================================ 2.8 nodes
 def sec_nodes():

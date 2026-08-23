@@ -220,3 +220,17 @@
   **✅ 已修复（fix-algo，2026-08-22）**：`core/middleware.py::_verify_signature` 把托管私钥代签出来的签名回写进请求体（新增 `_write_back`），`issue_dispatch` 照常落库；`_dispatch_to_item` 增加 `signature` 字段回传（B-016 的建议一并落地，前端 `TerminalResponse.vue:254-268` 的真验签分支现在能跑通）。实测 dp-000004 详情返回 64 字节 SM2 签名 `245c3b59…fee522`，与 `signPayload` 离线验签通过。回归：`test_B004_托管代签的签名落库且详情回传`。
 - **B-008 `/dispatch/tasks/{id}/ack` 接受非目标节点回执（用例 API-DP-14）**
   **✅ 已修复（fix-algo，2026-08-22）**：`ack_dispatch` 先按策略 actions（退化时按 nodeIds）算出本次下发的目标集合，不在集合内返回 1001（与用例期望的「400/1001 或 404/1005」一致；语义上是请求参数不合法，故选 1001）。实测 `nodeId=Node-Z` → `{"code":1001,"message":"节点 Node-Z 不在本次下发的目标节点内（Node-A、Node-C、Node-D），拒绝回执"}`，且该拒绝同样落在任务的 traceId 链上。回归：`test_B008_非目标节点回执被拒`。
+
+---
+
+## 修复轮之后发现的两条（2026-08-22 晚 / 2026-08-23）
+
+## B-027 ｜严重 ｜ 同一请求内业务会话与审计会话争链尾行锁，回收授权接口挂 200 秒（修复轮引入的回归）
+- 现象：`POST /permissions/grants/{id}/revoke` 200 s 后才返回（客户端早已超时）。日志 3 × `Lock wait timeout exceeded`（默认 50 s）。
+- 根因：B-010 的修法让业务会话在 `write_evidence` 时对链尾 `SELECT … FOR UPDATE` 持锁到请求结束；`@audited` 的 `write_audit_log` 另开会话、另开连接再写链（高危审计自动上链）→ 自己等自己。
+- **✅ 已修复（主 Agent，2026-08-22，提交 `b6fb566`）**：`@audited` 把请求会话透传 `write_audit_log(..., request_db=)`，审计存证与业务同连接写入并提交；`chain._write_once` 在 MySQL 上设会话级 `innodb_lock_wait_timeout=3`。实测 200 s → 35 ms。复测见 `docs/测试文档-接口与安全.md` §4.2 B-013（该文档自己的号段）。
+
+## B-028 ｜中 ｜ R03 高频权限变更告警丢失、驳回/回收请求多挂 9 秒、Redis 去重标记提前种下导致静默 10 分钟
+- 现象：全量复测 API-AUD-23 失败（5 次申请+驳回后无 R03）。后端日志 02:58:06 INSERT `al-000061` → 02:58:15 打「【风控告警】R03」，但 `audit_alert` 无此行、id 67 空洞，`al-000061` 随后被一条 R01 复用。
+- 根因：B-027 同族、另一条路径。`_log_change → fire_perm_change → _create_alert` 另开会话上链，而请求事务刚 `write_evidence` 过、链尾行锁在手 → 3 s × 3 次重试 → 上链失败，重试中的 rollback 把同一会话刚 flush 的告警行一起回滚；`risk:alerted:R03:<did>` 在落库前已种下（TTL 600 s）→ 该主体 R03 静默 10 分钟。
+- **✅ 已修复（主 Agent，2026-08-23，提交 `7edd38c`）**：`rules.fire(..., db=)` 透传请求会话，告警行与存证块同连接、不自行 commit（保住 `run_with_retry` 整段重放语义）；去重标记改为 `_create_alert` 成功后再种。`permission/service._log_change` 传 `db`。新增单测 3 条，backend pytest 337/337。对应《测试文档-接口与安全》§4.2 B-014、《测试文档》§6.4 B-014。

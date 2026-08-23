@@ -463,8 +463,15 @@ async function main() {
   await tc('TC-UI-07', '3.9/3.10/六', '云端聚合与调度：生成 DQN 策略 → AI 解释（来源标识）→ 签名下发 → 终端响应 DID 验签 → 回执', async rec => {
     await ensureRole('admin')
     await nav('/cloud/aggregate')
-    await page.getByRole('button', { name: /生成调度策略/ }).waitFor({ timeout: 20000 })
-    await page.getByRole('button', { name: /生成调度策略/ }).click()
+    const genBtn = page.getByRole('button', { name: /生成调度策略/ })
+    await genBtn.waitFor({ timeout: 20000 })
+    // 页面加载时默认选中「最近一条已生成策略的任务」，此时「签名下发」可能已经可点（接口层套件留下的未下发任务）。
+    // 必须等本次点击创建的新任务 POST /dispatch/tasks/{id}/run 返回并被页面选中，否则会把旧任务下发出去，
+    // 终端页就找不到"刚下发"的指令（第一遍 TC-UI-07 失败的根因）。
+    const runDone = page.waitForResponse(r => r.request().method() === 'POST' && /\/dispatch\/tasks\/[^/]+\/run(\?|$)/.test(r.url()), { timeout: 60000 })
+    await genBtn.click()
+    const newTaskId = (await runDone).url().match(/tasks\/([^/?]+)\/run/)[1]
+    await page.waitForFunction(id => document.body.innerText.includes(id), newTaskId, { timeout: 20000 })
     await page.getByRole('button', { name: /签名下发/ }).waitFor({ timeout: 40000 })
     for (let i = 0; i < 40; i++) { if (await page.getByRole('button', { name: /签名下发/ }).isEnabled()) break; await page.waitForTimeout(1000) }
     const b1 = await page.locator('body').innerText()
@@ -476,19 +483,33 @@ async function main() {
     rec.shots.push(await shot('18-dispatch-ai-explain'))
     await page.getByRole('button', { name: '生成', exact: true }).click()
     await page.getByRole('button', { name: /签名下发/ }).click()
-    await page.waitForTimeout(2500)
-    const b2 = await page.locator('body').innerText()
-    const issued = /已下发|issued|下发成功/i.test(b2)
+    // 稳定信号：下发成功后页面渲染 .issue-result「✅ 指令 cmd-xxx 已下发至 Node-X …」（不依赖 3 秒自动关闭的 ElMessage）
+    const issueResult = page.locator('.issue-result', { hasText: /已下发至/ })
+    let issued = true
+    try { await issueResult.waitFor({ timeout: 20000 }) } catch { issued = false }
     const msg = await page.locator('.el-message').allInnerTexts().catch(() => [])
     rec.shots.push(await shot('19-dispatch-issued'))
-    rec.evidence = `AI 来源=${badge}; 下发=${issued}; 提示=${msg.join('|').slice(0, 120)}`
-    expect(issued, '签名下发应成功（提示：' + msg.join('|') + '）')
+    const issueText = issued ? await issueResult.innerText() : ''
+    const m = issueText.match(/指令\s*(cmd-\S+)\s*已下发至\s*([^·]+)/)
+    const commandId = m ? m[1].trim() : ''
+    const targetNode = m ? m[2].split(',')[0].trim() : ''
+    rec.evidence = `AI 来源=${badge}; 任务=${newTaskId}; 下发=${issued}; 指令=${commandId} → ${targetNode}; 提示=${msg.join('|').slice(0, 120)}`
+    expect(issued && commandId && targetNode, '签名下发应成功并显示 commandId 与目标节点（提示：' + msg.join('|') + '）')
     await nav('/edge/response')
     await page.locator('.el-select').first().waitFor()
+    // 终端页只展示"当前节点"的指令；当前节点若已有历史指令就不会出现「切换到该节点查看」按钮，
+    // 所以直接按下发结果里的目标节点在侧栏切换，再按 commandId 选中本次指令。
+    const nodeOpt = page.locator('.node-option', { hasText: targetNode })
+    if (await nodeOpt.count()) { await nodeOpt.first().click(); await page.waitForTimeout(800) }
     const switchBtn = page.getByRole('button', { name: /切换到该节点查看/ })
-    const issuedChip = page.locator('.command-panel .status-chip', { hasText: /已下发|issued/ })
-    for (let i = 0; i < 20; i++) { if (await switchBtn.count() || await issuedChip.count()) break; await page.waitForTimeout(500) }
     if (await switchBtn.count()) await switchBtn.click()
+    const cmdPanel = page.locator('.command-panel')
+    for (let i = 0; i < 20; i++) { if ((await cmdPanel.innerText()).includes(commandId)) break; await page.waitForTimeout(500) }
+    if (!(await cmdPanel.innerText()).includes(commandId)) {
+      await cmdPanel.locator('.el-select').click()
+      await page.locator('.el-select-dropdown:visible .el-select-dropdown__item', { hasText: commandId }).first().click()
+    }
+    const issuedChip = page.locator('.command-panel .status-chip', { hasText: /已下发|issued/ })
     await issuedChip.waitFor({ timeout: 15000 })
     const verifyBtn = page.getByRole('button', { name: /开始校验|重新校验/ })
     if ((await verifyBtn.innerText()).includes('开始校验')) await verifyBtn.click()
