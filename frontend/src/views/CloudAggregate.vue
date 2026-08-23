@@ -149,7 +149,7 @@
               <el-button type="danger" plain :disabled="!remote?.strategy" :loading="issuing" title="任何角色可见：直接调用后端 issue 接口，无权限角色会被 1003 拦截并触发 R01 告警" @click="issue(true)">🧪 模拟越权下发</el-button>
             </div>
             <div v-if="issueResult" class="issue-result">
-              ✅ 指令 <b class="mono">{{ issueResult.commandId }}</b> 已下发至 <b>{{ (issueResult.targets || []).join(', ') }}</b> · 签发者 <span class="mono">{{ shortDid(issueResult.signerDid) }}</span> · 存证 <span class="mono">{{ issueResult.evidenceId }}</span>
+              ✅ 指令 <b class="mono">{{ issueResult.commandId }}</b> 已下发至 <b>{{ (issueResult.targets || []).join(', ') }}</b> · 签发者 <span class="mono" :title="issueResult.signerDid">{{ shortDid(issueResult.signerDid) }}</span> · 存证 <span class="mono">{{ issueResult.evidenceId }}</span>
             </div>
             <div v-if="remote?.ack" class="issue-result ack">
               📬 终端回执：{{ remote.ack.nodeId }} {{ remote.ack.status }} · 实际功率 {{ fmtNumber(remote.ack.actualPowerKw, 1) }} kW · {{ fmtDateTime(remote.ack.at) }}
