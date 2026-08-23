@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">🔄 云端聚合与调度</h2>
-        <p class="page-desc">联邦模型聚合 → DQN 生成调度策略 → DeepSeek 解释 → DID 签名下发 → 终端回执（接 /fl、/dispatch、/ai API，WebSocket dispatch_progress 实时推进）</p>
+        <p class="page-desc">联邦模型聚合 → DQN 生成调度策略 → DeepSeek 解释 → DID 签名下发 → 终端回执</p>
       </div>
       <div class="header-actions">
         <el-button type="success" :disabled="!remote?.strategy" @click="downloadReport">📄 生成分析报告</el-button>
@@ -72,7 +72,7 @@
             </template>
             <div v-else class="empty-state compact"><span class="empty-icon">🧬</span><span>暂无联邦任务，请先在「边缘隐私保护计算」创建</span></div>
             <div class="models-block">
-              <div class="models-title">模型版本 <span class="muted">（GET /fl/models）</span></div>
+              <div class="models-title">模型版本</div>
               <div v-for="m in flModels" :key="m.version" class="model-row">
                 <span class="mono">{{ m.version }}</span>
                 <span class="muted">{{ m.taskId }} · loss {{ fmtNumber(m.loss, 4) }} · acc {{ fmtNumber(m.acc, 3) }}</span>
@@ -160,7 +160,7 @@
           <div class="task-card wide">
             <div class="card-header">
               <span class="title-icon">🤖</span>
-              <span class="card-title">AI 智能分析（POST /ai/analyze · scene=dispatch）</span>
+              <span class="card-title">AI 智能分析</span>
               <SourceBadge v-if="ai" :source="ai.source" />
               <span v-if="ai" class="muted">{{ ai.latencyMs }} ms</span>
             </div>

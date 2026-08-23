@@ -45,7 +45,7 @@
         <!-- ② 权限矩阵 -->
         <el-tab-pane label="权限矩阵" name="matrix">
           <div class="toolbar">
-            <span class="muted">行 = 角色，列 = 资源 × 操作。{{ canManage ? '点击格子即可切换并保存（PUT /roles/{code}）' : '仅系统管理员可编辑' }}</span>
+            <span class="muted">行 = 角色，列 = 资源 × 操作。{{ canManage ? '点击格子即可切换并保存' : '仅系统管理员可编辑' }}</span>
           </div>
           <div class="matrix-wrap" v-loading="matrixLoading">
             <table v-if="matrix" class="matrix">

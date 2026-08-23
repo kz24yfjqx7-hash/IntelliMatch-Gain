@@ -2,7 +2,7 @@
   <div class="classification-container">
     <div class="page-header">
       <h2 class="page-title">📊 本地感知与分级</h2>
-      <p class="page-desc">边缘节点本地数据采集，调用算法服务 k-means + 规则加权完成自动分类分级（POST /assets/classify），结果可一键登记为数据资产</p>
+      <p class="page-desc">边缘节点本地数据采集，调用算法服务 k-means + 规则加权完成自动分类分级，结果可一键登记为数据资产</p>
       <div class="current-node">
         <span class="node-label">当前节点：</span>
         <span class="node-name">{{ currentNode.name }}</span>

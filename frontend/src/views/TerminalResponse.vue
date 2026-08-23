@@ -2,7 +2,7 @@
   <div class="response-container">
     <div class="page-header">
       <h2 class="page-title">✅ 终端响应与执行</h2>
-      <p class="page-desc">接收云端签名下发的调度指令，校验签发者 DID 与 SM2 签名后执行本地设备控制，并回执（POST /dispatch/tasks/{id}/ack）</p>
+      <p class="page-desc">接收云端签名下发的调度指令，校验签发者 DID 与 SM2 签名后执行本地设备控制，并回执</p>
       <div class="current-node">
         <span class="node-label">当前节点：</span>
         <span class="node-name">{{ node.name }}</span>
@@ -226,8 +226,8 @@ const verifyState = ref('idle') // idle | running | passed | failed
 const verifyError = ref('')
 const verifySteps = ref([
   { key: 'signer', title: '读取签发者 DID', placeholder: 'signerDid', detail: '', state: 'pending' },
-  { key: 'resolve', title: '解析 DID 文档（GET /did/{did}）', placeholder: 'verificationMethod → SM2 公钥', detail: '', state: 'pending' },
-  { key: 'verify', title: '验签（POST /did/verify）', placeholder: 'message = commandId，signature = 签发者签名', detail: '', state: 'pending' }
+  { key: 'resolve', title: '解析 DID 文档', placeholder: 'verificationMethod → SM2 公钥', detail: '', state: 'pending' },
+  { key: 'verify', title: '验签', placeholder: 'message = commandId，signature = 签发者签名', detail: '', state: 'pending' }
 ])
 function resetVerify() {
   verifyState.value = 'idle'

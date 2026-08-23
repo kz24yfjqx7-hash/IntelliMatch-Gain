@@ -2,7 +2,7 @@
   <div class="privacy-container">
     <div class="page-header">
       <h2 class="page-title">🔐 边缘隐私保护计算</h2>
-      <p class="page-desc">联邦学习任务（POST /fl/tasks）：原始数据不出域，差分隐私加噪 + Top-k 稀疏后仅上传参数，每轮梯度哈希上链；进度经 WebSocket fl_progress 实时推送</p>
+      <p class="page-desc">联邦学习任务：原始数据不出域，差分隐私加噪 + Top-k 稀疏后仅上传参数，每轮梯度哈希上链，训练进度实时推送</p>
       <div class="current-node">
         <span class="node-label">当前节点：</span>
         <span class="node-name">{{ perspectiveStore.currentNodeInfo.name }}</span>

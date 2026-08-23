@@ -5,7 +5,7 @@
 
     <div class="page-header">
       <h2 class="page-title">🌐 全网设备状态图</h2>
-      <p class="page-desc">实时监控全网边缘节点状态与 DID 身份，点击节点查看详情（数据来源 GET /nodes + WebSocket node_status）</p>
+      <p class="page-desc">实时监控全网边缘节点状态与 DID 身份，点击节点查看详情</p>
     </div>
 
     <div class="topology-content">

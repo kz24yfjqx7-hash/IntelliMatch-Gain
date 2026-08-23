@@ -2,7 +2,7 @@
   <div class="risk-container">
     <div class="page-header">
       <h2 class="page-title">⚠️ 动态隐私风险评估</h2>
-      <p class="page-desc">基于查询频率、数据粒度、暴露字段与剩余隐私预算四因子加权评分（POST /risk/assess），给出 ε 建议并拦截高风险出域</p>
+      <p class="page-desc">基于查询频率、数据粒度、暴露字段与剩余隐私预算四因子加权评分，给出 ε 建议并拦截高风险出域</p>
       <div class="current-node">
         <span class="node-label">当前节点：</span>
         <span class="node-name">{{ perspectiveStore.currentNodeInfo.name }}</span>
@@ -85,7 +85,7 @@
       <div class="bottom-grid">
         <div class="panel history-panel">
           <div class="panel-title">
-            📈 历史评分（GET /risk/history）
+            📈 历史评分
             <span class="pt-meta">{{ history.length }} 条</span>
           </div>
           <div ref="historyRef" class="history-chart"></div>
