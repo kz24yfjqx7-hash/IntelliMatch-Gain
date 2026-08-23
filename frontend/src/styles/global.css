@@ -120,6 +120,40 @@ body::after {
   background: var(--el-table-row-hover-bg-color) !important;
 }
 
+/* 固定列（fixed="left" / "right"）必须不透明，否则横向滚动时下面的内容会透出来。
+   Element Plus 给固定列写的是 `background: inherit`，继承自 tr；而本主题把
+   --el-table-tr-bg-color 设成了 transparent（为了透出面板的渐变玻璃底），
+   于是「操作」列整列变成透明的，滚到它下面的 actor DID、时间等文字会直接
+   叠印在「详情/校验/凭证」按钮上。存证/身份/资产/权限四个中心的操作列都受影响。
+   这里补一层与面板同色的不透明底（面板是 rgba(10,16,24,.9)→rgba(5,10,18,.95)，
+   取 --bg-secondary 肉眼无差）。 */
+.el-table td.el-table-fixed-column--left,
+.el-table td.el-table-fixed-column--right,
+.el-table th.el-table-fixed-column--left,
+.el-table th.el-table-fixed-column--right {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* 斑马纹/悬浮/选中的色块用 background-image 叠在上面那层不透明底之上，
+   这样固定列既遮住了下方内容，又能跟着本行一起变色。 */
+.el-table--striped .el-table__body tr.el-table__row--striped > td.el-table-fixed-column--left,
+.el-table--striped .el-table__body tr.el-table__row--striped > td.el-table-fixed-column--right {
+  background-image: linear-gradient(var(--el-fill-color-lighter), var(--el-fill-color-lighter));
+}
+
+.el-table__body tr:hover > td.el-table-fixed-column--left,
+.el-table__body tr:hover > td.el-table-fixed-column--right,
+.el-table__body tr.hover-row > td.el-table-fixed-column--left,
+.el-table__body tr.hover-row > td.el-table-fixed-column--right {
+  background-image: linear-gradient(var(--el-table-row-hover-bg-color), var(--el-table-row-hover-bg-color));
+}
+
+/* 表头的固定列跟随表头底色，不要跟着行走 */
+.el-table th.el-table-fixed-column--left,
+.el-table th.el-table-fixed-column--right {
+  background-color: var(--el-table-header-bg-color) !important;
+}
+
 .el-drawer {
   background: var(--bg-secondary) !important;
 }
