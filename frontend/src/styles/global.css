@@ -106,6 +106,18 @@ body::after {
   --el-table-border-color: var(--bg-tertiary) !important;
   --el-table-text-color: var(--color-text) !important;
   --el-table-header-text-color: var(--color-primary) !important;
+  /* 斑马纹（stripe）行不走 --el-table-tr-bg-color，Element Plus 直接给单元格刷
+     --el-fill-color-lighter（默认 #fafafa 近白）。上面只覆盖了 table 系列变量，
+     漏掉这两个通用填充色，暗色主题下隔行就是白底 + 白字，等于看不见。
+     身份/资产/权限/存证四个中心的列表都开了 stripe，全部受影响。 */
+  --el-fill-color-lighter: rgba(0, 180, 216, 0.06) !important;
+  --el-fill-color-light: rgba(0, 180, 216, 0.10) !important;
+  --el-table-current-row-bg-color: rgba(0, 180, 216, 0.16) !important;
+}
+
+/* 悬浮行要压过斑马纹底色，否则鼠标划过隔行时没有反馈 */
+.el-table__body tr.el-table__row--striped:hover > td.el-table__cell {
+  background: var(--el-table-row-hover-bg-color) !important;
 }
 
 .el-drawer {
