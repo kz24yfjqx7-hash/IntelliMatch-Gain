@@ -286,6 +286,7 @@ from core.exceptions import DidInvalidError  # noqa: E402
 from core.middleware import current_trace_id  # noqa: E402
 from core.response import iso  # noqa: E402
 from modules.evidence.service import write_evidence  # noqa: E402
+from modules.notice import service as notice_service  # noqa: E402
 from modules.permission.model import PermApplication, PermChangeLog  # noqa: E402
 
 _DEFAULT_GRANT_DAYS = 30
@@ -322,6 +323,59 @@ def _log_change(db: Session, *, target_did: str, change_type: str, resource_type
         fire_perm_change(target_did, change_type, db=db)
     except ImportError:
         pass
+
+
+# ---------------------------------------------------------------- 站内消息（铃铛）
+
+# 审批人角色：与 router 里 approve/reject 的 require_roles 保持一致，改一处要同步改另一处
+APPROVER_ROLES = ("sys_admin",)
+
+_RES_LABELS = {"asset": "数据资产", "model": "模型", "dispatch": "调度指令",
+               "evidence": "存证", "algo": "算法", "user": "用户"}
+_ACT_LABELS = {"read": "读取", "write": "写入", "execute": "执行",
+               "issue": "签发", "export": "导出", "manage": "管理"}
+
+
+def _res_label(t: str | None) -> str:
+    return _RES_LABELS.get(t or "", t or "资源")
+
+
+def _act_label(a: str | None) -> str:
+    return _ACT_LABELS.get(a or "", a or "")
+
+
+def _notify_approvers(db: Session, app: PermApplication, principal) -> None:
+    """有人提交申请 → 给所有审批人的铃铛发一条待办。"""
+    who = app.applicant_name or app.applicant_did
+    notice_service.notify_roles(
+        db, APPROVER_ROLES,
+        exclude_did=app.applicant_did,   # 管理员给自己提的申请不必再通知自己
+        category="permission_apply", level="warning",
+        title="有新的权限申请待审批",
+        content=(f"{who} 申请 {_res_label(app.resource_type)} {app.resource_id} 的"
+                 f"{_act_label(app.action)}权限。理由：{app.reason or '未填写'}"),
+        link=f"/permission?tab=apps&id={app.id}",
+        ref_type="permission_application", ref_id=str(app.id),
+        actor_did=app.applicant_did, actor_name=app.applicant_name,
+    )
+
+
+def _notify_applicant(db: Session, app: PermApplication, *, approved: bool) -> None:
+    """审批完成 → 通知申请人结果。"""
+    notice_service.notify_dids(
+        db, [app.applicant_did],
+        category="permission_result",
+        level="success" if approved else "warning",
+        title="权限申请已通过" if approved else "权限申请被驳回",
+        content=(f"{_res_label(app.resource_type)} {app.resource_id} 的"
+                 f"{_act_label(app.action)}权限申请"
+                 f"{'已通过' if approved else '被驳回'}。"
+                 f"审批意见：{app.approve_reason or '无'}"),
+        link=("/permission?tab=grants" if approved
+              else f"/permission?tab=apps&id={app.id}"),
+        ref_type="permission_application", ref_id=str(app.id),
+        actor_did=app.approver_did, actor_name=app.approver_name,
+    )
 
 
 def _app_to_item(app: PermApplication) -> dict:
@@ -389,7 +443,11 @@ def _apply_permission(db: Session, principal, payload) -> dict:
                 action=payload.action, operator_did=principal.did,
                 detail=payload.reason, evidence_id=evidence["evidenceId"])
     db.commit()
-    return _app_to_item(app)
+
+    item = _app_to_item(app)
+    # 通知在事务提交之后发：消息里的链接指向 app.id，必须先可查再通知
+    _notify_approvers(db, app, principal)
+    return item
 
 
 def list_applications(db: Session, page: int, size: int, *, status: str | None = None,
@@ -484,7 +542,10 @@ def _approve_application(db: Session, application_id: int, principal, payload) -
 
     db.commit()
     invalidate_permission_cache()
-    return {**_app_to_item(app), "grantId": grant.id, "evidenceId": evidence["evidenceId"]}
+
+    result = {**_app_to_item(app), "grantId": grant.id, "evidenceId": evidence["evidenceId"]}
+    _notify_applicant(db, app, approved=True)
+    return result
 
 
 def reject_application(db: Session, application_id: int, principal, payload) -> dict:
@@ -511,10 +572,16 @@ def _reject_application(db: Session, application_id: int, principal, payload) ->
                 action=app.action, operator_did=principal.did,
                 detail=app.approve_reason, evidence_id=evidence["evidenceId"])
     db.commit()
-    return {**_app_to_item(app), "evidenceId": evidence["evidenceId"]}
+
+    result = {**_app_to_item(app), "evidenceId": evidence["evidenceId"]}
+    _notify_applicant(db, app, approved=False)
+    return result
 
 
-def _grant_to_item(grant: PermGrant) -> dict:
+def _grant_to_item(grant: PermGrant, granter: tuple[str | None, str | None] = (None, None)) -> dict:
+    # 授权人（审批的管理员）：授权记录本身不存这个字段，从它关联的申请
+    # （approver_did / approver_name）解析。granter = (did, name)，由 list_grants 批量传入。
+    granted_by_did, granted_by_name = granter
     return {
         "id": grant.id,
         "applicationId": grant.application_id,
@@ -529,7 +596,21 @@ def _grant_to_item(grant: PermGrant) -> dict:
         "revokedAt": iso(grant.revoked_at),
         "revokeReason": grant.revoke_reason,
         "evidenceId": grant.evidence_id,
+        "grantedBy": granted_by_did,       # 授权人 DID（前端「授权人」列读它）
+        "grantedByName": granted_by_name,  # 授权人名字
     }
+
+
+def _resolve_granters(db: Session, grants: list) -> dict[int, tuple[str | None, str | None]]:
+    """一次性查出这批授权对应申请的审批人，返回 {application_id: (did, name)}。"""
+    app_ids = {g.application_id for g in grants if g.application_id is not None}
+    if not app_ids:
+        return {}
+    rows = db.execute(
+        select(PermApplication.id, PermApplication.approver_did, PermApplication.approver_name)
+        .where(PermApplication.id.in_(app_ids))
+    ).all()
+    return {aid: (did, name) for aid, did, name in rows}
 
 
 def list_grants(db: Session, page: int, size: int, *, did: str | None = None,
@@ -547,7 +628,8 @@ def list_grants(db: Session, page: int, size: int, *, did: str | None = None,
     grants = db.execute(
         stmt.order_by(PermGrant.id.desc()).offset((page - 1) * size).limit(size)
     ).scalars().all()
-    return [_grant_to_item(g) for g in grants], total
+    granters = _resolve_granters(db, grants)
+    return [_grant_to_item(g, granters.get(g.application_id, (None, None))) for g in grants], total
 
 
 def revoke_grant(db: Session, grant_id: int, principal, reason: str) -> dict:
@@ -588,4 +670,18 @@ def _revoke_grant(db: Session, grant_id: int, principal, reason: str) -> dict:
                 detail=reason, evidence_id=evidence["evidenceId"])
     db.commit()
     invalidate_permission_cache()
-    return {**_grant_to_item(grant), "evidenceId": evidence["evidenceId"]}
+
+    granter = _resolve_granters(db, [grant]).get(grant.application_id, (None, None))
+    result = {**_grant_to_item(grant, granter), "evidenceId": evidence["evidenceId"]}
+    notice_service.notify_dids(
+        db, [grant.grantee_did],
+        category="permission_revoke", level="warning",
+        title="你的一项授权已被回收",
+        content=(f"{_res_label(grant.resource_type)} {grant.resource_id} 的"
+                 f"{_act_label(grant.action)}权限已被回收。原因：{reason}"),
+        link="/permission?tab=grants",
+        ref_type="perm_grant", ref_id=str(grant.id),
+        actor_did=principal.did,
+        actor_name=principal.real_name or principal.username,
+    )
+    return result

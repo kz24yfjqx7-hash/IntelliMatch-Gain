@@ -138,3 +138,31 @@ def test_每步流转都留了变更痕迹(client, login, asset_id, SessionFacto
     types = {log.change_type for log in logs}
     assert {"apply", "approve"} <= types
     assert all(log.evidence_id for log in logs)   # 每条留痕都有对应存证
+
+
+def test_审批人与授权人信息在列表里可见(client, login, asset_id):
+    """回归：申请列表要能看到审批人（approverName/approveReason/approvedAt），
+    授权列表要能看到授权人（grantedBy/grantedByName）——两者原来因字段名不匹配/未返回而空白。"""
+    subject, admin = login("subject"), login("admin")
+    app = _apply(client, subject, asset_id).json()["data"]
+    approved = client.post(f"/api/v1/permissions/applications/{app['id']}/approve",
+                           headers=admin, json={"reason": "同意授权"}).json()["data"]
+
+    # 申请列表：审批后带审批人信息
+    apps = client.get("/api/v1/permissions/applications?size=50", headers=admin).json()["data"]["items"]
+    mine = next(a for a in apps if a["id"] == app["id"])
+    assert mine["status"] == "approved"
+    assert mine["approverName"] and mine["approverDid"], mine
+    assert mine["approveReason"] == "同意授权"
+    assert mine["approvedAt"]
+
+    # 授权列表：授权人 = 审批的管理员
+    grants = client.get("/api/v1/permissions/grants?size=50", headers=admin).json()["data"]["items"]
+    g = next(x for x in grants if x.get("applicationId") == app["id"])
+    assert g["grantedBy"] == mine["approverDid"], g
+    assert g["grantedByName"] == mine["approverName"]
+
+    # 回收后返回体也带授权人
+    revoked = client.post(f"/api/v1/permissions/grants/{approved['grantId']}/revoke",
+                          headers=admin, json={"reason": "结束"}).json()["data"]
+    assert revoked["grantedBy"] == mine["approverDid"]

@@ -86,7 +86,8 @@
             </el-radio-group>
             <el-button @click="loadApps">查询</el-button>
           </div>
-          <el-table :data="apps.items" v-loading="apps.loading" size="small" stripe>
+          <el-table :data="apps.items" v-loading="apps.loading" size="small" stripe
+                    :row-class-name="appRowClass">
             <el-table-column prop="id" label="ID" width="60" />
             <el-table-column label="申请人" min-width="180">
               <template #default="{ row }">{{ row.applicantName || '--' }}<br /><HashText :value="row.applicantDid" :head="20" /></template>
@@ -104,8 +105,14 @@
             <el-table-column label="有效期至" width="110">
               <template #default="{ row }">{{ fmtDate(row.expireAt) }}</template>
             </el-table-column>
-            <el-table-column label="审批意见" min-width="140">
-              <template #default="{ row }"><span v-if="row.reviewComment">{{ row.reviewComment }}<br /><span class="muted">{{ fmtDateTime(row.reviewedAt) }}</span></span><span v-else class="muted">--</span></template>
+            <el-table-column label="审批意见 / 审批人" min-width="180">
+              <template #default="{ row }">
+                <template v-if="row.approveReason || row.approverName">
+                  <span>{{ row.approveReason || '--' }}</span><br />
+                  <span class="muted">{{ row.approverName || '' }}<template v-if="row.approvedAt"> · {{ fmtDateTime(row.approvedAt) }}</template></span>
+                </template>
+                <span v-else class="muted">--</span>
+              </template>
             </el-table-column>
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
@@ -142,8 +149,14 @@
             <el-table-column label="资源 / 操作" min-width="150">
               <template #default="{ row }"><span class="mono">{{ row.resourceType }}:{{ row.action }}</span><br /><span class="muted">resourceId {{ row.resourceId }}</span></template>
             </el-table-column>
-            <el-table-column label="授权人" min-width="160">
-              <template #default="{ row }"><HashText :value="row.grantedBy" :head="20" /></template>
+            <el-table-column label="授权人" min-width="180">
+              <template #default="{ row }">
+                <template v-if="row.grantedBy || row.grantedByName">
+                  <span>{{ row.grantedByName || '' }}</span><br v-if="row.grantedByName" />
+                  <HashText :value="row.grantedBy" :head="20" />
+                </template>
+                <span v-else class="muted">--</span>
+              </template>
             </el-table-column>
             <el-table-column label="授权时间" width="150">
               <template #default="{ row }">{{ fmtDateTime(row.grantedAt) }}</template>
@@ -273,6 +286,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   listRoles, createRole, updateRole, getPermissionMatrix, applyPermission, listApplications, approveApplication, rejectApplication,
@@ -285,6 +299,7 @@ import CenterPage from '@/components/center/CenterPage.vue'
 import StatCard from '@/components/center/StatCard.vue'
 import HashText from '@/components/center/HashText.vue'
 
+const route = useRoute()
 const userStore = useUserStore()
 const logStore = useLogStore()
 const RESOURCES = ['asset', 'model', 'dispatch', 'evidence', 'algo']
@@ -292,6 +307,11 @@ const ACTIONS = ['read', 'write', 'execute', 'issue', 'export']
 const APP_TAG = { pending: 'warning', approved: 'success', rejected: 'danger', expired: 'info' }
 const canManage = computed(() => userStore.hasPermission('user:manage'))
 const activeTab = ref('roles')
+// 由铃铛消息带过来的申请 id，在列表里高亮一行
+const highlightAppId = ref(null)
+function appRowClass({ row }) {
+  return highlightAppId.value && row.id === highlightAppId.value ? 'row-highlight' : ''
+}
 
 /* ---------- 角色 ---------- */
 const roles = ref([])
@@ -477,7 +497,26 @@ async function doCheck() {
 
 function refreshAll() { loadRoles(); loadMatrix(); loadPendingTotal(); loadGrants(); loadUserDids(); if (activeTab.value === 'apps') loadApps() }
 watch(activeTab, tab => { if (tab === 'apps' && !apps.items.length) loadApps() })
-onMounted(refreshAll)
+/** 从铃铛消息跳进来时带 ?tab=apps&id=12：落到对应 tab，并把该条筛出来 */
+function applyRouteQuery() {
+  const tab = String(route.query.tab || '')
+  if (['roles', 'matrix', 'apps', 'grants', 'check'].includes(tab)) activeTab.value = tab
+  const id = route.query.id
+  if (tab === 'apps' && id) {
+    // 消息指向的那条可能已被别人处理掉，所以不按 pending 过滤，按全部查
+    appQuery.status = ''
+    highlightAppId.value = Number(id)
+    loadApps()
+  }
+}
+
+onMounted(() => {
+  refreshAll()
+  applyRouteQuery()
+})
+
+// 已经停在本页时再点一条消息，路由不会重挂载，得靠 watch 接住
+watch(() => route.query, applyRouteQuery)
 </script>
 
 <style scoped>
@@ -515,4 +554,6 @@ onMounted(refreshAll)
 .check-result.ok .check-big { color: var(--color-success); text-shadow: 0 0 18px rgba(46, 204, 113, .6); }
 .check-result.bad .check-big { color: var(--color-danger); text-shadow: 0 0 18px rgba(230, 57, 70, .6); }
 .check-sub { text-align: center; color: var(--color-text-secondary); }
+/* 从铃铛消息跳过来时高亮目标行，:deep 是因为行类名由 el-table 渲染在 scoped 之外 */
+:deep(.row-highlight) td { background: rgba(243, 156, 18, .18) !important; }
 </style>
