@@ -143,6 +143,17 @@ def test_任务完成生成模型版本(client, login):
     assert published["evidenceId"].startswith("ev-")
 
 
+def test_发布模型需要algo_execute权限(client, login):
+    """发布模型是 high 风险写操作，权限 algo:execute（admin/grid），与前端 v-permission 一致。
+    持 model:read 但无 algo:execute 的 vpp/regulator/edge 直接调接口必须被 1003 拦（原来 model:read 太松）。"""
+    for role in ("vpp", "subject", "regulator", "edge"):
+        r = client.post("/api/v1/fl/models/v-any/publish", headers=login(role))
+        assert r.status_code == 403 and r.json()["code"] == 1003, f"{role} 竟能发布模型：{r.json()}"
+    # grid 有 algo:execute：不会被 1003 拦（版本不存在会走到业务层，另一种错误码，但不是权限拒绝）
+    r = client.post("/api/v1/fl/models/v-none/publish", headers=login("grid"))
+    assert r.json()["code"] != 1003, f"grid 应有发布权限：{r.json()}"
+
+
 def test_梯度异常触发R05高危告警(client, login):
     """契约 3.2 明确要求：anomaly 非 null 必须生成 R05_SUSPICIOUS_GRAD 高危审计日志。"""
     from unittest.mock import patch

@@ -239,3 +239,11 @@
 - 现象：用户现场任务 fl-000070（单节点 + DP ε=0.6）loss 10 轮发散到 9×10⁷ 仍报 success（算法侧缺陷，已在同一提交修：裁剪封顶 + 发散熔断）。修好算法后复验 fl-000071：算法服务返回 `status=failed, anomaly=training_diverged, error=…`，但后端 `GET /fl/tasks/{id}` 里 anomaly/error 为空，也没有 R05 告警。
 - 根因：`persist_fl_progress` 只把 `job.anomaly` 送进 `fire_suspicious_gradient` 就丢掉，`algo_fl_task` 没有列存它；R05 触发时 `actor_did=None`，`rules.fire` 的去重主体退化为 `anonymous`，10 分钟内第二个异常任务（本次被 12:23 的 fl-000068 压住）永远不告警。
 - **✅ 已修复（主 Agent，2026-08-23，提交 `827398a`）**：`algo_fl_task` 新增 `anomaly JSON`、`error VARCHAR(512)`（`01_schema.sql` 已含，存量库执行 `sql/04_migrate_20260823.sql`）；`persist_fl_progress` 落库并只在异常首次出现时触发 R05（轮询重复送同一异常不再反复进风控）；`rules.fire(dedup_key=)`，R05 以 `fl:<taskId>` 去重、挂创建者名下、消息按 投毒/预算耗尽/训练发散 措辞。单测 `test_B029_…`，backend pytest 338/338；前端失败任务显示 `error`。
+
+## B-030 ｜中 ｜ 风控告警 alert_id 用 COUNT(*)+1 拼接，并发下撞唯一键导致告警丢失
+- 现象：24 路并发写压测（`qa/api-tests/lock_stress.py`）中，两个并发告警读到相同 `COUNT(*)` → 拼出同一个 `al-000099` → `1062 Duplicate entry` → 告警被 `fire()` 吞掉丢失（实测 10 次）。
+- **✅ 已修复（主 Agent，2026-08-23，提交 `3e3acb1`）**：`_insert_alert` 改为先用 uuid 临时占位插入拿到行自增主键、再回填成 `al-<id>`（`alert_id` 是 NOT NULL UNIQUE），与 COUNT 无关，天然不撞。新增 `test_B030_…`；干净单后端 24 路 × 70s 压测 alert_id 重复 0、未捕获异常 0、无自锁离群（最大 1197ms）。
+
+## B-031 ｜中 ｜ 发布模型接口后端门控用 model:read，比前端 algo:execute 松，可越权发布
+- 现象：`POST /fl/models/{version}/publish` 后端 `@require_permission("model","read")`，而前端「发布」按钮是 `v-permission="'algo:execute'"`（admin/grid）。持 model:read 的 vpp/regulator/edge 前端看不到按钮，但**直接调接口就能发布模型**（high 风险写操作），绕过前端裁剪。
+- **✅ 已修复（主 Agent，2026-08-23，提交见下）**：后端改 `@require_permission("algo","execute")`，与前端及「创建/启动联邦学习」一致。新增 `test_发布模型需要algo_execute权限`（vpp/subject/regulator/edge → 1003，grid 通过）。实测 vpp/regulator/edge publish → 1003，grid/admin → 过权限。契约只列该接口未规定权限，本修复不违反契约。手册 §3.3 同步（发布模型门控标注 algo:execute）。

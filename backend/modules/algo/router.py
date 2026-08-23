@@ -57,9 +57,12 @@ def list_models(pg: PageQuery = Depends(pagination), db: Session = Depends(get_d
 @router.post("/fl/models/{version}/publish", summary="发布模型")
 @audited(module="algo", action="model:publish", risk="high", resource_type="model",
          resource_id_arg="version")
-@require_permission("model", "read")
+@require_permission("algo", "execute")
 def publish_model(version: str, db: Session = Depends(get_db),
                   _p: Principal = Depends(current_user)):
+    """发布模型是 high 风险的写操作，权限与「创建/启动联邦学习」一致用 algo:execute
+    （admin / grid），与前端 `v-permission="'algo:execute'"` 对齐。
+    原来用 model:read 太松：持 model:read 的 vpp/regulator/edge 绕过前端直接调也能发布。"""
     return ok(service.publish_model(db, version))
 
 
