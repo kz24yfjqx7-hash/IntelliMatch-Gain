@@ -521,6 +521,7 @@ def _dispatch_to_item(task: AlgoDispatchTask) -> dict:
         "evidenceId": task.evidence_id,
         "traceId": task.trace_id,
         "createdAt": iso(task.created_at),
+        "updatedAt": iso(task.updated_at),   # 前端据此还原「终端回执」阶段的时间戳
         # 前端要签名下发时，签的就是这个串，不能让客户端自己决定签什么
         "signPayload": build_sign_message(task),
     }

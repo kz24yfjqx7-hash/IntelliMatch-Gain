@@ -358,6 +358,20 @@ const taskLogs = computed(() => localTaskId.value ? logStore.getLogsByTaskId(loc
 
 function resetStages() { Object.keys(stageLog).forEach(k => delete stageLog[k]); failedStage.value = '' }
 
+/** 从任务已存的时间戳还原各阶段的时间与详情。
+ *  实时运行时靠 WebSocket dispatch_progress 逐步填 stageLog；但**查看**一个已有任务
+ *  （切换任务、刷新、进页面默认选中）时没有实时事件，若只 resetStages 就全是 --。
+ *  这里用后端返回的 createdAt/issuedAt/updatedAt 把已发生的阶段补上，切回来不再丢时间。 */
+function hydrateStages(t) {
+  if (!t) return
+  const set = (k, at, detail) => { if (at) stageLog[k] = { at, detail } }
+  set('aggregating', t.createdAt, `汇聚 ${(t.nodeIds || []).length} 个节点实时指标`)
+  if (t.strategy) set('computing', t.createdAt, 'DQN 生成调度策略，约束校验通过')
+  if (t.explanation) set('explaining', t.createdAt, `解释来源：${{ live: 'DeepSeek 实时', cache: '缓存', rule: '规则模板' }[t.explanationSource] || t.explanationSource || '—'}`)
+  if (t.issued) set('issued', t.issuedAt, `已下发至 ${(t.targets || t.nodeIds || []).join(', ')}${t.signerDid ? '，签发者 ' + shortDid(t.signerDid) : ''}`)
+  if (t.ackStatus === 'acked') set('acked', t.updatedAt, t.ackDetail || '边缘节点执行确认')
+}
+
 function onProgress(payload, msg) {
   if (!payload?.taskId) return
   if (remote.value && payload.taskId !== remote.value.id && payload.taskId !== pendingRemoteId) return
@@ -400,6 +414,7 @@ async function viewRemote(id) {
     localTaskId.value = local?.id || null
     issueResult.value = remote.value.commandId ? { commandId: remote.value.commandId, targets: remote.value.targets, signerDid: remote.value.signerDid, evidenceId: remote.value.issueEvidenceId } : null
     resetStages()
+    hydrateStages(remote.value)   // 查看已有任务时从已存时间戳还原各阶段，切回来不丢时间
     signature.value = dispatchStore.buildDemoSignature(localTaskId.value)
     ai.value = null
     logStore.addLog(`查看调度任务 ${id}（${DP_STATUS[remote.value.status] || remote.value.status}）`, 'INFO', 'CLOUD', { traceId: remote.value.traceId })
