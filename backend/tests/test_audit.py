@@ -359,3 +359,21 @@ def test_监管方可查审计业务角色不可(client, login):
     assert client.get("/api/v1/audit/stats", headers=login("regulator")).status_code == 200
     r = client.get("/api/v1/audit/stats", headers=login("vpp"))
     assert r.status_code == 403 and r.json()["code"] == 1003
+
+
+
+def test_B030_alert_id派生自自增主键而非COUNT(db, fake_redis):
+    """B-030：alert_id 原为 f"al-{COUNT(*)+1}"，并发下两条告警读到同一 count → 同一 id →
+    唯一键冲突丢失（真库 24 路压测实测 10 次）。改为派生自行自增主键，与 COUNT 无关。
+    SQLite 单连接测试库模拟不了真并发，这里锁定「id == al-<主键>」这一契约，
+    并发不撞的正面验证见真库压测 qa/api-tests/lock_stress.py。"""
+    from modules.audit.model import AuditAlert
+    from modules.audit.rules import fire
+
+    r = fire("R02_ABNORMAL_DID", actor_did="did:vpp:device:0xb030", message="x", immediate=True)
+    assert r is not None
+    row = db.execute(
+        __import__("sqlalchemy").select(AuditAlert).where(AuditAlert.alert_id == r["alertId"])
+    ).scalar_one()
+    assert r["alertId"] == f"al-{row.id:06d}"          # 派生自主键，不再依赖 COUNT
+    assert not r["alertId"].startswith("tmp-")         # 临时占位已回填

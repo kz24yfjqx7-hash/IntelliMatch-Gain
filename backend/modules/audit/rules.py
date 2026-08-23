@@ -6,8 +6,8 @@ Redis 不可用时计数恒为 0，规则不会误报——宁可漏报也不能
 命中之后做三件事：写 audit_alert 表 → 存证上链 → WebSocket 推 audit_alert 消息。
 """
 import logging
+import uuid
 
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from core import redis_client
@@ -144,14 +144,19 @@ def _insert_alert(db: Session, rule_code: str, rule: dict, message: str,
                   trace_id: str | None) -> dict:
     from modules.evidence.service import write_evidence
 
-    seq = (db.execute(select(func.count()).select_from(AuditAlert)).scalar_one() or 0) + 1
+    # alert_id 用行自增主键派生，不用 COUNT(*)+1（B-030）：
+    # 两个并发告警会读到相同 count → 拼出同一个 al-000099 → 唯一键 1062 冲突，
+    # 告警被 fire() 吞掉丢失（24 路压测实测 10 次）。alert_id 是 NOT NULL UNIQUE，
+    # 先用一个 uuid 临时占位插入拿到自增 id，再回填成 al-<id>，天然不撞。
     alert = AuditAlert(
-        alert_id=f"al-{seq:06d}", rule_code=rule_code, rule_name=rule["name"],
+        alert_id=f"tmp-{uuid.uuid4().hex}", rule_code=rule_code, rule_name=rule["name"],
         risk_level=rule["level"], message=message or rule["condition"],
         actor_did=actor_did, actor_name=actor_name, hit_count=hit_count,
         trace_id=trace_id, status="open",
     )
     db.add(alert)
+    db.flush()                       # 拿到 alert.id
+    alert.alert_id = f"al-{alert.id:06d}"
     db.flush()
 
     evidence = write_evidence(db, category="audit", ref_id=alert.alert_id, payload={
