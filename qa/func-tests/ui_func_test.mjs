@@ -243,11 +243,16 @@ async function main() {
     await drawer.waitFor({ state: 'hidden' })
     await row.getByRole('button', { name: '验签' }).click()
     const vf = page.locator('.el-tab-pane:visible')
-    await vf.getByRole('button', { name: '使用刚注册的私钥模拟签名' }).click()
+    const sigBox = vf.locator('textarea').last()   // 签名输入框
+    await vf.getByRole('button', { name: /用托管私钥签名/ }).click()
+    // 托管签名是异步请求，等真 SM2 签名（128 hex）填进输入框后再验签
+    await page.waitForFunction(el => /^[0-9a-f]{128}$/i.test((el.value || '').trim()),
+      await sigBox.elementHandle(), { timeout: 15000 })
     await vf.getByRole('button', { name: /验\s*签/ }).click()
     await page.waitForTimeout(1500)
     const body1 = await page.locator('body').innerText()
-    expect(/验签通过|valid/i.test(body1), '正确签名验签通过')
+    // 断言必须要求「验签通过」，不能用 /valid/i——「invalid」里也含「valid」会误判（旧断言的坑）
+    expect(/验签通过/.test(body1) && !/验签失败/.test(body1), '托管私钥真 SM2 签名验签通过')
     rec.shots.push(await shot('06-identity-verify-ok'))
     await vf.getByRole('button', { name: '填入无效签名' }).click()
     await vf.getByRole('button', { name: /验\s*签/ }).click()

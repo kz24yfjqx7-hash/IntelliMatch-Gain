@@ -235,3 +235,36 @@ def test_身份状态变更全部上链(client, login, action):
     r = client.post(f"/api/v1/did/{data['did']}/status", headers=headers,
                     json={"action": action, "reason": "测试"})
     assert r.json()["data"]["evidenceId"].startswith("ev-")
+
+
+def test_托管私钥签名接口出真签名可验过(client, login):
+    """验签演示：POST /did/sign 用托管私钥出真 SM2 签名 → /did/verify 通过。
+    这是「使用刚注册的私钥模拟签名」按钮的真实后端（浏览器无 SM2 实现，demoSign 是假签名）。"""
+    admin = login("admin")
+    did = client.post("/api/v1/did/register", headers=admin, json={
+        "subjectType": "device", "subjectName": "签名接口测试", "custody": True,
+    }).json()["data"]["did"]
+
+    msg = "调度指令：Node-A discharge 24kW"
+    s = client.post("/api/v1/did/sign", headers=admin, json={"did": did, "message": msg}).json()["data"]
+    assert s["signable"] is True
+    assert len(s["signature"]) == 128 and s["algorithm"] == "SM2"
+
+    v = client.post("/api/v1/did/verify", headers=admin,
+                    json={"did": did, "message": msg, "signature": s["signature"]}).json()["data"]
+    assert v["valid"] is True and v["status"] == "active"
+
+    # 消息被篡改则验签失败（防篡改）
+    v2 = client.post("/api/v1/did/verify", headers=admin,
+                     json={"did": did, "message": msg + "X", "signature": s["signature"]}).json()["data"]
+    assert v2["valid"] is False
+
+
+def test_非托管DID不代签(client, login):
+    """custody=false 的 DID 平台不留私钥，/did/sign 返回 signable=false 而非 500。"""
+    admin = login("admin")
+    did = client.post("/api/v1/did/register", headers=admin, json={
+        "subjectType": "device", "subjectName": "非托管", "custody": False,
+    }).json()["data"]["did"]
+    s = client.post("/api/v1/did/sign", headers=admin, json={"did": did, "message": "x"}).json()["data"]
+    assert s["signable"] is False and "托管" in s["reason"]

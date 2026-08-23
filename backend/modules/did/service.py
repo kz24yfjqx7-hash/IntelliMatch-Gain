@@ -367,6 +367,31 @@ def verify_detail(db: Session, did: str, message: str, signature: str) -> dict:
     }
 
 
+def sign_detail(db: Session, did: str, message: str) -> dict:
+    """契约外·答辩演示辅助：用托管私钥对 message 出一个**真** SM2 签名。
+
+    验签演示页的「用托管私钥签名」按钮调它，拿到合法签名后再走 /did/verify 就能验过
+    （前端浏览器里没有 SM2 实现，只能演示 sig:sha256 假签名，真后端是真验签，必然失败）。
+    仅对**托管（custody）**且状态 active 的 DID 有效；否则回 signable=False 说明原因。
+    """
+    identity = db.execute(
+        select(DidIdentity).where(DidIdentity.did == did)
+    ).scalar_one_or_none()
+    if identity is None:
+        return {"signable": False, "reason": "身份不存在"}
+    if identity.status != "active":
+        return {"signable": False, "reason": f"身份状态为 {identity.status}，不可用于签名"}
+    signature = sign_with_custody(did, message or "")
+    if not signature:
+        return {"signable": False,
+                "reason": "该 DID 没有可用的托管密钥（非托管 DID 的私钥只在客户端，"
+                          "平台不代签）；请用托管方式注册 DID 或轮换出托管密钥后再试"}
+    key = next((k for k in _active_keys(db, did) if k.custody == 1), None)
+    return {"signable": True, "did": did, "message": message,
+            "signature": signature, "algorithm": key.algorithm if key else "SM2",
+            "keyId": key.id if key else None}
+
+
 def sign_with_custody(did: str, message: str) -> str | None:
     """用托管私钥代签。仅在密钥标记为托管时可用，否则返回 None。
 

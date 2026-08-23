@@ -32,6 +32,11 @@ class DidVerifyRequest(BaseModel):
     signature: str = Field(max_length=256)
 
 
+class DidSignRequest(BaseModel):
+    did: str = Field(max_length=128)
+    message: str
+
+
 class DidResolveRequest(BaseModel):
     dids: list[str] = Field(min_length=1, max_length=100)
 

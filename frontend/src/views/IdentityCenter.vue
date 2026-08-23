@@ -177,9 +177,9 @@
                   <el-input v-model="verifyForm.signature" type="textarea" :rows="2" class="mono" placeholder="由设备端私钥对消息签名后得到" />
                 </el-form-item>
                 <div class="toolbar">
-                  <el-tooltip :content="lastKey.privateKey ? `使用 ${lastKey.source} 得到的私钥（${shortDid(lastKey.did)}）` : '先注册 DID / 轮换密钥 / 生成密钥，才有可用的私钥'" placement="top">
+                  <el-tooltip content="托管 DID：平台用其托管私钥出真 SM2 签名，验签可通过；非托管 DID 退回演示串（真验签会 invalid）" placement="top">
                     <span>
-                      <el-button :disabled="!lastKey.privateKey" @click="simulateSign">使用刚注册的私钥模拟签名</el-button>
+                      <el-button :disabled="!verifyForm.did" :loading="signing" @click="simulateSign">用托管私钥签名（真 SM2）</el-button>
                     </span>
                   </el-tooltip>
                   <el-button @click="verifyForm.signature = 'invalid'">填入无效签名</el-button>
@@ -368,6 +368,7 @@ import {
   registerDid, listDids, getDidDocument, changeDidStatus, rotateDidKey, verifyDid,
   listKeys, createKey, freezeKey, revokeKey, keyHistory
 } from '@/api'
+import request from '@/api/request'   // 验签演示的托管签名是演示专用接口（不在契约内），故直接用 request 而不进 api/*.js
 import { useUserStore } from '@/stores/user'
 import { useLogStore } from '@/stores/logs'
 import { ROLE_LABELS, fmtDateTime, fmtDate, shortDid, shortHash } from '@/utils/format'
@@ -631,11 +632,37 @@ function gotoVerify(did) {
   if (did) verifyForm.did = did
   activeTab.value = 'verify'
 }
-function simulateSign() {
-  if (!lastKey.privateKey) return
+const signing = ref(false)
+async function simulateSign() {
   if (!verifyForm.did) verifyForm.did = lastKey.did
-  verifyForm.signature = demoSign(lastKey.privateKey, verifyForm.message)
-  ElMessage.success('已用设备私钥对消息签名（演示）')
+  if (!verifyForm.did) { ElMessage.warning('请先选择 DID'); return }
+  // 优先让托管私钥出真 SM2 签名，这样点「验签」是真的能过（浏览器里没有 SM2 实现，
+  // demoSign 只是 sig:sha256 演示串，真后端是真验签会失败）。非托管 DID 才退回演示串。
+  signing.value = true
+  try {
+    // 演示专用：/did/sign 不在契约里，直接用 request 调（不进 api/*.js，见文件头 import 注释）
+    const r = await request.post('/did/sign', { did: verifyForm.did, message: verifyForm.message })
+    if (r?.signable && r.signature) {
+      verifyForm.signature = r.signature
+      ElMessage.success(`已用托管私钥出真 ${r.algorithm || 'SM2'} 签名，点「验签」即可通过`)
+      return
+    }
+    if (lastKey.privateKey) {
+      verifyForm.signature = demoSign(lastKey.privateKey, verifyForm.message)
+      ElMessage.warning(`${r?.reason || '该 DID 不可托管代签'}；已填入演示签名（真验签会判为 invalid）`)
+    } else {
+      ElMessage.warning(r?.reason || '该 DID 无可用托管密钥，且本会话未持有其私钥')
+    }
+  } catch (e) {
+    if (lastKey.privateKey) {
+      verifyForm.signature = demoSign(lastKey.privateKey, verifyForm.message)
+      ElMessage.warning('签名接口不可用，已填入演示签名（真验签会判为 invalid）')
+    } else {
+      ElMessage.error('签名失败')
+    }
+  } finally {
+    signing.value = false
+  }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 async function doVerify() {

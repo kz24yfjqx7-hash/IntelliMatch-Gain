@@ -15,6 +15,7 @@ from modules.did.schema import (
     DidRegisterRequest,
     DidResolveRequest,
     DidRotateKeyRequest,
+    DidSignRequest,
     DidStatusRequest,
     DidVerifyRequest,
 )
@@ -60,6 +61,14 @@ def get_document(did: str, db: Session = Depends(get_db),
 def verify(body: DidVerifyRequest, db: Session = Depends(get_db),
            _p: Principal = Depends(current_user)):
     return ok(service.verify_detail(db, body.did, body.message, body.signature))
+
+
+@router.post("/did/sign", summary="托管私钥签名（演示用）")
+@audited(module="did", action="did:sign", risk="low")
+def sign(body: DidSignRequest, db: Session = Depends(get_db),
+         _p: Principal = Depends(current_user)):
+    """用托管私钥对 message 出真 SM2 签名，供验签演示。仅对托管 DID 有效。"""
+    return ok(service.sign_detail(db, body.did, body.message))
 
 
 @router.post("/did/resolve", summary="批量解析")
