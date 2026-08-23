@@ -149,7 +149,7 @@
               <el-button type="danger" plain :disabled="!remote?.strategy" :loading="issuing" title="任何角色可见：直接调用后端 issue 接口，无权限角色会被 1003 拦截并触发 R01 告警" @click="issue(true)">🧪 模拟越权下发</el-button>
             </div>
             <div v-if="issueResult" class="issue-result">
-              ✅ 指令 <b class="mono">{{ issueResult.commandId }}</b> 已下发至 <b>{{ (issueResult.targets || []).join(', ') }}</b> · 签发者 <span class="mono" :title="issueResult.signerDid">{{ shortDid(issueResult.signerDid) }}</span> · 存证 <span class="mono">{{ issueResult.evidenceId }}</span>
+              ✅ 指令 <b class="mono">{{ issueResult.commandId }}</b> 已下发至 <b>{{ (issueResult.targets || []).join(', ') }}</b> · 签发者 <span class="mono">{{ issueResult.signerDid }}</span> · 存证 <span class="mono">{{ issueResult.evidenceId }}</span>
             </div>
             <div v-if="remote?.ack" class="issue-result ack">
               📬 终端回执：{{ remote.ack.nodeId }} {{ remote.ack.status }} · 实际功率 {{ fmtNumber(remote.ack.actualPowerKw, 1) }} kW · {{ fmtDateTime(remote.ack.at) }}
@@ -636,7 +636,7 @@ onBeforeUnmount(() => {
 .reasoning-summary { font-size: 13px; line-height: 1.6; color: var(--color-text); }
 .issue-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .sig-input { flex: 1; min-width: 320px; }
-.issue-result { padding: 8px 12px; border-radius: 8px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.35); font-size: 12px; color: var(--color-text); }
+.issue-result { padding: 8px 12px; border-radius: 8px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.35); font-size: 12px; color: var(--color-text); word-break: break-all; line-height: 1.6; }
 .issue-result.ack { background: rgba(0, 180, 216, 0.08); border-color: rgba(0, 180, 216, 0.35); }
 .ai-ask { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ai-ask .el-input { flex: 1; min-width: 260px; }
