@@ -189,6 +189,72 @@ def test_同一窗口内不重复告警(client, login, fake_redis):
     assert first is not None and second is None
 
 
+def test_R03借请求会话落告警且不自行提交(db, fake_redis):
+    """权限变更留痕发生在同一事务刚写完存证之后，告警必须借请求会话上链。
+
+    真库上另开连接会等自己的链尾行锁（3 秒 × 3 次重试），最后告警行随回滚丢失；
+    SQLite 没有行锁复现不了等待，这里锁定的是「走的是请求会话、且不替调用方 commit」。
+    """
+    from modules.audit.model import AuditAlert
+    from modules.audit.rules import fire_perm_change
+    from sqlalchemy import func, select
+
+    did = "did:vpp:user:0xchurn-shared-session"
+    results = [fire_perm_change(did, "revoke", db=db) for _ in range(5)]
+    assert results[4] is not None and results[4]["evidenceId"].startswith("ev-")
+    # 告警行在本会话里可见（flush 过），但事务仍未提交——由业务函数统一 commit
+    assert db.in_transaction()
+    count = db.execute(select(func.count()).select_from(AuditAlert)
+                       .where(AuditAlert.actor_did == did)).scalar_one()
+    assert count == 1
+    db.rollback()
+
+
+def test_告警落库失败不会把规则静默整个窗口(client, login, fake_redis, monkeypatch):
+    """原实现先种 Redis 标记再落库：落库失败标记却留下，该主体 10 分钟内再也不告警。"""
+    from modules.audit import rules
+
+    did = "did:vpp:device:0xflaky-chain"
+    calls = {"n": 0}
+    real = rules._insert_alert
+
+    def flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("模拟上链锁超时导致的落库失败")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(rules, "_insert_alert", flaky)
+    assert rules.fire("R02_ABNORMAL_DID", actor_did=did, immediate=True, message="第一次") is None
+    second = rules.fire("R02_ABNORMAL_DID", actor_did=did, immediate=True, message="第二次")
+    assert second is not None and second["ruleCode"] == "R02_ABNORMAL_DID"
+    assert calls["n"] == 2
+
+
+def test_五次申请驳回经接口触发R03并上链(client, login, fake_redis):
+    """端到端：subject 连续 5 次申请、admin 逐次驳回 → 告警列表出现 R03 且 evidenceId 非空。"""
+    admin, subject = login("admin"), login("subject")
+    did = client.post("/api/v1/did/register", headers=admin, json={
+        "subjectType": "device", "subjectName": "R03 触发测试设备", "custody": True,
+    }).json()["data"]["did"]
+    asset_id = client.post("/api/v1/assets", headers=admin, json={
+        "name": "R03 触发测试资产", "dataType": "pv", "sourceDid": did, "level": "L3",
+        "payload": {"pvOutput": 1.0}, "recordCount": 10,
+    }).json()["data"]["id"]
+    for i in range(5):
+        app = client.post("/api/v1/permissions/apply", headers=subject, json={
+            "resourceType": "asset", "resourceId": str(asset_id), "action": "read",
+            "reason": f"churn-{i}"}).json()["data"]
+        r = client.post(f"/api/v1/permissions/applications/{app['id']}/reject",
+                        headers=admin, json={"reason": "churn"})
+        assert r.status_code == 200, r.text
+    alerts = client.get("/api/v1/audit/alerts?ruleCode=R03_PERM_CHURN&size=50",
+                        headers=admin).json()["data"]["items"]
+    mine = [a for a in alerts if "churn" in a["message"] or a["hitCount"] >= 5]
+    assert mine, alerts
+    assert mine[0]["evidenceId"] and mine[0]["evidenceId"].startswith("ev-")
+
+
 def test_确认告警(client, login, fake_redis):
     from modules.audit.rules import fire
 

@@ -8,6 +8,7 @@ Redis 不可用时计数恒为 0，规则不会误报——宁可漏报也不能
 import logging
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from core import redis_client
 from core.database import SessionLocal
@@ -56,18 +57,23 @@ RULES = {
 }
 
 _COUNT_PREFIX = "risk:count:"
-# 告警去重：同一规则同一主体在一个窗口内只出一条告警，
-# 否则越权探测一次就能刷出几十条告警，真正的问题反而被淹没
 _ALERT_FLAG_PREFIX = "risk:alerted:"
 
 
 def fire(rule_code: str, *, principal=None, message: str = "",
          actor_did: str | None = None, actor_name: str | None = None,
-         immediate: bool = False) -> dict | None:
+         immediate: bool = False, db: Session | None = None) -> dict | None:
     """记录一次规则命中。累计到阈值才真正产生告警。
 
     immediate=True 时跳过计数直接告警（R02、R05 这类一次就该报的规则）。
     返回告警字典，未达阈值返回 None。**任何异常都不向外抛**。
+
+    `db`：调用方若正处在一个**已经写过存证**的请求事务里（典型是权限变更：
+    先 write_evidence 再留痕再触发 R03），必须把自己的会话传进来。
+    告警本身也要上链，上链要锁链尾行；那把行锁此刻正被调用方的事务攥着没提交，
+    另开一条连接去写就是自己等自己：3 秒锁超时 × 3 次重试 = 请求多挂 9 秒，
+    最后上链失败，重试里的 rollback 把同一会话上刚插的告警行也一起回滚——
+    告警没了、请求也慢了。与审计模块 write_audit_log(request_db=…) 是同一个坑、同一个修法。
     """
     rule = RULES.get(rule_code)
     if rule is None:
@@ -88,54 +94,39 @@ def fire(rule_code: str, *, principal=None, message: str = "",
         if not immediate and (count == 0 or count < threshold):
             return None
 
+        # 告警去重：同一规则同一主体在一个窗口内只出一条，否则越权探测一次就能
+        # 刷出几十条，真正的问题反而被淹没。
         flag_key = f"{_ALERT_FLAG_PREFIX}{rule_code}:{subject}"
         if redis_client.safe_exists(flag_key):
             return None
-        redis_client.safe_set(flag_key, "1", ex=rule["window"])
 
-        return _create_alert(rule_code, rule, message, actor_did, actor_name,
-                             max(count, threshold))
+        payload = _create_alert(rule_code, rule, message, actor_did, actor_name,
+                                max(count, threshold), db)
+        # 标记必须在告警**成功落库之后**才种。原来是先种标记再落库：落库一旦失败
+        # （上链锁超时、事务被回滚），标记却留下了，该主体在这条规则上就整整静默
+        # 一个窗口（R03 是 10 分钟），期间再怎么触发都不会有告警，而且没人知道。
+        redis_client.safe_set(flag_key, "1", ex=rule["window"])
+        return payload
     except Exception as exc:  # noqa: BLE001
         logger.error("风控规则 %s 执行失败：%s", rule_code, exc)
         return None
 
 
 def _create_alert(rule_code: str, rule: dict, message: str, actor_did: str | None,
-                  actor_name: str | None, hit_count: int) -> dict:
-    from modules.evidence.service import write_evidence
-
+                  actor_name: str | None, hit_count: int,
+                  request_db: Session | None = None) -> dict:
     trace_id = current_trace_id.get()
-    with SessionLocal() as db:
-        seq = (db.execute(select(func.count()).select_from(AuditAlert)).scalar_one() or 0) + 1
-        alert = AuditAlert(
-            alert_id=f"al-{seq:06d}", rule_code=rule_code, rule_name=rule["name"],
-            risk_level=rule["level"], message=message or rule["condition"],
-            actor_did=actor_did, actor_name=actor_name, hit_count=hit_count,
-            trace_id=trace_id, status="open",
-        )
-        db.add(alert)
-        db.flush()
-
-        evidence = write_evidence(db, category="audit", ref_id=alert.alert_id, payload={
-            "action": "risk:alert", "ruleCode": rule_code, "ruleName": rule["name"],
-            "riskLevel": rule["level"], "message": alert.message,
-            "actorDid": actor_did, "hitCount": hit_count, "at": iso(now_cst()),
-        }, actor_did=actor_did, trace_id=trace_id)
-        alert.evidence_id = evidence["evidenceId"]
-        db.commit()
-
-        payload = {
-            "alertId": alert.alert_id,
-            "ruleCode": rule_code,
-            "ruleName": rule["name"],
-            "riskLevel": rule["level"],
-            "message": alert.message,
-            "actorDid": actor_did,
-            "actorName": actor_name,
-            "hitCount": hit_count,
-            "evidenceId": alert.evidence_id,
-            "at": iso(alert.created_at),
-        }
+    if request_db is not None and request_db.is_active:
+        # 借调用方的事务：告警行、存证块都落在同一条连接上，链尾行锁不会自锁；
+        # 不在这里 commit——调用方（如 _revoke_grant）紧接着就会提交整个事务，
+        # 也只有这样 core/retry.run_with_retry 的「整段重放」语义才成立。
+        payload = _insert_alert(request_db, rule_code, rule, message, actor_did, actor_name,
+                                hit_count, trace_id)
+    else:
+        with SessionLocal() as db:
+            payload = _insert_alert(db, rule_code, rule, message, actor_did, actor_name,
+                                    hit_count, trace_id)
+            db.commit()
 
     logger.warning("【风控告警】%s %s：%s", rule_code, rule["name"], payload["message"])
 
@@ -145,11 +136,53 @@ def _create_alert(rule_code: str, rule: dict, message: str, actor_did: str | Non
     return payload
 
 
+def _insert_alert(db: Session, rule_code: str, rule: dict, message: str,
+                  actor_did: str | None, actor_name: str | None, hit_count: int,
+                  trace_id: str | None) -> dict:
+    from modules.evidence.service import write_evidence
+
+    seq = (db.execute(select(func.count()).select_from(AuditAlert)).scalar_one() or 0) + 1
+    alert = AuditAlert(
+        alert_id=f"al-{seq:06d}", rule_code=rule_code, rule_name=rule["name"],
+        risk_level=rule["level"], message=message or rule["condition"],
+        actor_did=actor_did, actor_name=actor_name, hit_count=hit_count,
+        trace_id=trace_id, status="open",
+    )
+    db.add(alert)
+    db.flush()
+
+    evidence = write_evidence(db, category="audit", ref_id=alert.alert_id, payload={
+        "action": "risk:alert", "ruleCode": rule_code, "ruleName": rule["name"],
+        "riskLevel": rule["level"], "message": alert.message,
+        "actorDid": actor_did, "hitCount": hit_count, "at": iso(now_cst()),
+    }, actor_did=actor_did, trace_id=trace_id)
+    alert.evidence_id = evidence["evidenceId"]
+    db.flush()
+
+    return {
+        "alertId": alert.alert_id,
+        "ruleCode": rule_code,
+        "ruleName": rule["name"],
+        "riskLevel": rule["level"],
+        "message": alert.message,
+        "actorDid": actor_did,
+        "actorName": actor_name,
+        "hitCount": hit_count,
+        "evidenceId": alert.evidence_id,
+        "at": iso(alert.created_at),
+    }
+
+
 # ---------------------------------------------------------------- 各规则的调用入口
 
-def fire_perm_change(target_did: str, change_type: str) -> dict | None:
-    """R03：同一主体权限变更过于频繁。由权限中心在每次变更留痕时调用。"""
-    return fire("R03_PERM_CHURN", actor_did=target_did,
+def fire_perm_change(target_did: str, change_type: str,
+                     db: Session | None = None) -> dict | None:
+    """R03：同一主体权限变更过于频繁。由权限中心在每次变更留痕时调用。
+
+    权限变更的留痕发生在同一事务刚写完存证之后，链尾行锁还在手上，
+    所以这里必须把请求会话透传下去（见 fire 的说明）。
+    """
+    return fire("R03_PERM_CHURN", actor_did=target_did, db=db,
                 message=f"主体 {target_did} 权限变更频繁，最近一次为 {change_type}")
 
 

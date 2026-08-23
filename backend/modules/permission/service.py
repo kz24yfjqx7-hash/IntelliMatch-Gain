@@ -317,7 +317,9 @@ def _log_change(db: Session, *, target_did: str, change_type: str, resource_type
     try:
         from modules.audit.rules import fire_perm_change
 
-        fire_perm_change(target_did, change_type)
+        # 本事务刚 write_evidence 过、链尾行锁还没释放，告警必须借这条会话上链，
+        # 否则另开连接会等自己的锁：请求多挂 9 秒且告警行随重试回滚丢失（见 rules.fire）
+        fire_perm_change(target_did, change_type, db=db)
     except ImportError:
         pass
 
