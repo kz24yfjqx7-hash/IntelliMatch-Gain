@@ -234,3 +234,8 @@
 - 现象：全量复测 API-AUD-23 失败（5 次申请+驳回后无 R03）。后端日志 02:58:06 INSERT `al-000061` → 02:58:15 打「【风控告警】R03」，但 `audit_alert` 无此行、id 67 空洞，`al-000061` 随后被一条 R01 复用。
 - 根因：B-027 同族、另一条路径。`_log_change → fire_perm_change → _create_alert` 另开会话上链，而请求事务刚 `write_evidence` 过、链尾行锁在手 → 3 s × 3 次重试 → 上链失败，重试中的 rollback 把同一会话刚 flush 的告警行一起回滚；`risk:alerted:R03:<did>` 在落库前已种下（TTL 600 s）→ 该主体 R03 静默 10 分钟。
 - **✅ 已修复（主 Agent，2026-08-23，提交 `7edd38c`）**：`rules.fire(..., db=)` 透传请求会话，告警行与存证块同连接、不自行 commit（保住 `run_with_retry` 整段重放语义）；去重标记改为 `_create_alert` 成功后再种。`permission/service._log_change` 传 `db`。新增单测 3 条，backend pytest 337/337。对应《测试文档-接口与安全》§4.2 B-014、《测试文档》§6.4 B-014。
+
+## B-029 ｜中 ｜ 联邦学习 anomaly / error 不落库不返回；R05 告警所有任务共用一个去重桶
+- 现象：用户现场任务 fl-000070（单节点 + DP ε=0.6）loss 10 轮发散到 9×10⁷ 仍报 success（算法侧缺陷，已在同一提交修：裁剪封顶 + 发散熔断）。修好算法后复验 fl-000071：算法服务返回 `status=failed, anomaly=training_diverged, error=…`，但后端 `GET /fl/tasks/{id}` 里 anomaly/error 为空，也没有 R05 告警。
+- 根因：`persist_fl_progress` 只把 `job.anomaly` 送进 `fire_suspicious_gradient` 就丢掉，`algo_fl_task` 没有列存它；R05 触发时 `actor_did=None`，`rules.fire` 的去重主体退化为 `anonymous`，10 分钟内第二个异常任务（本次被 12:23 的 fl-000068 压住）永远不告警。
+- **✅ 已修复（主 Agent，2026-08-23，提交 `827398a`）**：`algo_fl_task` 新增 `anomaly JSON`、`error VARCHAR(512)`（`01_schema.sql` 已含，存量库执行 `sql/04_migrate_20260823.sql`）；`persist_fl_progress` 落库并只在异常首次出现时触发 R05（轮询重复送同一异常不再反复进风控）；`rules.fire(dedup_key=)`，R05 以 `fl:<taskId>` 去重、挂创建者名下、消息按 投毒/预算耗尽/训练发散 措辞。单测 `test_B029_…`，backend pytest 338/338；前端失败任务显示 `error`。
