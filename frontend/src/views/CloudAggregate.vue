@@ -364,7 +364,8 @@ function resetStages() { Object.keys(stageLog).forEach(k => delete stageLog[k]);
  *  这里用后端返回的 createdAt/issuedAt/updatedAt 把已发生的阶段补上，切回来不再丢时间。 */
 function hydrateStages(t) {
   if (!t) return
-  const set = (k, at, detail) => { if (at) stageLog[k] = { at, detail } }
+  // 只填还没有实时时间的阶段：WebSocket 送到的精确时间优先，hydrate 只补空缺
+  const set = (k, at, detail) => { if (at && !stageLog[k]) stageLog[k] = { at, detail } }
   set('aggregating', t.createdAt, `汇聚 ${(t.nodeIds || []).length} 个节点实时指标`)
   if (t.strategy) set('computing', t.createdAt, 'DQN 生成调度策略，约束校验通过')
   if (t.explanation) set('explaining', t.createdAt, `解释来源：${{ live: 'DeepSeek 实时', cache: '缓存', rule: '规则模板' }[t.explanationSource] || t.explanationSource || '—'}`)
@@ -398,6 +399,7 @@ async function generateStrategy() {
       return
     }
     remote.value = await getDispatchTask(res.task.remoteId)
+    hydrateStages(remote.value)   // WS 没送到时，从 createdAt 兜底填 汇聚/DQN推理/解释 的时间
     signature.value = dispatchStore.buildDemoSignature(localTaskId.value)
     ai.value = null
     await dispatchStore.fetchTasks().catch(() => {})
@@ -442,6 +444,7 @@ async function issue(simulate) {
     }
     issueResult.value = res
     remote.value = await getDispatchTask(remote.value.id)
+    hydrateStages(remote.value)   // WS 可能没送到（重连/时序），从已存 issuedAt 兜底填「签名下发」时间
     await dispatchStore.fetchTasks().catch(() => {})
   } catch (e) {
     if (e?.code === 1003 || e?.code === 1004) {
