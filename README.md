@@ -2,13 +2,12 @@
 
 面向虚拟电厂云边端场景的可信数据空间：DID 身份接入 → 数据资产登记与分级 → 权限控制 → 隐私计算（联邦学习 + 差分隐私）→ DQN 智能调度 → 本地哈希链存证与全链路审计。
 
-> 甲乙分工：`backend/` 为甲方（安全内核 / 业务后端）；本仓库为乙方成果：算法服务、前端、部署与离线安装包。两方以 `contract/` 为唯一契约（冻结、只读）。
 
 ## 目录
 
 ```
 energy-tds/
-├── contract/            甲乙契约（只读）：API-CONTRACT.md、DB-SCHEMA.md
+├── contract/            API-CONTRACT.md、DB-SCHEMA.md
 ├── algo-service/        算法服务（FastAPI + NumPy）：FedAvg/DP/Top-k、DQN 调度、分类分级、风险评估、DeepSeek 适配
 ├── frontend/            前端（Vue3 + Vite + Element Plus + ECharts），内置 MSW 假后端作为离线兜底
 ├── deploy/              compose 部署说明、nginx 配置、单架构离线镜像包脚本、答辩演示剧本
@@ -16,7 +15,7 @@ energy-tds/
 ├── qa/                  集成与契约测试、验收报告
 ├── docs/                DEV-PLAN.md 总纲、agent-notes/ 协作记录、legacy/ 原始需求
 ├── docker-compose.yml   五服务编排（mysql / redis / backend / algo-service / frontend）
-├── docker-compose.dev.yml 乙方独立联调（不依赖 backend）
+├── docker-compose.dev.yml 独立联调（不依赖 backend）
 ├── .env.example         环境变量模板（变量名见 contract/API-CONTRACT.md 第四部分）
 └── Makefile             常用命令封装
 ```
@@ -43,7 +42,7 @@ cd frontend && VITE_USE_MOCK=true npm run dev        # http://localhost:3000
 npm test                                             # vitest
 ```
 
-### 2. docker compose（合并甲方 backend/ 之后）
+### 2. docker compose（合并 backend/ 之后）
 
 ```bash
 cp .env.example .env
@@ -59,7 +58,7 @@ docker compose up -d --build
 # 开发机（联网、Docker 20.10+、磁盘 ≥ 25GB）一次性准备：
 docker run --privileged --rm tonistiigi/binfmt --install all
 docker buildx create --name energy-builder --use --bootstrap
-# 构建（需 backend/ algo-service/ frontend/ 三目录齐全；乙方演练可加 --skip-backend）
+# 构建（需 backend/ algo-service/ frontend/ 三目录齐全；演练可加 --skip-backend）
 sudo ./packaging/build.sh --arch all          # 产物 dist/energy-tds-v1.0-linux-{x86_64,arm64}.tar.gz
 # 目标机：
 tar -xzf energy-tds-v1.0-linux-x86_64.tar.gz && cd energy-tds-v1.0-linux-x86_64 && sudo ./install.sh
@@ -78,14 +77,13 @@ tar -xzf energy-tds-v1.0-linux-x86_64.tar.gz && cd energy-tds-v1.0-linux-x86_64 
 | `regulator` | `reg123` | 监管方 |
 | `edge` | `edge123` | 边缘节点 |
 
-答辩十步演示流程与兜底方案见 `deploy/答辩演示剧本.md`。
 
 ## 常用命令（Makefile）
 
 ```bash
 make env            # 生成 .env
 make up / down      # compose 起停
-make dev-up         # 乙方独立联调
+make dev-up         # 独立联调
 make build-images   # 本机构建 algo-service + frontend 镜像
 make check          # bash -n + shellcheck + compose config
 make package        # 双架构离线安装包（sudo）
