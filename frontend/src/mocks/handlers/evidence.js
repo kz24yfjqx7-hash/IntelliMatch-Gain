@@ -73,7 +73,7 @@ export const evidenceHandlers = [
     const q = query(request)
     let list = visibleBlocks(user).slice().reverse()
     if (q.category) list = list.filter(b => b.category === q.category)
-    if (q.did) list = list.filter(b => b.actor_did === q.did || b.ref_id === q.did)
+    if (q.did) list = list.filter(b => b.evidence_id === q.did || b.actor_did === q.did || b.ref_id === q.did)
     if (q.dataType) list = list.filter(b => b.payload_snapshot?.dataType === q.dataType)
     if (q.refId) list = list.filter(b => b.ref_id === String(q.refId))
     if (q.traceId) list = list.filter(b => b.trace_id === q.traceId)

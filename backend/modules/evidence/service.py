@@ -77,7 +77,7 @@ def write_evidence(db: Session, *, category: str, ref_id, payload: dict,
 import json  # noqa: E402
 from datetime import datetime  # noqa: E402
 
-from sqlalchemy import func, select  # noqa: E402
+from sqlalchemy import func, or_, select  # noqa: E402
 
 from core import redis_client  # noqa: E402
 from core.exceptions import NotFoundError, ParamError  # noqa: E402
@@ -130,7 +130,15 @@ def search(db: Session, page: int, size: int, *, category: str | None = None,
     if category:
         conditions.append(ChainEvidence.category == category)
     if did:
-        conditions.append(ChainEvidence.actor_did == did)
+        # 检索框一格通吃三种标识（前端占位符「存证ID / DID / refId」）：
+        # 存证自身编号 evidence_id、操作者 actor_did、关联业务对象 ref_id，任一精确命中即返回。
+        # 与 mock 参考实现口径一致；此前只按 actor_did 精确匹配，填 refId / 存证ID 都检索不出结果。
+        kw = did.strip()
+        conditions.append(or_(
+            ChainEvidence.evidence_id == kw,
+            ChainEvidence.actor_did == kw,
+            ChainEvidence.ref_id == kw,
+        ))
     if data_type:
         # 存证表里没有 dataType，它是资产的属性，所以先查出该类型的资产 id 再反查。
         # ref_id 是字符串列，这里显式转成字符串比较，避免依赖数据库的隐式类型转换。

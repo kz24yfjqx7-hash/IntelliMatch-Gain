@@ -8,7 +8,7 @@
     <!-- ① 链状态 -->
     <div class="panel" :class="{ danger: chain && !chain.intact }">
       <div class="panel-title">
-        <span>链状态 <span class="sub">GET /evidence/chain/status · block_hash = H(prev + payloadHash + ts)</span></span>
+        <span>链状态 <span class="sub">block_hash = H(prev + payloadHash + ts)</span></span>
         <span v-if="chain" class="chain-flag" :class="chain.intact ? 'ok' : 'bad'">{{ chain.intact ? '✔ 链完整 intact' : `✘ 链断裂 brokenAt 高度 ${chain.brokenAt ?? chain.brokenAtId}` }}</span>
       </div>
       <div class="status-grid">
@@ -30,7 +30,7 @@
     <!-- ② 区块链可视化 -->
     <div class="panel">
       <div class="panel-title">
-        <span>最近 {{ blocks.length }} 个区块 <span class="sub">实时：WS evidence_written 到达即追加</span></span>
+        <span>最近 {{ blocks.length }} 个区块 <span class="sub">新存证上链即实时追加</span></span>
         <span class="muted" style="font-size: 12px">红色闪烁 = 本地数据与链上摘要不一致；黄色 = 断裂点之后受影响</span>
       </div>
       <div class="chain-scroll" ref="chainScrollRef">
@@ -61,9 +61,9 @@
           <el-select v-model="query.dataType" placeholder="数据类型" clearable style="width: 110px" popper-class="center-popper" @change="reload">
             <el-option v-for="(label, v) in DATA_TYPE_LABELS" :key="v" :label="label" :value="v" />
           </el-select>
-          <el-input v-model="query.did" placeholder="DID / refId" clearable style="width: 180px" @keyup.enter="reload" @clear="reload" />
-          <el-date-picker v-model="range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ss+08:00" start-placeholder="from" end-placeholder="to" style="width: 320px" popper-class="center-popper" @change="reload" />
-          <el-button @click="reload">查询</el-button>
+          <el-input v-model="query.did" placeholder="存证ID / DID / refId" clearable style="width: 200px" @keyup.enter="reload" @clear="reload" />
+          <el-date-picker v-model="range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ss+08:00" start-placeholder="起" end-placeholder="止" style="width: 250px" popper-class="center-popper" @change="reload" />
+          <el-button type="primary" @click="reload">查询</el-button>
         </div>
         <el-table :data="list.items" v-loading="list.loading" size="small" stripe :row-class-name="rowClass" @row-click="row => selected = row">
           <el-table-column prop="evidenceId" label="存证 ID" width="100" />
@@ -99,7 +99,7 @@
 
       <!-- ⑤ 业务链路追踪 -->
       <div class="panel">
-        <div class="panel-title">业务链路追踪 <span class="sub">GET /evidence/trace/{traceId}</span></div>
+        <div class="panel-title">业务链路追踪 <span class="sub">登录 → 鉴权 → 业务 → 存证 全链路还原</span></div>
         <div class="toolbar">
           <el-input v-model="traceId" placeholder="tr-YYYYMMDD-xxxxxxxx" class="mono" clearable @keyup.enter="doTrace">
             <template #append><el-button :loading="tracing" @click="doTrace">追踪</el-button></template>

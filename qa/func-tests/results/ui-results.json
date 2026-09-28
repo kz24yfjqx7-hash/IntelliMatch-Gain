@@ -1,6 +1,6 @@
 {
  "summary": {
-  "tag": "test-08230356",
+  "tag": "test-08231404",
   "total": 16,
   "pass": 16,
   "fail": 0,
@@ -37,7 +37,7 @@
     "docs/test-evidence/03-home-trustflow.jpg",
     "docs/test-evidence/04-home-node-task.jpg"
    ],
-   "evidence": "counts=116/148/43/65/74/2,479; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/23 03:56:29\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
+   "evidence": "counts=165/1,503/68/100/114/7,656; drawer=1; 协同任务按钮=0; 日志栏=💻\n实时日志\n实时在线\n2026/8/23 14:04:45\n[CLOUD]\n选中节点：虚拟电厂节点A（did:vpp:edge:0xc82c18c...b8",
    "verdict": "通过",
    "note": ""
   },
@@ -54,7 +54,7 @@
     "docs/test-evidence/07-identity-key-created.jpg"
    ],
    "rotateInfo": "v2",
-   "evidence": "did=did:vpp:device:0xe0773d89a3179b72d98a9765b4d521e5; 文档含 @context=true; 验签 ok/bad 均符合",
+   "evidence": "did=did:vpp:device:0x7737a96669efc2ada957511c2c9b36a2; 文档含 @context=true; 验签 ok/bad 均符合",
    "verdict": "通过",
    "note": ""
   },
@@ -70,7 +70,7 @@
     "docs/test-evidence/09-assets-registered.jpg",
     "docs/test-evidence/10-assets-lineage.jpg"
    ],
-   "evidence": "登记成功 · 已写入存证链 资产 ID 1149 敏感等级 L2 SM3 摘要 sm3:3ef2d407f8cd296a0b40902c971fff384307b17beb0987afe616a5bbdaf9d253 链上交易 blk-002488-0 存证 ID ev-002488 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
+   "evidence": "登记成功 · 已写入存证链 资产 ID 2517 敏感等级 L2 SM3 摘要 sm3:7c8f83a8b0517a3803b97efe42cfbb4b4a3b28f525567c8c9cbef238fc4f9409 链上交易 blk-007665-0 存证 ID ev-007665 授权状态 unauthorized traceId -- 关闭 查看溯源 申请授权",
    "verdict": "通过",
    "note": ""
   },
@@ -101,7 +101,7 @@
    "shots": [
     "docs/test-evidence/35-permission-roles.jpg"
    ],
-   "evidence": "角色卡片数=15；顶部「角色数」=👥 15 角色数；GET /roles 接口本身返回 6 角色（接口层 TC-31-11 通过）",
+   "evidence": "角色卡片数=18；顶部「角色数」=👥 18 角色数；GET /roles 接口本身返回 6 角色（接口层 TC-31-11 通过）",
    "verdict": "通过",
    "note": ""
   },
@@ -133,7 +133,7 @@
     "docs/test-evidence/19-dispatch-issued.jpg",
     "docs/test-evidence/20-terminal-ack.jpg"
    ],
-   "evidence": "AI 来源=解释来源：DeepSeek 实时; 任务=dp-000075; 下发=true; 指令=cmd-000075 → Node-A; 提示=",
+   "evidence": "AI 来源=解释来源：DeepSeek 实时; 任务=dp-000115; 下发=true; 指令=cmd-000115 → Node-A; 提示=",
    "verdict": "通过",
    "note": ""
   },
@@ -167,8 +167,8 @@
     "docs/test-evidence/27-evidence-chain-broken.jpg",
     "docs/test-evidence/28-evidence-trace.jpg"
    ],
-   "tamperedEvidenceId": "ev-002488",
-   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:0137495; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-002488.json; 追踪链路按钮=1; 已还原 ev-002488 → code=0",
+   "tamperedEvidenceId": "ev-007665",
+   "evidence": "篡改前=完整性校验结果 ✔ INTACT 数据完整 数据完整，与链上摘要一致 localHash（重算） sm3:b3de3ca; 篡改后=完整性校验结果 ✘ TAMPERED 数据已被篡改 本地数据与链上摘要不一致，数据已被篡改 localHash（重算） ; 凭证下载=certificate-ev-007665.json; 追踪链路按钮=1; 已还原 ev-007665 → code=0",
    "verdict": "通过",
    "note": ""
   },
@@ -224,7 +224,7 @@
    "expect": "收到 ≥1 条 node_status",
    "impl": "ws/manager.py / stores/ws",
    "shots": [],
-   "evidence": "16s 内收到的 WS 帧：{\"log\":1,\"node_status\":16}",
+   "evidence": "16s 内收到的 WS 帧：{\"log\":1,\"node_status\":12}",
    "verdict": "通过",
    "note": ""
   },

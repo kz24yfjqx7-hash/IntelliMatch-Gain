@@ -322,7 +322,7 @@ for arch in "${ARCHES[@]}"; do
     out="${BUILD_DIR}/images/${name}-${arch}.tar.gz"
     info "[${arch}] pull ${img}"
     run docker pull --platform "linux/${arch}" "${img}"
-    run_sh "docker save '${img}' | gzip > '${out}'"
+    run_sh "docker save --platform 'linux/${arch}' '${img}' | gzip > '${out}'"
     run docker rmi -f "${img}"
     ok "→ images/${name}-${arch}.tar.gz"
   done
